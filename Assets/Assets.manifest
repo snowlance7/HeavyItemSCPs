@@ -1,0 +1,7 @@
+ManifestFileVersion: 0
+CRC: 4123549901
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: heavy_assets
+      Dependencies: {}
