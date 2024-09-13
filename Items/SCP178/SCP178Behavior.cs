@@ -143,17 +143,17 @@ namespace HeavyItemSCPs.Items.SCP178
         }
     }
 
-    [HarmonyPatch]
+    /*[HarmonyPatch]
     public class SCP178Patches
     {
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.ConnectClientToPlayerObject))]
         public static void ConnectClientToPlayerObjectPostfix()
         {
-            /*if (configEnableSCP178.Value)
+            if (configEnableSCP178.Value)
             {
                 SCP1783DVision.Instance.Init();
-            }*/
+            }
         }
 
         [HarmonyPostfix]
@@ -175,5 +175,5 @@ namespace HeavyItemSCPs.Items.SCP178
                 SCP1781Manager.Init();
             }
         }
-    }
+    }*/
 }

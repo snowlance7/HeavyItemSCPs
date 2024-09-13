@@ -44,6 +44,10 @@
         -->
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
     </PropertyGroup>
+    <ItemGroup>
+      <None Remove=".gitattributes" />
+      <None Remove=".gitignore" />
+    </ItemGroup>
 
     <!-- Primary Package References -->
     <ItemGroup>
