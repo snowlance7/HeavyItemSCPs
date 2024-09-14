@@ -6,10 +6,8 @@ Adds SCP Items that have a monster attached to them.
 
 ## SCP's
 
-### SCP-012
-
 <details>
-<summary>SCP File</summary>
+<summary>SCP-427</summary>
 
 **Item #:** SCP-427
 
@@ -43,7 +41,7 @@ SCP-427 is currently being used as a partial replacement for SCP-500 pills, as i
 
 ## Contact
 
-For issues and suggestions visit the [github](https://github.com/snowlance7/HeavyItemSCPs) or [discord]() page.
+For issues and suggestions visit the [github](https://github.com/snowlance7/HeavyItemSCPs), [PojectSCP Discord](https://discord.com/channels/1248390805463240745/1284642960415264869) page, or [Modding Discord](https://discord.com/channels/1168655651455639582/1284643210068492378).
 
 ## For collaboration or queries
 
@@ -59,5 +57,8 @@ For issues and suggestions visit the [github](https://github.com/snowlance7/Heav
 ## Credit
 
 - Models are from SCP: Unity Edition
+- [Proton Studioo](https://www.fiverr.com/proton1233?source=inbox): SCP-427 Animations
+- [Handoko Bintoro](https://www.fiverr.com/handoko_bintoro?source=inbox): SCP-427-1 Animations
 - JoeJoe: Project owner, designer, animations and executive
 - Snowy: Programmer and designer
+- Xu Xiaolan: Programming help

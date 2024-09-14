@@ -1,4 +1,4 @@
-﻿using BepInEx.Logging;
+﻿/*using BepInEx.Logging;
 using GameNetcodeStuff;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using UnityEngine.InputSystem.Utilities;
 using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using static HeavyItemSCPs.Plugin;
-using WearableItemsAPI;
+//using WearableItemsAPI;
 using HarmonyLib;
 
 /* bodyparts
@@ -25,7 +25,7 @@ using HarmonyLib;
  * 7 right hip
  * 8 crotch
  * 9 left shoulder
- * 10 right shoulder */
+ * 10 right shoulder 
 
 namespace HeavyItemSCPs.Items.SCP178
 {
@@ -45,32 +45,6 @@ namespace HeavyItemSCPs.Items.SCP178
                 Wear();
             }
         }
-
-        /*public override void Update()
-        {
-            base.Update();
-            timeSinceDelayedUpdate += Time.deltaTime;
-            if (timeSinceDelayedUpdate > 1.5f)
-            {
-                timeSinceDelayedUpdate = 0f;
-                DelayedUpdate();
-
-            }
-        }*/
-
-        /*public void DelayedUpdate()
-        {
-            if (playerWornBy != null && playerWornBy == localPlayer)
-            {
-                foreach(var scp in FindObjectsOfType<SCP1781AI>())
-                {
-                    if (!scp.meshEnabledOnClient)
-                    {
-                        scp.EnableEnemyMesh(true);
-                    }
-                }
-            }
-        }*/
 
         public override void Wear()
         {
@@ -143,7 +117,7 @@ namespace HeavyItemSCPs.Items.SCP178
         }
     }
 
-    /*[HarmonyPatch]
+    [HarmonyPatch]
     public class SCP178Patches
     {
         [HarmonyPostfix]
@@ -175,5 +149,5 @@ namespace HeavyItemSCPs.Items.SCP178
                 SCP1781Manager.Init();
             }
         }
-    }*/
-}
+    }
+}*/

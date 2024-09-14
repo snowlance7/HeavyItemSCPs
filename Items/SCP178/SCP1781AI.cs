@@ -1,4 +1,4 @@
-﻿using BepInEx.Logging;
+﻿/*using BepInEx.Logging;
 using GameNetcodeStuff;
 using System.Collections;
 using System.Collections.Generic;
@@ -337,6 +337,6 @@ namespace HeavyItemSCPs.Items.SCP178
             creatureAnimator.SetTrigger(animationName);
         }
     }
-}
+}*/
 
 // TODO: statuses: shakecamera, playerstun, drunkness, fear, insanity

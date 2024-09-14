@@ -1,4 +1,4 @@
-using BepInEx.Logging;
+/*using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
 using HeavyItemSCPs.Items.SCP427;
@@ -24,7 +24,7 @@ using static HeavyItemSCPs.Plugin;
  * 7 right hip
  * 8 crotch
  * 9 left shoulder
- * 10 right shoulder */
+ * 10 right shoulder 
 
 namespace HeavyItemSCPs.Patches
 {
@@ -57,7 +57,7 @@ namespace HeavyItemSCPs.Patches
             }
             newMaterials[originalMaterials.Length] = outlineMat;  // Add the outline material
 
-            renderer.materials = newMaterials;*/
+            renderer.materials = newMaterials;
 
             logger.LogDebug("Done");
         }
@@ -146,4 +146,4 @@ namespace HeavyItemSCPs.Patches
             return enemies;
         }
     }
-}
+}*/

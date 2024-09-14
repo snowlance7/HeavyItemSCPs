@@ -277,7 +277,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private void CalculateAgentSpeed()
         {
-            if (stunNormalizedTimer > 0f || currentBehaviourStateIndex == 2 || pickingUpScrap || grabbingPlayer || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
+            if (stunNormalizedTimer > 0f || currentBehaviourStateIndex == 2 || pickingUpScrap || grabbingPlayer || throwingPlayer || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
             {
                 agent.speed = 0f;
                 agent.acceleration = 200f;
@@ -405,7 +405,7 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             GrabbableObject scrap = targetObject.GetComponent<GrabbableObject>();
 
-            if (scrap == null || scrap.isHeldByEnemy || scrap.isHeld) // TODO: Test this
+            if (scrap == null || scrap.isHeldByEnemy || scrap.isHeld)
             {
                 targetObject = null;
                 StartSearch(transform.position);
@@ -420,7 +420,7 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        public IEnumerator PickUpScrapCoroutine() // TODO: Needs testing
+        public IEnumerator PickUpScrapCoroutine()
         {
             networkAnimator.SetTrigger("pickup");
             yield return new WaitForSeconds(0.1f);
@@ -492,7 +492,7 @@ namespace HeavyItemSCPs.Items.SCP427
             heldObject = null;
         }
 
-        public void GrabTargetPlayer() // TODO: Set up to run with animation
+        public void GrabTargetPlayer() // Set up to run with animation
         {
             if (PlayerBeingThrown == null) { return; }
             PlayerControllerB player = PlayerBeingThrown;
@@ -507,17 +507,17 @@ namespace HeavyItemSCPs.Items.SCP427
             grabbingPlayer = true;
         }
 
-        public void ThrowTargetPlayer() // TODO: Set up to run with animation
+        public void ThrowTargetPlayer() // Set up to run with animation
         {
             if (PlayerBeingThrown == null) { return; }
             StartCoroutine(ThrowPlayerCoroutine());
         }
 
-        public IEnumerator ThrowPlayerCoroutine() // TODO: Test this on network
+        public IEnumerator ThrowPlayerCoroutine()
         {
             PlayerControllerB player = PlayerBeingThrown;
             grabbingPlayer = false;
-            player.transform.position = transform.position; // TODO: Test this
+            player.transform.position = transform.position;
 
             // Throw player
             logger.LogDebug("Applying force: " + throwDirection * throwForce);
@@ -557,7 +557,7 @@ namespace HeavyItemSCPs.Items.SCP427
             localPlayer.MakeCriticallyInjured(true);
         }
 
-        public override void OnCollideWithPlayer(Collider other) // TODO: This only runs on client???
+        public override void OnCollideWithPlayer(Collider other) // This only runs on client
         {
             base.OnCollideWithPlayer(other);
             //if (!throwingPlayerEnabled) { return; } // TODO: For testing, remove later
@@ -573,7 +573,7 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        public void Roar(bool chaseAfterRoar = false) // TODO: Test this on network
+        public void Roar(bool chaseAfterRoar = false)
         {
             idlingTimer = 0f;
             SetEnemyStunned(true, 3f);
