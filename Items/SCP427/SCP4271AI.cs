@@ -74,12 +74,18 @@ namespace HeavyItemSCPs.Items.SCP427
         //bool walking;
         //bool running;
         //bool roaring;
-        //bool grabbingPlayer;
-        //bool pickingUpItem;
+        bool throwingPlayer;
         //bool throwingScrap;
+        bool grabbingPlayer;
+        bool pickingUpScrap;
 
-        float timeSinceSeenPlayer = 0f;
+        float timeSinceSeenPlayer = 100f;
         float idlingTimer = 0f;
+
+        // For throwing player
+        Vector3 forwardDirection;
+        Vector3 upDirection;
+        Vector3 throwDirection;
 
 #pragma warning disable 0649
         public Transform turnCompass = null!;
@@ -92,6 +98,27 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public NetworkAnimator networkAnimator = null!;
 #pragma warning restore 0649
+
+        private NetworkVariable<NetworkBehaviourReference> _playerNetVar = new NetworkVariable<NetworkBehaviourReference>();
+
+        PlayerControllerB PlayerBeingThrown
+        {
+            get
+            {
+                return (PlayerControllerB)(NetworkBehaviour)_playerNetVar.Value;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    _playerNetVar.Value = null;
+                }
+                else
+                {
+                    _playerNetVar.Value = new NetworkBehaviourReference(value);
+                }
+            }
+        }
 
         public enum State
         {
@@ -109,13 +136,11 @@ namespace HeavyItemSCPs.Items.SCP427
             RoundManager.Instance.RefreshEnemiesList();
             HoarderBugAI.RefreshGrabbableObjectsInMapList();
 
-            SetOutsideOrInside();
+            //SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
 
             StartSearch(transform.position);
             networkAnimator.SetTrigger("startWalk");
-            //walking = true;
-            //running = false;
         }
 
         public override void Update()
@@ -127,19 +152,14 @@ namespace HeavyItemSCPs.Items.SCP427
 
             base.Update();
 
-            timeSinceSeenPlayer += Time.deltaTime;
-
-            if (currentBehaviourStateIndex == (int)State.Throwing && inSpecialAnimationWithPlayer != null && base.targetPlayer != null)
+            if (grabbingPlayer && PlayerBeingThrown == localPlayer)
             {
-                base.targetPlayer.transform.position = RightHandTransform.position; // TODO: This may not work on client
-            }
-
-            if (heldObject != null)
-            {
-                heldObject.transform.position = RightHandTransform.position + new Vector3(0f, heldObjectVerticalOffset, 0f);
+                localPlayer.transform.position = RightHandTransform.position;
             }
 
             //if (!NetworkManager.Singleton.IsServer || !NetworkManager.Singleton.IsHost) { return; } // TODO: Test this
+
+            if (currentBehaviourStateIndex == (int)State.Roaming) { timeSinceSeenPlayer += Time.deltaTime; }
 
             /*if (idlingTimer > 0f)
             {
@@ -154,66 +174,16 @@ namespace HeavyItemSCPs.Items.SCP427
 
             CalculateAgentSpeed();
 
-            if (currentBehaviourStateIndex == (int)State.Roaming && hasEnteredChaseMode)
+            if (heldObject != null)
             {
-                hasEnteredChaseMode = false;
-                //walking = true;
-                //running = false;
-                networkAnimator.SetTrigger("startWalk");
+                heldObject.transform.position = RightHandTransform.position + new Vector3(0f, heldObjectVerticalOffset, 0f);
             }
-            else if (currentBehaviourStateIndex == (int)State.Chasing && !hasEnteredChaseMode)
-            {
-                hasEnteredChaseMode = true;
-                agent.speed = 0f;
-            }
-
-            /*if (IsOwner && !inSpecialAnimation && inSpecialAnimationWithPlayer == null && state != (int)State.Throwing)
-            {
-                if (state == (int)State.Roaming)
-                {
-                    if (agent.remainingDistance <= agent.stoppingDistance + 0.1f && agent.velocity.sqrMagnitude < 0.01f)
-                    {
-                        if (walking)
-                        {
-                            walking = false;
-                            running = false;
-
-                            DoAnimationClientRpc("stopWalk");
-                        }
-                    }
-                    else if (!walking)
-                    {
-                        walking = true;
-                        running = false;
-
-                        DoAnimationClientRpc("startWalk");
-                    }
-                }
-                else if (state == (int)State.Chasing)
-                {
-                    if (!running)
-                    {
-                        running = true;
-                        walking = false;
-                        DoAnimationClientRpc("startRun");
-                    }
-                }
-            }*/
-
-            /*if (state == (int)State.Throwing && grabbingPlayer && targetPlayer != null)
-            {
-                targetPlayer.transform.position = RightHandTransform.position;
-            }*/
         }
 
         public override void DoAIInterval()
         {
             base.DoAIInterval();
-            logger.LogDebug("Doing AI Interval");
-
-            //if (!NetworkManager.Singleton.IsServer || !NetworkManager.Singleton.IsHost) { return; }
-
-            if (inSpecialAnimation || inSpecialAnimationWithPlayer != null) { return; }
+            //logger.LogDebug("Doing AI Interval");
 
             switch (currentBehaviourStateIndex)
             {
@@ -222,8 +192,6 @@ namespace HeavyItemSCPs.Items.SCP427
 
                     if (FoundClosestPlayerInRange(25f, 5f))
                     {
-                        ChangeTargetPlayerServerRpc(base.targetPlayer.actualClientId);
-
                         if (heldObject != null)
                         {
                             SwitchToBehaviourClientRpc((int)State.Throwing);
@@ -231,12 +199,19 @@ namespace HeavyItemSCPs.Items.SCP427
                         }
                         else
                         {
-                            if (timeSinceSeenPlayer > 60f)
+                            if (timeSinceSeenPlayer > 30f)
                             {
-                                idlingTimer = 0f;
-                                timeSinceSeenPlayer = 0f;
+                                SwitchToBehaviourClientRpc((int)State.Chasing);
                                 Roar(chaseAfterRoar: true);
                             }
+                            else
+                            {
+                                SwitchToBehaviourClientRpc((int)State.Chasing);
+                                networkAnimator.SetTrigger("startRun");
+                            }
+
+                            idlingTimer = 0f;
+                            timeSinceSeenPlayer = 0f;
                         }
                         break;
                     }
@@ -250,11 +225,9 @@ namespace HeavyItemSCPs.Items.SCP427
                     if (!TargetClosestPlayerInAnyCase() || (Vector3.Distance(transform.position, targetPlayer.transform.position) > 35f && !CheckLineOfSightForPosition(targetPlayer.transform.position)))
                     {
                         logger.LogDebug("Stop Targeting");
-                        ChangeTargetPlayerNullServerRpc();
+                        targetPlayer = null;
                         SwitchToBehaviourClientRpc((int)State.Roaming);
                         StartSearch(transform.position);
-                        //walking = false;
-                        //running = false;
                         networkAnimator.SetTrigger("startWalk");
                         return;
                     }
@@ -273,7 +246,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     break;
             }
         }
-
+        
         bool FoundClosestPlayerInRange(float range, float senseRange)
         {
             TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: true);
@@ -303,88 +276,9 @@ namespace HeavyItemSCPs.Items.SCP427
             return true;
         }
 
-        /*private void CalculateAgentSpeed()
-        {
-            if (stunNormalizedTimer >= 0f)
-            {
-                agent.speed = 0.1f;
-                agent.acceleration = 200f;
-                creatureAnimator.SetBool("stunned", value: true);
-                return;
-            }
-            creatureAnimator.SetBool("stunned", value: false);
-            creatureAnimator.SetFloat("speedMultiplier", Mathf.Clamp(averageVelocity / 12f * 2.5f, 0.1f, 6f));
-            float num = (base.transform.position - previousPosition).magnitude / (Time.deltaTime / 1.4f);
-            if (velocityInterval <= 0f)
-            {
-                previousVelocity = averageVelocity;
-                velocityInterval = 0.05f;
-                velocityAverageCount += 1f;
-                if (velocityAverageCount > 5f)
-                {
-                    averageVelocity += (num - averageVelocity) / 3f;
-                }
-                else
-                {
-                    averageVelocity += num;
-                    if (velocityAverageCount == 2f)
-                    {
-                        averageVelocity /= velocityAverageCount;
-                    }
-                }
-            }
-            else
-            {
-                velocityInterval -= Time.deltaTime;
-            }
-            if (base.IsOwner && averageVelocity - num > Mathf.Clamp(num * 0.17f, 2f, 100f) && num > 3f && currentBehaviourStateIndex == 1)
-            {
-                if (wallCollisionSFXDebounce > 0.5f)
-                {
-                    if (base.IsServer)
-                    {
-                        CollideWithWallServerRpc();
-                    }
-                    else
-                    {
-                        CollideWithWallClientRpc();
-                    }
-                }
-                agentSpeedWithNegative *= 0.2f;
-                wallCollisionSFXDebounce = 0f;
-            }
-            wallCollisionSFXDebounce += Time.deltaTime;
-            previousPosition = base.transform.position;
-            if (currentBehaviourStateIndex == 0)
-            {
-                agent.speed = 8f;
-                agent.acceleration = 26f;
-            }
-            else if (currentBehaviourStateIndex == 1)
-            {
-                float num2 = SpeedIncreaseRate;
-                if (Time.realtimeSinceStartup - lastTimeHit < 1f)
-                {
-                    num2 += 4.25f;
-                }
-                agentSpeedWithNegative += Time.deltaTime * num2;
-                agent.speed = Mathf.Clamp(agentSpeedWithNegative, -3f, 16f);
-                agent.acceleration = Mathf.Clamp(BaseAcceleration - averageVelocity * SpeedAccelerationEffect, 4f, 40f);
-                if (agent.acceleration > 22f)
-                {
-                    agent.angularSpeed = 800f;
-                    agent.acceleration += 20f;
-                }
-                else
-                {
-                    agent.angularSpeed = 230f;
-                }
-            }
-        }*/
-
         private void CalculateAgentSpeed()
         {
-            if (stunNormalizedTimer > 0f || inSpecialAnimation || inSpecialAnimationWithPlayer != null || currentBehaviourStateIndex == 2/* || (idlingTimer > 0f && currentBehaviourStateIndex == 0)*/)
+            if (stunNormalizedTimer > 0f || currentBehaviourStateIndex == 2 || pickingUpScrap || grabbingPlayer/* || (idlingTimer > 0f && currentBehaviourStateIndex == 0)*/)
             {
                 agent.speed = 0f;
                 agent.acceleration = 200f;
@@ -422,7 +316,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     SetEnemyStunned(true, 0.5f);
 
                     NetworkHandlerHeavy.Instance.ShakePlayerCamerasServerRpc(ScreenShakeType.Big, 15f, transform.position);
-                    //averageVelocity = 0f;
+                    averageVelocity = 0f;
                 }
                 agentSpeedWithNegative *= 0.2f; // ??
                 wallCollisionSFXDebounce = 0f;
@@ -461,7 +355,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private void MoveTowardsScrapInLineOfSight()
         {
-            if (heldObject != null || inSpecialAnimation || inSpecialAnimationWithPlayer != null) { return; }
+            if (heldObject != null) { return; }
             if (targetObject != null)
             {
                 logger.LogDebug("Trying to pick up scrap when close"); // TODO: Test this, stops working if someone picks up scrap before it is picked up?
@@ -517,21 +411,18 @@ namespace HeavyItemSCPs.Items.SCP427
                 targetObject = null;
                 StartSearch(transform.position);
                 networkAnimator.SetTrigger("startWalk");
-                //walking = true;
-                //running = false;
                 return;
             }
 
             if (Vector3.Distance(transform.position, targetObject.transform.position) < 1.5f)
             {
-                inSpecialAnimation = true;
+                pickingUpScrap = true;
                 StartCoroutine(PickUpScrapCoroutine());
             }
         }
 
         public IEnumerator PickUpScrapCoroutine() // TODO: Needs testing
         {
-            //DoAnimationClientRpc("pickup");
             networkAnimator.SetTrigger("pickup");
             yield return new WaitForSeconds(0.1f);
 
@@ -546,24 +437,19 @@ namespace HeavyItemSCPs.Items.SCP427
 
             yield return new WaitForSeconds(0.5f);
             StartSearch(transform.position);
-            inSpecialAnimation = false;
-            //walking = true;
-            //running = false;
-            //DoAnimationClientRpc("startWalk");
+            pickingUpScrap = false;
             networkAnimator.SetTrigger("startWalk");
         }
 
         public void AttemptThrowScrapAtTargetPlayer()
         {
             logger.LogDebug("Throwing held object at target player");
-            inSpecialAnimation = true;
+            //throwingScrap = true;
             StartCoroutine(ThrowScrapCoroutine());
         }
 
         public IEnumerator ThrowScrapCoroutine()
         {
-            inSpecialAnimation = true;
-
             Vector3 lastKnownPlayerPosition = targetPlayer.transform.position;
 
             networkAnimator.SetTrigger("throw");
@@ -575,15 +461,16 @@ namespace HeavyItemSCPs.Items.SCP427
                 targetPlayer.DamagePlayer(15, true, true, CauseOfDeath.Inertia);
             }
 
-            inSpecialAnimation = false;
+            //throwingScrap = false;
 
-            if (timeSinceSeenPlayer > 60f) { Roar(chaseAfterRoar: true); }
+            if (timeSinceSeenPlayer > 60f)
+            {
+                Roar(chaseAfterRoar: true);
+            }
             else
             {
                 SwitchToBehaviourClientRpc((int)State.Chasing);
                 networkAnimator.SetTrigger("startRun");
-                //running = true;
-                //walking = false;
             }
         }
 
@@ -606,91 +493,97 @@ namespace HeavyItemSCPs.Items.SCP427
             heldObject = null;
         }
 
-        public void ThrowTargetPlayer() // TODO: Test this on network
+        public void GrabTargetPlayer() // TODO: Set up to run with animation
         {
-            inSpecialAnimation = true;
-            StartCoroutine(ThrowTargetPlayerCoroutine());
-        }
+            if (PlayerBeingThrown == null) { return; }
+            PlayerControllerB player = PlayerBeingThrown;
+            player.playerRigidbody.isKinematic = false;
 
-        public IEnumerator ThrowTargetPlayerCoroutine() // TODO: Test this on network
-        {
-            targetPlayer.playerRigidbody.isKinematic = false;
-
-            Vector3 forwardDirection = transform.TransformDirection(Vector3.forward).normalized * 2;
-            Vector3 upDirection = transform.TransformDirection(Vector3.up).normalized;
-            Vector3 throwDirection = (forwardDirection + upDirection).normalized;
+            forwardDirection = transform.TransformDirection(Vector3.forward).normalized * 2;
+            upDirection = transform.TransformDirection(Vector3.up).normalized;
+            throwDirection = (forwardDirection + upDirection).normalized;
 
             // Grab player
-            logger.LogDebug("Grabbing player: " + targetPlayer.playerUsername);
-            //DoAnimationClientRpc("pickupThrow");
-            creatureAnimator.SetTrigger("pickupThrow");
-            yield return new WaitForSeconds(0.1f);
-            inSpecialAnimationWithPlayer = targetPlayer;
-            targetPlayer.inAnimationWithEnemy = this;
-            yield return new WaitForSeconds(1.32f);
-            inSpecialAnimationWithPlayer = null;
-            targetPlayer.inAnimationWithEnemy = null;
-            targetPlayer.transform.position = transform.position; // TODO: Test this
+            logger.LogDebug("Grabbing player: " + player.playerUsername);
+            grabbingPlayer = true;
+        }
+
+        public void ThrowTargetPlayer() // TODO: Set up to run with animation
+        {
+            if (PlayerBeingThrown == null) { return; }
+            StartCoroutine(ThrowPlayerCoroutine());
+        }
+
+        public IEnumerator ThrowPlayerCoroutine() // TODO: Test this on network
+        {
+            PlayerControllerB player = PlayerBeingThrown;
+            grabbingPlayer = false;
+            player.transform.position = transform.position; // TODO: Test this
 
             // Throw player
             logger.LogDebug("Applying force: " + throwDirection * throwForce);
-            targetPlayer.playerRigidbody.velocity = Vector3.zero;
-            targetPlayer.externalForceAutoFade += throwDirection * throwForce;
-            yield return new WaitUntil(() => targetPlayer.thisController.isGrounded || targetPlayer.isPlayerDead);
+            player.playerRigidbody.velocity = Vector3.zero;
+            player.externalForceAutoFade += throwDirection * throwForce;
 
-            targetPlayer.playerRigidbody.isKinematic = true;
-            inSpecialAnimation = false;
+            yield return new WaitUntil(() => localPlayer.thisController.isGrounded || localPlayer.isPlayerDead || throwingPlayer == false);
+
+            player.playerRigidbody.isKinematic = true;
             logger.LogDebug("Grounded");
 
             // Damage player
-            targetPlayer.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
-            if (targetPlayer.isPlayerDead)
+            player.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
+            if (localPlayer == PlayerBeingThrown && !localPlayer.isPlayerDead)
             {
-                targetPlayer = null;
-            }
-            else
-            {
-                targetPlayer.drunkness = 0.1f;
-                targetPlayer.sprintMeter = Mathf.Clamp(targetPlayer.sprintMeter - 0.5f, 0f, 1f);
-                if (!targetPlayer.criticallyInjured) { targetPlayer.playerBodyAnimator.SetBool("Limp", true); }
-                //ShakePlayerCameraIfCloseOnClient(ScreenShakeType.Big, 10f, targetPlayer.transform.position);
+                PlayerHitGroundServerRpc();
             }
 
-            Roar(chaseAfterRoar: true, noLimpAfterRoar: true);
+            InjureLocalPlayer();
 
-            yield return new WaitUntil(() => stunNormalizedTimer <= 0f);
-            if (!targetPlayer.criticallyInjured) { targetPlayer.playerBodyAnimator.SetBool("Limp", false); }
-        }
+            throwingPlayer = false;
+            logger.LogDebug("Finished throwing player");
 
-        private void ShakePlayerCameraIfCloseOnClient(ScreenShakeType type, float distance, Vector3 position)
-        {
-            float num = Vector3.Distance(localPlayer.transform.position, position);
-            if (num < distance)
+            if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
             {
-                HUDManager.Instance.ShakeCamera(type);
-            }
-            else if (num < distance * 2f)
-            {
-                if ((int)type - 1 >= 0) { HUDManager.Instance.ShakeCamera((ScreenShakeType)((int)type - 1)); }
+                targetPlayer = player;
+
+                logger.LogDebug("Roaring");
+                Roar(chaseAfterRoar: true);
             }
         }
 
-        public void Roar(bool chaseAfterRoar = false, bool noLimpAfterRoar = false) // TODO: Test this on network
+        public void InjureLocalPlayer()
         {
-            inSpecialAnimation = true;
+            localPlayer.JumpToFearLevel(0.8f);
+            localPlayer.drunkness = 0.1f;
+            localPlayer.MakeCriticallyInjured(true);
+        }
+
+        public override void OnCollideWithPlayer(Collider other) // TODO: This only runs on client???
+        {
+            base.OnCollideWithPlayer(other);
+            //if (!throwingPlayerEnabled) { return; } // TODO: For testing, remove later
+            PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
+            if (player != null && currentBehaviourStateIndex != (int)State.Throwing && !throwingPlayer)
+            {
+                logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
+                logger.LogDebug("Throwing player");
+
+                throwingPlayer = true;
+
+                ThrowPlayerServerRpc((int)player.actualClientId);
+            }
+        }
+
+        public void Roar(bool chaseAfterRoar = false) // TODO: Test this on network
+        {
             idlingTimer = 0f;
             SetEnemyStunned(true, 3f);
-            StartCoroutine(RoarCoroutine(chaseAfterRoar, noLimpAfterRoar));
-            /*if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
-            {
-                StartCoroutine(RoarCoroutine(chaseAfterRoar, noLimpAfterRoar));
-            }*/
+            StartCoroutine(RoarCoroutine(chaseAfterRoar));
         }
 
-        public IEnumerator RoarCoroutine(bool chaseAfterRoar = false, bool noLimpAfterRoar = false)
+        public IEnumerator RoarCoroutine(bool chaseAfterRoar = false)
         {
             creatureVoice.PlayOneShot(roarSFX, 1f);
-            //DoAnimationClientRpc("roar");
             networkAnimator.SetTrigger("roar");
             foreach (var player in StartOfRound.Instance.allPlayerScripts.Where(x => Vector3.Distance(x.transform.position, transform.position) < 15f)) // TODO: set up networking
             {
@@ -698,18 +591,10 @@ namespace HeavyItemSCPs.Items.SCP427
             }
             yield return new WaitUntil(() => stunNormalizedTimer <= 0f);
 
-            inSpecialAnimation = false;
-            if (noLimpAfterRoar)
-            {
-                if (!targetPlayer.criticallyInjured) { targetPlayer.playerBodyAnimator.SetBool("Limp", false); } // TODO: set up networking
-            }
             if (chaseAfterRoar)
             {
-                //running = true;
-                //walking = false;
                 SwitchToBehaviourClientRpc((int)State.Chasing);
                 networkAnimator.SetTrigger("startRun");
-                //DoAnimationClientRpc("startRun");
             }
         }
 
@@ -738,23 +623,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 //running = false;
                 //walking = false;
                 //creatureAnimator.SetTrigger("stopWalk");
-                //DoAnimationClientRpc("stopWalk");
-            }
-        }
-
-        public override void OnCollideWithPlayer(Collider other) // TODO: This only runs on client???
-        {
-            base.OnCollideWithPlayer(other);
-            if (!throwingPlayerEnabled) { return; } // TODO: For testing, remove later
-            PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
-            if (player != null && currentBehaviourStateIndex != (int)State.Throwing)
-            {
-                logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
-                logger.LogDebug("Throwing player");
-                ChangeTargetPlayerServerRpc(player.actualClientId);
-                SwitchToBehaviourClientRpc((int)State.Throwing);
-                //ThrowTargetPlayerServerRpc();
-                ThrowTargetPlayer();
+                //DoAnimationClientRpc("stopWalk"); // TODO: Set this up
             }
         }
 
@@ -769,7 +638,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 {
                     KillEnemyOnOwnerClient();
                 }
-                else
+                else if (!throwingPlayer && !pickingUpScrap && !grabbingPlayer)
                 {
                     Roar(chaseAfterRoar: true);
                 }
@@ -779,7 +648,15 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void KillEnemy(bool destroy = false)
         {
             CancelSpecialAnimationWithPlayer();
-            inSpecialAnimation = false;
+            StopAllCoroutines();
+            grabbingPlayer = false;
+            throwingPlayer = false;
+
+            if (PlayerBeingThrown != null)
+            {
+                PlayerBeingThrown.playerRigidbody.isKinematic = true;
+                PlayerBeingThrown.disableMoveInput = false;
+            }
 
             targetObject = null;
             DropItem(transform.position);
@@ -792,62 +669,34 @@ namespace HeavyItemSCPs.Items.SCP427
             return;
         }
 
-        public override void CancelSpecialAnimationWithPlayer()
+        // RPC's
+
+        [ServerRpc(RequireOwnership = false)]
+        private void ThrowPlayerServerRpc(int clientId)
         {
-            if ((bool)inSpecialAnimationWithPlayer)
+            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
-                inSpecialAnimationWithPlayer.playerRigidbody.isKinematic = true;
-                inSpecialAnimationWithPlayer.inSpecialInteractAnimation = false;
-                inSpecialAnimationWithPlayer.snapToServerPosition = false;
-                inSpecialAnimationWithPlayer.inAnimationWithEnemy = null;
-                inSpecialAnimationWithPlayer = null;
+                PlayerBeingThrown = NetworkHandlerHeavy.PlayerFromId((ulong)clientId);
+                throwingPlayer = true;
+
+                SwitchToBehaviourClientRpc((int)State.Throwing);
+                networkAnimator.SetTrigger("pickupThrow");
             }
         }
 
-        // RPC's
-
-        /*[ClientRpc]
-        private void DoAnimationClientRpc(string animationName)
-        {
-            logger.LogDebug("Animation: " + animationName);
-            creatureAnimator.SetTrigger(animationName);
-        }*/
-
         [ServerRpc(RequireOwnership = false)]
-        private void ThrowTargetPlayerServerRpc()
+        private void PlayerHitGroundServerRpc()
         {
-            ThrowTargetPlayerClientRpc();
+            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
+            {
+                PlayerHitGroundClientRpc();
+            }
         }
 
         [ClientRpc]
-        private void ThrowTargetPlayerClientRpc()
+        private void PlayerHitGroundClientRpc()
         {
-            logger.LogDebug("Throwing player coroutine");
-            ThrowTargetPlayer();
-        }
-
-        [ServerRpc(RequireOwnership = false)]
-        private void ChangeTargetPlayerServerRpc(ulong clientId)
-        {
-            ChangeTargetPlayerClientRpc(clientId);
-        }
-
-        [ClientRpc]
-        private void ChangeTargetPlayerClientRpc(ulong clientId)
-        {
-            base.targetPlayer = NetworkHandlerHeavy.PlayerFromId(clientId);
-        }
-
-        [ServerRpc(RequireOwnership = false)]
-        private void ChangeTargetPlayerNullServerRpc()
-        {
-            ChangeTargetPlayerNullClientRpc();
-        }
-
-        [ClientRpc]
-        private void ChangeTargetPlayerNullClientRpc()
-        {
-            base.targetPlayer = null;
+            throwingPlayer = false;
         }
 
         [ClientRpc]
