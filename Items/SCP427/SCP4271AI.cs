@@ -136,7 +136,7 @@ namespace HeavyItemSCPs.Items.SCP427
             RoundManager.Instance.RefreshEnemiesList();
             HoarderBugAI.RefreshGrabbableObjectsInMapList();
 
-            //SetOutsideOrInside();
+            SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
 
             StartSearch(transform.position);
@@ -157,20 +157,19 @@ namespace HeavyItemSCPs.Items.SCP427
                 localPlayer.transform.position = RightHandTransform.position;
             }
 
-            //if (!NetworkManager.Singleton.IsServer || !NetworkManager.Singleton.IsHost) { return; } // TODO: Test this
+            if (!(NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)) { return; } // TODO: Test this
 
             if (currentBehaviourStateIndex == (int)State.Roaming) { timeSinceSeenPlayer += Time.deltaTime; }
 
-            /*if (idlingTimer > 0f)
+            if (idlingTimer > 0f && currentBehaviourStateIndex == (int)State.Roaming && (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost))
             {
                 idlingTimer -= Time.deltaTime;
 
                 if (idlingTimer <= 0f && currentBehaviourStateIndex == (int)State.Roaming)
                 {
-                    //DoAnimationClientRpc("startWalk");
-                    creatureAnimator.SetTrigger("startWalk");
+                    networkAnimator.SetTrigger("startWalk");
                 }
-            }*/
+            }
 
             CalculateAgentSpeed();
 
@@ -278,7 +277,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private void CalculateAgentSpeed()
         {
-            if (stunNormalizedTimer > 0f || currentBehaviourStateIndex == 2 || pickingUpScrap || grabbingPlayer/* || (idlingTimer > 0f && currentBehaviourStateIndex == 0)*/)
+            if (stunNormalizedTimer > 0f || currentBehaviourStateIndex == 2 || pickingUpScrap || grabbingPlayer || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
             {
                 agent.speed = 0f;
                 agent.acceleration = 200f;
@@ -619,11 +618,8 @@ namespace HeavyItemSCPs.Items.SCP427
                     creatureVoice.PlayOneShot(warningRoarSFX, 1f);
                 }
 
-                //idlingTimer = 2f;
-                //running = false;
-                //walking = false;
-                //creatureAnimator.SetTrigger("stopWalk");
-                //DoAnimationClientRpc("stopWalk"); // TODO: Set this up
+                idlingTimer = 2f;
+                networkAnimator.SetTrigger("stopWalk");
             }
         }
 

@@ -13,6 +13,7 @@ using UnityEngine.UIElements;
 using HarmonyLib;
 using static HeavyItemSCPs.Plugin;
 using SCPItems;
+using Unity.Netcode.Components;
 
 namespace HeavyItemSCPs.Items.SCP427
 {
@@ -41,19 +42,18 @@ namespace HeavyItemSCPs.Items.SCP427
 
         float timeOnGround = 0f;
         float timeSinceLastHeal = 0f;
-        float timeSinceLastHealOpen = 0f;
 
         bool playedPassiveTransformationSound = false;
 
-        public AudioSource ItemSFX;
-
-        public AudioClip PassiveTransformationSFX;
-        public AudioClip FullTransformationSFX;
-
-        public GameObject Orb;
-        public Animator itemAnimator;
+#pragma warning disable 0649
+        public AudioSource ItemSFX = null!;
+        public AudioClip PassiveTransformationSFX = null!;
+        public AudioClip FullTransformationSFX = null!;
+        public Animator itemAnimator = null!;
+#pragma warning restore 0649
 
         bool open = false;
+        float multiplier = 1f;
 
 
         public override void Start()
@@ -72,6 +72,7 @@ namespace HeavyItemSCPs.Items.SCP427
             inInventoryCounts = configIncreaseTimeWhenInInventory.Value;
 
             if (enableOpenNecklace) { itemProperties.toolTips = ["Open [LMB]"]; }
+            //Orb.SetActive(true);
         }
 
         public override void Update()
@@ -84,32 +85,44 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (!isHeld) { playedPassiveTransformationSound = false; }
 
-            if (isHeld && playerHeldBy != null && playerHeldBy == localPlayer && !isBeingUsed) // Held by local player
+            if (isHeld && playerHeldBy != null && playerHeldBy == localPlayer/* && !isBeingUsed*/) // Held by local player
             {
                 if (isHeld && isPocketed && !inInventoryCounts) { return; }
 
                 if (timeSinceLastHeal > 1f)
                 {
-                    HealPlayer(healthPerSecond);
+                    if (open) { HealPlayer(healthPerSecondOpen); }
+                    else { HealPlayer(healthPerSecond); }
                     timeSinceLastHeal = 0f;
                 }
 
                 if (timeToTransform != -1 && !transformingEntity && !SCP500Compatibility.IsLocalPlayerAffectedBySCP500)
                 {
-                    timeSCP427HeldByLocalPlayer += Time.deltaTime;
+                    timeSCP427HeldByLocalPlayer += Time.deltaTime * multiplier;
 
+                    //logger.LogDebug($"Increasing time held by local player by {Time.unscaledDeltaTime}");
                     logger.LogDebug($"Time held by local player: {timeSCP427HeldByLocalPlayer}");
 
+                    // Play passive transformation sound
                     if (timeSCP427HeldByLocalPlayer >= timeToTransform / 2 && timeSCP427HeldByLocalPlayer <= timeToTransform / 2 + 1f && !playedPassiveTransformationSound)
                     {
                         logger.LogDebug("Playing 1/2 transform sound");
-                        ItemSFX.PlayOneShot(PassiveTransformationSFX, 0.5f);
+                        ItemSFX.PlayOneShot(PassiveTransformationSFX, 1f);
                         playedPassiveTransformationSound = true;
                     }
 
+                    // Transform player if time is up
                     if (timeSCP427HeldByLocalPlayer >= timeToTransform && !StartOfRound.Instance.inShipPhase)
                     {
                         logger.LogDebug("Transforming player");
+                        if (open)
+                        {
+                            open = false;
+                            itemAnimator.SetTrigger("close");
+                            ItemSFX.Stop();
+                            multiplier = 1f;
+                        }
+
                         transformingEntity = true;
                         TransformPlayer();
                     }
@@ -194,7 +207,7 @@ namespace HeavyItemSCPs.Items.SCP427
                         if (FindObjectsOfType<SCP427Behavior>().Count() >= maxSpawns) { return; } // TODO: This may cause errors?
                         logger.LogDebug("Spawning SCP-427-1");
                         timeToSpawnSCP4271 += timeToSpawnSCP4271;
-                        SpawnSCP4271(transform.position);
+                        SpawnSCP4271ServerRpc(transform.position);
                     }
                 }
             }
@@ -207,35 +220,12 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 if (StartOfRound.Instance.inShipPhase) { return; }
                 if (!enableOpenNecklace || transformingEntity) { return; }
+                logger.LogDebug("Button was pressed");
 
-                if (!open)
-                {
-                    itemAnimator.SetTrigger("open");
-                    open = true;
-                    Orb.SetActive(true);
-                }
-                if (!ItemSFX.isPlaying) { ItemSFX.Play(); }
-
-                timeSinceLastHealOpen += Time.deltaTime;
-
-                if (timeSinceLastHealOpen > 1f)
-                {
-                    HealPlayer(healthPerSecondOpen);
-                    timeSinceLastHealOpen = 0f;
-                }
-
-                if (playerHeldBy != null && timeToTransform != -1 && !SCP500Compatibility.IsLocalPlayerAffectedBySCP500)
-                {
-                    timeSCP427HeldByLocalPlayer += Time.deltaTime * transformOpenMultiplier;
-                    logger.LogDebug($"Time SCP-427 Held: {timeSCP427HeldByLocalPlayer}");
-
-                    if (timeSCP427HeldByLocalPlayer >= timeToTransform)
-                    {
-                        logger.LogDebug("Transforming Local Player");
-                        transformingEntity = true;
-                        TransformPlayer();
-                    }
-                }
+                open = true;
+                ItemSFX.Play();
+                itemAnimator.SetTrigger("open");
+                multiplier = transformOpenMultiplier;
             }
             else
             {
@@ -243,8 +233,8 @@ namespace HeavyItemSCPs.Items.SCP427
                 logger.LogDebug("Button was released");
                 open = false;
                 itemAnimator.SetTrigger("close");
-                Orb.SetActive(false);
                 ItemSFX.Stop();
+                multiplier = 1f;
             }
         }
 
@@ -273,7 +263,7 @@ namespace HeavyItemSCPs.Items.SCP427
             Vector3 spawnPos = player.deadBody.transform.position;
 
             Destroy(player.deadBody.gameObject);
-            SpawnSCP4271(spawnPos);
+            SpawnSCP4271ServerRpc(spawnPos);
 
             transformingEntity = false;
         }
@@ -306,16 +296,8 @@ namespace HeavyItemSCPs.Items.SCP427
                 enemy.thisNetworkObject.Despawn();
             }
 
-            SpawnSCP4271(spawnPos);
+            SpawnSCP4271ServerRpc(spawnPos);
             transformingEntity = false;
-        }
-
-        public void SpawnSCP4271(Vector3 spawnPos)
-        {
-            logger.LogDebug("Spawning SCP-427-1");
-
-            int index = RoundManager.Instance.currentLevel.Enemies.FindIndex(x => x.enemyType.name == "SCP4271Enemy");
-            RoundManager.Instance.SpawnEnemyOnServer(spawnPos, UnityEngine.Random.Range(0f, 360f), index);
         }
 
         public void HealPlayer(int health)
@@ -344,6 +326,18 @@ namespace HeavyItemSCPs.Items.SCP427
         }
 
         // RPCs
+
+        [ServerRpc(RequireOwnership = false)]
+        public void SpawnSCP4271ServerRpc(Vector3 spawnPos)
+        {
+            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
+            {
+                logger.LogDebug("Spawning SCP-427-1");
+
+                int index = RoundManager.Instance.currentLevel.Enemies.FindIndex(x => x.enemyType.name == "SCP4271Enemy");
+                RoundManager.Instance.SpawnEnemyOnServer(spawnPos, UnityEngine.Random.Range(0f, 360f), index);
+            }
+        }
     }
 
     [HarmonyPatch]

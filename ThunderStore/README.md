@@ -2,7 +2,7 @@
 
 ## Description
 
-Adds some SCP Items to the game 
+Adds SCP Items that have a monster attached to them.
 
 ## SCP's
 
@@ -10,31 +10,46 @@ Adds some SCP Items to the game
 
 <details>
 <summary>SCP File</summary>
-**Item #:** SCP-012
 
-**Object Class:** Euclid
+**Item #:** SCP-427
 
-**Special Containment Procedures:** SCP-012 is to be kept in a darkened room at all times. If the object is exposed to light or seen by personnel using a light frequency other than infrared, remove personnel for mental health screening and immediate physical. Object is to be encased in an iron-shielded box, suspended from the ceiling with a minimum clearance of 2.5 m (8 ft) from the floor, walls, and any openings.
+**Object Class:** Safe* (see containment procedures)
 
-**Description:** SCP-012 was retrieved by Archaeologist K.M. Sandoval during the excavation of a northern Italian tomb destroyed in a recent storm. The object, a piece of handwritten musical score entitled "On Mount Golgotha", part of a larger set of sheet music, appears to be incomplete. The red/black ink, first thought to be some form of berry or natural dye ink, was later found to be human blood from multiple subjects. The first personnel to locate the sheet (Site 19 Special Salvage) had two (2) members descend into insanity, attempting to use their own blood to finish the composition, ultimately resulting in massive blood loss and internal trauma.
+**Special Containment Procedures:** SCP-427 displays no means of self-locomotion or malicious intent at this time, and requires only minimal containment. Due to SCP-427's adverse effects, only medical staff of Class 3 or above may handle or utilize it.
 
-Following initial investigations, multiple test subjects were allowed access to the score. In every case, the subjects mutilated themselves in order to use their own blood to finish the piece, resulting in subsequent symptoms of psychosis and massive trauma. Those subjects who managed to finish a section of the piece immediately committed suicide, declaring the piece to be "impossible to complete". Attempts to perform the music have resulted in a disagreeable cacophony, with each instrumental part having no correlation or harmony with the other instruments.
-</details>
+All personnel using SCP-427 must record their total time using it in order to avoid unwanted mutations.
 
-<details>
-<summary>Behavior</summary>
+*Instances of SCP-427-1 (colloquially referred to as "Flesh Beasts") created by SCP-427 must be killed immediately as it is impossible to communicate with or experiment on them safely. For this reason instances of SCP-427-1 are classified as Keter.
+
+**Description:** SCP-427 is a small, spherical, ornately carved locket made of a polished silver material. The ornate carvings do not seem to serve any function; it is unknown whether SCP-427's outer casing was crafted by sentients or not. Its circumference at its widest point is roughly 3 cm.
+
+SCP-427 was created after placing a pill of SCP-500 in the Input booth of SCP-914 and using the Fine setting. It displays no unusual activity when closed. When opened, a small glowing orb is visible at the center. The orb emits no radiation or energy aside from the visible spectrum.
+
+When SCP-427 is opened and exposed to biological tissue, it rapidly regenerates cellular damage and somehow is able to purge invading compounds or infections. As a standard of measure, the common cold takes 3 to 10 days to be worked through the human immune system and eventually removed. In the presence of an opened SCP-427, this time is reduced to 2 to 4 minutes. Its healing abilities are directional, so anything not in line of sight with the central orb experiences no effects.
+
+However, long-term exposure produces a significant health hazard. As the locket heals damage, it optimizes the body's natural systems. Resistance to disease and toxins is increased by 500% compared to accepted LD50 or death-rate values after a total of 10 minutes of exposure, and 1000% after 15. After 15 minutes of exposure, muscular systems begin optimizing, increasing strength and pain tolerance by 200-300%. All other systems continue to optimize. Class-D personnel exposed to the device for over an hour total began mutating into a shapeless mass of tissue. The conversion time accelerates with continued exposure to SCP-427.
+
+The "Flesh Beasts" (so named due to their appearance) created by SCP-427 are incredibly aggressive, attacking any and all personnel on sight with lethal results. They are highly resistant to most known weaponry, but can be disabled with sufficient shock trauma or heat in excess of 1100 degrees Celsius (2000 degrees Fahrenheit). Intelligence cannot be accurately gauged, but mapping of biological enhancement of the brain as a direct relationship with optimization of other systems suggests intelligence could exceed levels measured in humans when fully transformed.
+
+SCP-427 is currently being used as a partial replacement for SCP-500 pills, as it can cure almost anything SCP-500 is able to. All "optimizations" imparted by SCP-427 are cumulative. Oversight has deemed the side effects an "acceptable risk" but users must carefully record their total exposure time as sufficient mutations are grounds for termination.
 
 </details>
 
 ## Future SCPs
 
-- 
+- SCP-178
+- SCP-323
+- SCP-513
 
 ## Contact
 
-For issues and suggestions visit the [github]() or [discord]() page.
+For issues and suggestions visit the [github](https://github.com/snowlance7/HeavyItemSCPs) or [discord]() page.
 
-## For collaboration or commissions
+## For collaboration or queries
+
+### JoeJoe
+
+- Discord: [JoeJoe](https://discord.com/users/167920913289838592)
 
 ### Snowy
 - Discord: [Snowy](https://discord.com/users/327989194087727107)
@@ -43,3 +58,6 @@ For issues and suggestions visit the [github]() or [discord]() page.
 
 ## Credit
 
+- Models are from SCP: Unity Edition
+- JoeJoe: Project owner, designer, animations and executive
+- Snowy: Programmer and designer
