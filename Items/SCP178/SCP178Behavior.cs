@@ -1,4 +1,4 @@
-﻿/*using BepInEx.Logging;
+﻿using BepInEx.Logging;
 using GameNetcodeStuff;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,11 +25,11 @@ using HarmonyLib;
  * 7 right hip
  * 8 crotch
  * 9 left shoulder
- * 10 right shoulder 
+ * 10 right shoulder */
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    internal class SCP178Behavior : WearableItem
+    /*internal class SCP178Behavior : WearableItem
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -115,9 +115,9 @@ namespace HeavyItemSCPs.Items.SCP178
                 SCP1781Manager.EnableAll1781Meshes(false);
             }
         }
-    }
+    }*/
 
-    [HarmonyPatch]
+    /*[HarmonyPatch]
     public class SCP178Patches
     {
         [HarmonyPostfix]
@@ -134,7 +134,7 @@ namespace HeavyItemSCPs.Items.SCP178
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.DespawnPropsAtEndOfRound))]
         public static void DespawnPropsAtEndOfRoundPostfix()
         {
-            if (SCP1781Manager.Instance != null)
+            if (configEnableSCP178.Value && SCP1781Manager.Instance != null)
             {
                 Object.Destroy(SCP1781Manager.Instance.gameObject);
             }
@@ -144,10 +144,10 @@ namespace HeavyItemSCPs.Items.SCP178
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnShipLandedMiscEvents))]
         public static void OnShipLandedMiscEventsPostfix()
         {
-            if (SCP1781Manager.Instance == null && SCP1781Manager.PlayersWearing178.Count > 0)
+            if (configEnableSCP178.Value && SCP1781Manager.Instance == null && SCP1781Manager.PlayersWearing178.Count > 0)
             {
                 SCP1781Manager.Init();
             }
         }
-    }
-}*/
+    }*/
+}

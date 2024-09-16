@@ -145,12 +145,12 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public override void Update()
         {
+            base.Update();
+
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
             {
                 return;
             };
-
-            base.Update();
 
             if (grabbingPlayer && PlayerBeingThrown == localPlayer)
             {
@@ -183,6 +183,11 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.DoAIInterval();
             //logger.LogDebug("Doing AI Interval");
+
+            if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
+            {
+                return;
+            };
 
             switch (currentBehaviourStateIndex)
             {
@@ -552,9 +557,10 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void InjureLocalPlayer()
         {
+            localPlayer.sprintMeter /= 2;
             localPlayer.JumpToFearLevel(0.8f);
-            localPlayer.drunkness = 0.1f;
-            localPlayer.MakeCriticallyInjured(true);
+            localPlayer.drunkness = 0.2f;
+            //localPlayer.MakeCriticallyInjured(true);
         }
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
@@ -576,7 +582,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public void Roar(bool chaseAfterRoar = false)
         {
             idlingTimer = 0f;
-            SetEnemyStunned(true, 3f);
+            SetEnemyStunned(true, 3.2f);
             StartCoroutine(RoarCoroutine(chaseAfterRoar));
         }
 
@@ -647,11 +653,12 @@ namespace HeavyItemSCPs.Items.SCP427
             StopAllCoroutines();
             grabbingPlayer = false;
             throwingPlayer = false;
+            pickingUpScrap = false;
 
             if (PlayerBeingThrown != null)
             {
                 PlayerBeingThrown.playerRigidbody.isKinematic = true;
-                PlayerBeingThrown.disableMoveInput = false;
+                //PlayerBeingThrown.disableMoveInput = false;
             }
 
             targetObject = null;
@@ -714,7 +721,7 @@ namespace HeavyItemSCPs.Items.SCP427
             // SCP4271Enemy
             EnemyAICollisionDetect enemyCollider = other.gameObject.GetComponent<EnemyAICollisionDetect>();
 
-            if (enemyCollider != null && !enemyCollider.mainScript.isEnemyDead && enemyCollider.mainScript.enemyType.name == "SCP4271Enemy" && !__instance.hasExploded)
+            if (enemyCollider != null && !enemyCollider.mainScript.isEnemyDead && enemyCollider.mainScript.enemyType.name == "SCP4271Enemy" && !__instance.hasExploded && enemyCollider.mainScript.currentBehaviourStateIndex != 0)
             {
                 __instance.SetOffMineAnimation();
                 __instance.sendingExplosionRPC = true;

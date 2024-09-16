@@ -1,4 +1,4 @@
-﻿/*using BepInEx.Logging;
+﻿using BepInEx.Logging;
 using GameNetcodeStuff;
 using System;
 using System.Collections.Generic;
@@ -133,4 +133,3 @@ namespace HeavyItemSCPs.Items.SCP178
         }
     }
 }
-*/

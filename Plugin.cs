@@ -58,7 +58,7 @@ namespace HeavyItemSCPs
         public static ConfigEntry<string> config4271CustomLevelRarities;
 
         // SCP-178 Configs
-        /*public static ConfigEntry<bool> configEnableSCP178;
+        public static ConfigEntry<bool> configEnableSCP178;
         public static ConfigEntry<int> config178MinValue;
         public static ConfigEntry<int> config178MaxValue;
 
@@ -75,7 +75,7 @@ namespace HeavyItemSCPs
         public static ConfigEntry<float> config1781DespawnTime;
         public static ConfigEntry<float> config1781WanderingWaitTime;
         public static ConfigEntry<float> config1781WanderingRadius;
-        public static ConfigEntry<float> config1781PostObservationTime;*/
+        public static ConfigEntry<float> config1781PostObservationTime;
 
         private void Awake()
         {

@@ -2,7 +2,7 @@
 
 ## Description
 
-Adds SCP Items that have a monster attached to them.
+Adds SCP Items with a monster attached to them.
 
 ## SCP's
 
