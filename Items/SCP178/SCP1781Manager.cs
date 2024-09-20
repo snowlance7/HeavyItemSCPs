@@ -37,8 +37,9 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             logger.LogDebug("Starting SCP1781Manager");
 
-            GameObject enemy = SCPItems.SCPEnemiesList.Where(x => x.name == "SCP1781Enemy").FirstOrDefault().enemyPrefab;
-            if (enemy == null) { logger.LogError("Error: Couldnt get SCP-178-1 from enemies list"); return; }
+            SCPEnemy scpEnemy = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP1781Enemy").FirstOrDefault();
+            if (scpEnemy == null) { logger.LogError("Error: Couldnt get SCP-178-1 from enemies list"); return; }
+            GameObject enemy = scpEnemy.enemyType.enemyPrefab;
 
             int count = 0;
             spawningOutsideInstances = true;

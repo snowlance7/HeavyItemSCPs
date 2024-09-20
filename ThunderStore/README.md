@@ -2,7 +2,7 @@
 
 ## Description
 
-Adds SCP Items with a monster attached to them.
+Adds some SCP Items with a monster attached to them.
 
 ## SCP's
 
@@ -62,3 +62,4 @@ For issues and suggestions visit the [github](https://github.com/snowlance7/Heav
 - JoeJoe: Project owner, designer, animations and executive
 - Snowy: Programmer and designer
 - Xu Xiaolan: Programming help
+- Testers: [lizziegirl0099](https://discord.com/users/250032260886036480), [aglitchednpc](https://discord.com/users/300819890934382594)

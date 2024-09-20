@@ -1,16 +1,8 @@
-/*using BepInEx.Logging;
-using GameNetcodeStuff;
+using BepInEx.Logging;
 using HarmonyLib;
-using HeavyItemSCPs.Items.SCP427;
-using LethalLib.Modules;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Netcode;
-using Unity.Services.Authentication;
 using UnityEngine;
-using UnityEngine.UIElements;
 using static HeavyItemSCPs.Plugin;
 
 /* bodyparts
@@ -24,7 +16,7 @@ using static HeavyItemSCPs.Plugin;
  * 7 right hip
  * 8 crotch
  * 9 left shoulder
- * 10 right shoulder 
+ * 10 right shoulder */
 
 namespace HeavyItemSCPs.Patches
 {
@@ -33,14 +25,12 @@ namespace HeavyItemSCPs.Patches
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
-        private static PlayerControllerB localPlayer { get { return StartOfRound.Instance.localPlayerController; } }
-
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
-            logger.LogDebug($"Instanity: {localPlayer.insanityLevel}");
-            logger.LogDebug($"Drunkness: {localPlayer.drunkness}");
-            logger.LogDebug($"Fear: {localPlayer.playersManager.fearLevel}");
+            //logger.LogDebug($"Instanity: {localPlayer.insanityLevel}");
+            //logger.LogDebug($"Drunkness: {localPlayer.drunkness}");
+            //logger.LogDebug($"Fear: {localPlayer.playersManager.fearLevel}");
 
             //RoundManager.Instance.PlayAudibleNoise(localPlayer.transform.position, 50f, 1f, 0, false, 0);
 
@@ -57,12 +47,20 @@ namespace HeavyItemSCPs.Patches
             }
             newMaterials[originalMaterials.Length] = outlineMat;  // Add the outline material
 
-            renderer.materials = newMaterials;
+            renderer.materials = newMaterials;*/
 
-            logger.LogDebug("Done");
+            //logger.LogDebug("Done");
+
+            /*foreach(var dungeon in RoundManager.Instance.dungeonFlowTypes) // SCPFlow
+            {
+                logger.LogDebug(dungeon.dungeonFlow.GetType().ToString());
+                logger.LogDebug(dungeon.dungeonFlow.name);
+            }*/
+            //string name = RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name;
+            //logger.LogDebug(name);
         }
 
-        [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
+        /*[HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
         {
             string msg = __instance.chatTextField.text;
@@ -71,6 +69,12 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/refresh":
+                    HoarderBugAI.RefreshGrabbableObjectsInMapList();
+                    RoundManager.Instance.RefreshLightsList();
+                    RoundManager.Instance.RefreshEnemyVents();
+                    RoundManager.Instance.RefreshEnemiesList();
+                    break;
                 case "/spawn":
                     NetworkHandlerHeavy.Instance.SpawnEnemyServerRpc("SCP-427-1", localPlayer.transform.forward);
                     break;
@@ -128,7 +132,7 @@ namespace HeavyItemSCPs.Patches
                 default:
                     break;
             }
-        }
+        }*/
 
         public static List<SpawnableEnemyWithRarity> GetEnemies()
         {
@@ -146,4 +150,4 @@ namespace HeavyItemSCPs.Patches
             return enemies;
         }
     }
-}*/
+}

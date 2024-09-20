@@ -1,8 +1,8 @@
 {
   "name": "HeavyItemSCPs",
-  "version_number": "1.0.1",
+  "version_number": "1.0.2",
   "website_url": "https://github.com/snowlance7/HeavyItemSCPs",
-  "description": "A collection of fully functional heavy item SCPs",
+  "description": "A collection of heavy item SCPs",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
     "Evaisa-LethalLib-0.16.1"
