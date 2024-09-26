@@ -22,7 +22,7 @@ namespace HeavyItemSCPs.Items.SCP427
         private static ManualLogSource logger = LoggerInstance;
 
         public static float timeSCP427HeldByLocalPlayer = 0f;
-        bool transformingEntity = false;
+        //bool transformingEntity = false;
 
         public static Dictionary<HoarderBugAI, float> LootBugHoldTimes = new Dictionary<HoarderBugAI, float>();
         public static Dictionary<BaboonBirdAI, float> BirdHoldTimes = new Dictionary<BaboonBirdAI, float>();
@@ -51,7 +51,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public Animator itemAnimator = null!;
 #pragma warning restore 0649
 
-        bool open = false;
+        bool isOpen = false;
         float multiplier = 1f;
 
 
@@ -77,8 +77,8 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.Update();
 
-            if (hasHitGround) { OpenNecklace(false); }
-            if (StartOfRound.Instance.inShipPhase || transformingEntity) { return; }
+            if (hasHitGround) { CloseNecklace(); }
+            if (StartOfRound.Instance.inShipPhase) { return; }
 
             timeSinceLastHeal += Time.deltaTime;
 
@@ -91,7 +91,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (timeSinceLastHeal > 1f)
                 {
-                    if (open) { HealPlayer(healthPerSecondOpen); }
+                    if (isOpen) { HealPlayer(healthPerSecondOpen); }
                     else { HealPlayer(healthPerSecond); }
                     timeSinceLastHeal = 0f;
                 }
@@ -113,7 +113,6 @@ namespace HeavyItemSCPs.Items.SCP427
                     // Transform player if time is up
                     if (timeSCP427HeldByLocalPlayer >= timeToTransform)
                     {
-                        TransformServerRpc(true);
                         logger.LogDebug("Transforming player");
                         localPlayer.DropAllHeldItemsAndSync();
                         TransformPlayer(localPlayer);
@@ -149,7 +148,6 @@ namespace HeavyItemSCPs.Items.SCP427
                         if (LootBugHoldTimes[bug] >= lootBugTransformTime)
                         {
                             logger.LogDebug("Transforming bug");
-                            TransformClientRpc(true);
                             TransformEnemy(bug);
                         }
                     }
@@ -177,7 +175,6 @@ namespace HeavyItemSCPs.Items.SCP427
                         if (BirdHoldTimes[bird] >= birdTransformTime)
                         {
                             logger.LogDebug("Transforming bird");
-                            TransformClientRpc(true);
                             TransformEnemy(bird);
                         }
                     }
@@ -209,36 +206,37 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.ItemActivate(used, buttonDown);
             if (StartOfRound.Instance.inShipPhase) { return; }
-            if (!enableOpenNecklace || transformingEntity) { return; }
-            OpenNecklace(buttonDown);
+            if (!enableOpenNecklace) { return; }
+            if (buttonDown)
+            {
+                OpenNecklace();
+                return;
+            }
+            CloseNecklace();
         }
 
         public override void PocketItem()
         {
             base.PocketItem();
-            OpenNecklace(false);
+            CloseNecklace();
         }
 
-        public void OpenNecklace(bool _open)
+        public void OpenNecklace()
         {
-            if (open == _open) { return; }
+            logger.LogDebug("Opening necklace");
+            itemAnimator.SetTrigger("isOpen");
+            ItemSFX.Play();
+            multiplier = transformOpenMultiplier;
+            isOpen = true;
+        }
 
-            open = _open;
-
-            if (open)
-            {
-                logger.LogDebug("Opening necklace");
-                itemAnimator.SetTrigger("open");
-                ItemSFX.Play();
-                multiplier = transformOpenMultiplier;
-            }
-            else
-            {
-                logger.LogDebug("Closing necklace");
-                itemAnimator.SetTrigger("close");
-                ItemSFX.Stop();
-                multiplier = 1f;
-            }
+        public void CloseNecklace()
+        {
+            logger.LogDebug("Closing necklace");
+            itemAnimator.SetTrigger("close");
+            ItemSFX.Stop();
+            multiplier = 1f;
+            isOpen = false;
         }
 
         public void TransformPlayer(PlayerControllerB player)
@@ -262,8 +260,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 SpawnSCP4271ServerRpc(spawnPos);
             }
 
-            timeSCP427HeldByLocalPlayer = 0f;
-            TransformServerRpc(false);
+            //timeSCP427HeldByLocalPlayer = 0f;
         }
 
         private void TransformEnemy(EnemyAI enemy)
@@ -287,7 +284,6 @@ namespace HeavyItemSCPs.Items.SCP427
             }
 
             SpawnSCP4271ServerRpc(spawnPos);
-            TransformClientRpc(false);
         }
 
         public void HealPlayer(int health)
@@ -323,21 +319,6 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             EnemyAI enemy = RoundManager.Instance.SpawnedEnemies.Where(x => x.thisEnemyIndex == index).FirstOrDefault();
             if (enemy != null) { enemy.enemyHP = health; }
-        }
-
-        [ServerRpc(RequireOwnership = false)]
-        private void TransformServerRpc(bool isTransforming)
-        {
-            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
-            {
-                TransformClientRpc(isTransforming);
-            }
-        }
-
-        [ClientRpc]
-        private void TransformClientRpc(bool isTransforming)
-        {
-            transformingEntity = isTransforming;
         }
 
         [ServerRpc(RequireOwnership = false)]

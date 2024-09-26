@@ -103,14 +103,14 @@ namespace HeavyItemSCPs
             config427MinValue = Config.Bind("SCP-427", "Minimum value", 100, "The minimum value of SCP-427.");
             config427MaxValue = Config.Bind("SCP-427", "Maximum value", 150, "The maximum value of SCP-427.");
             config427LevelRarities = Config.Bind("SCP-427 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, All:10, Modded:15", "Rarities for each level. See default for formatting.");
-            config427CustomLevelRarities = Config.Bind("SCP-427 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
+            config427CustomLevelRarities = Config.Bind("SCP-427 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
             config427SCPDungeonRarity = Config.Bind("SCP-427 Rarities", "SCP Dungeon Rarity", 100, "The rarity of SCP-427 in the SCP Dungeon. Set to -1 to use level rarities.");
 
-            configEnableOpenNecklace = Config.Bind("SCP-427", "Enable open necklace", true, "Whether or not players can open the necklace.");
+            configEnableOpenNecklace = Config.Bind("SCP-427", "Enable isOpen necklace", true, "Whether or not players can isOpen the necklace.");
             configTimeToTransform = Config.Bind("SCP-427", "Time to transform", 120f, "How long a player can hold the necklace before they transform into SCP-427-1. Set to -1 to disable transforming.");
-            configTransformOpenMultiplier = Config.Bind("SCP-427", "Transform open multiplier", 3f, "The multiplier applied to the time it takes to transform when the necklace is opened. configTimeToTransform will be multiplied by this value.");
+            configTransformOpenMultiplier = Config.Bind("SCP-427", "Transform isOpen multiplier", 3f, "The multiplier applied to the time it takes to transform when the necklace is opened. configTimeToTransform will be multiplied by this value.");
             configHealthPerSecondHolding = Config.Bind("SCP-427", "Health per second holding", 5, "The health gained per second while holding SCP-427.");
-            configHealthPerSecondOpen = Config.Bind("SCP-427", "Health per second open", 10, "The health gained per second while opening SCP-427.");
+            configHealthPerSecondOpen = Config.Bind("SCP-427", "Health per second isOpen", 10, "The health gained per second while opening SCP-427.");
             configHoarderBugTransformTime = Config.Bind("SCP-427", "Hoarder bug transform time", 15f, "The time it takes for the hoarder bug to transform into SCP-427-1. Set to -1 to disable transforming.");
             configBaboonHawkTransformTime = Config.Bind("SCP-427", "Baboon hawk transform time", 10f, "The time it takes for the baboon hawk to transform into SCP-427-1. Set to -1 to disable transforming.");
             configTimeToSpawnSCP4271 = Config.Bind("SCP-427", "Time to spawn SCP-427-1", 300f, "The time it takes for SCP-427 to spawn SCP-427-1 when on the ground. Set to -1 to disable spawning from necklace.");

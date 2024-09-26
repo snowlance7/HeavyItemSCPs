@@ -101,7 +101,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private NetworkVariable<NetworkBehaviourReference> _playerNetVar = new NetworkVariable<NetworkBehaviourReference>();
 
-        PlayerControllerB PlayerBeingThrown
+        PlayerControllerB PlayerBeingThrown // TODO: Use target player instead???
         {
             get
             {
@@ -139,8 +139,9 @@ namespace HeavyItemSCPs.Items.SCP427
             SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
 
-            StartSearch(transform.position);
-            networkAnimator.SetTrigger("startWalk");
+            Roar();
+            //StartSearch(transform.position);
+            //networkAnimator.SetTrigger("startWalk");
         }
 
         public override void Update()
@@ -152,9 +153,13 @@ namespace HeavyItemSCPs.Items.SCP427
                 return;
             };
 
-            if (grabbingPlayer && PlayerBeingThrown == localPlayer)
+            /*if (grabbingPlayer && PlayerBeingThrown == localPlayer)
             {
                 localPlayer.transform.position = RightHandTransform.position;
+            }*/
+            if (grabbingPlayer && PlayerBeingThrown != null)
+            {
+                PlayerBeingThrown.transform.position = RightHandTransform.position;
             }
 
             if (!(NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)) { return; } // TODO: Test this
@@ -188,6 +193,8 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 return;
             };
+
+            if (stunNormalizedTimer > 0f) { return; }
 
             switch (currentBehaviourStateIndex)
             {
@@ -494,7 +501,7 @@ namespace HeavyItemSCPs.Items.SCP427
             itemGrabbableObject.targetFloorPosition = itemGrabbableObject.transform.parent.InverseTransformPoint(targetFloorPosition);
             itemGrabbableObject.floorYRot = -1;
             itemGrabbableObject.DiscardItemFromEnemy();
-            heldObject = null;
+            heldObject = null!;
         }
 
         public void GrabTargetPlayer() // Set up to run with animation
@@ -529,21 +536,20 @@ namespace HeavyItemSCPs.Items.SCP427
             player.playerRigidbody.velocity = Vector3.zero;
             player.externalForceAutoFade += throwDirection * throwForce;
 
-            yield return new WaitUntil(() => localPlayer.thisController.isGrounded || localPlayer.isPlayerDead || throwingPlayer == false);
+            StartCoroutine(FailsafeCoroutine(10f));
+            yield return new WaitUntil(() => player.thisController.isGrounded || player.isPlayerDead || throwingPlayer == false || player.isInHangarShipRoom);
 
             player.playerRigidbody.isKinematic = true;
             logger.LogDebug("Grounded");
 
             // Damage player
-            player.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
-            if (localPlayer == PlayerBeingThrown && !localPlayer.isPlayerDead)
+            if (localPlayer == player && !localPlayer.isPlayerDead)
             {
+                player.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
                 PlayerHitGroundServerRpc();
+                InjureLocalPlayer();
             }
 
-            InjureLocalPlayer();
-
-            throwingPlayer = false;
             logger.LogDebug("Finished throwing player");
 
             if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
@@ -553,6 +559,12 @@ namespace HeavyItemSCPs.Items.SCP427
                 logger.LogDebug("Roaring");
                 Roar(chaseAfterRoar: true);
             }
+        }
+
+        public IEnumerator FailsafeCoroutine(float time)
+        {
+            yield return new WaitForSeconds(time);
+            throwingPlayer = false;
         }
 
         public void InjureLocalPlayer()
@@ -692,6 +704,7 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
+                PlayerBeingThrown = null!;
                 PlayerHitGroundClientRpc();
             }
         }

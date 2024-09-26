@@ -1,3 +1,8 @@
+## 1.0.3
+- Some fixes to how SCP-427-1 throws players
+- AI Changes
+- Some fixes to how the necklace opens and closes
+
 ## 1.0.2
 - Added a new configs
 - Added Secret Labs level rarity and SCP Dungeon rarity
