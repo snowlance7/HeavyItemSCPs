@@ -11,7 +11,7 @@ using UnityEngine.InputSystem.Utilities;
 using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using static HeavyItemSCPs.Plugin;
-//using WearableItemsAPI;
+using WearableItemsAPI;
 using HarmonyLib;
 
 /* bodyparts
@@ -29,13 +29,13 @@ using HarmonyLib;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    /*internal class SCP178Behavior : WearableItem
+    internal class SCP178Behavior : WearableItem
     {
         private static ManualLogSource logger = LoggerInstance;
 
         float timeSinceDelayedUpdate = 0f;
 
-        public Material Anaglyph3DMaterial;
+        //public Material Anaglyph3DMaterial;
 
         public override void ItemActivate(bool used, bool buttonDown = true)
         {
@@ -59,6 +59,7 @@ namespace HeavyItemSCPs.Items.SCP178
         public override void UnWear(bool grabItem = true)
         {
             UnWearServerRpc();
+            SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
             base.UnWear(grabItem);
 
             SCP1783DVision.Instance.Enable3DVision(false);
@@ -66,9 +67,9 @@ namespace HeavyItemSCPs.Items.SCP178
 
         private IEnumerator Enable1781MeshesCoroutine()
         {
-            yield return new WaitUntil(() => NetworkHandlerHeavy.Instance.Spawned1781Instances.Value);
-            yield return new WaitForSecondsRealtime(2f);
-            SCP1781Manager.EnableAll1781Meshes(true);
+            //yield return new WaitUntil(() => NetworkHandlerHeavy.Instance.Spawned1781Instances.Value);
+            yield return new WaitForSecondsRealtime(5f);
+            SCP1781Manager.EnableAll1781MeshesOnLocalClient(true);
         }
 
         // RPCs
@@ -99,7 +100,6 @@ namespace HeavyItemSCPs.Items.SCP178
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 SCP1781Manager.PlayersWearing178.Remove(playerWornBy);
-                EnableMeshesClientRpc(false);
             }
         }
 
@@ -112,12 +112,12 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 logger.LogDebug($"localPlayer matches playerWornBy ({playerWornBy}). Enabling/Disabling meshes.");
 
-                SCP1781Manager.EnableAll1781Meshes(false);
+                SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
             }
         }
-    }*/
+    }
 
-    /*[HarmonyPatch]
+    [HarmonyPatch]
     public class SCP178Patches
     {
         [HarmonyPostfix]
@@ -149,5 +149,5 @@ namespace HeavyItemSCPs.Items.SCP178
                 SCP1781Manager.Init();
             }
         }
-    }*/
+    }
 }

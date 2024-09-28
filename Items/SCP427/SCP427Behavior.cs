@@ -77,7 +77,7 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.Update();
 
-            if (hasHitGround) { CloseNecklace(); }
+            if (hasHitGround && isOpen) { CloseNecklace(); }
             if (StartOfRound.Instance.inShipPhase) { return; }
 
             timeSinceLastHeal += Time.deltaTime;

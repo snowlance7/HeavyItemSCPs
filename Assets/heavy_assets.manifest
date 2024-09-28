@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 3872327453
+CRC: 960802964
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: bd381883ab2fa44e067aa7dbb7feb34f
+    Hash: 1fbf869391524a156e09b92bf3cb9e4e
   TypeTreeHash:
     serializedVersion: 2
-    Hash: e34978d7e7c6d1ad121a47b9769f45f0
+    Hash: 7d2ea4dcb1018dc0c1a39b081c337457
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: bd381883ab2fa44e067aa7dbb7feb34f
+    Hash: 1fbf869391524a156e09b92bf3cb9e4e
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -93,6 +93,8 @@ SerializeReferenceClassIdentifiers:
   ClassName: EnemyBehaviourState
 - AssemblyName: Assembly-CSharp
   ClassName: NavSizeLimit
+- AssemblyName: Unity.Netcode.Components
+  ClassName: Unity.Netcode.Components.NetworkAnimator/TransitionStateinfo
 Assets:
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset

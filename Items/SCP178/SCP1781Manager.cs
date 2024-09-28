@@ -13,14 +13,55 @@ namespace HeavyItemSCPs.Items.SCP178
     public class SCP1781Manager : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
+        public static bool IsAngeryAtPlayer = false;
 
-        public static SCP1781Manager Instance;
+        public static SCP1781Manager Instance = null!;
+
+        /*private static SCP1781Manager _instance = null!;
+
+        public static SCP1781Manager Instance
+        {
+            get
+            {
+                // If the instance doesn't exist, try to find it in the scene
+                if (_instance == null)
+                {
+                    _instance = FindObjectOfType<SCP1781Manager>();
+
+                    // If it's still null, create a new GameObject and add the component
+                    if (_instance == null)
+                    {
+                        GameObject singletonObject = new GameObject("SCP1781Manager");
+                        _instance = singletonObject.AddComponent<SCP1781Manager>();
+                    }
+                }
+                return _instance;
+            }
+            set
+            {
+                _instance = value;
+            }
+        }*/
         public List<GameObject> SCP1781Instances = new List<GameObject>();
 
         public static List<PlayerControllerB> PlayersWearing178 = new List<PlayerControllerB>();
-        public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
+        /*public static List<PlayerControllerB> PlayersWearing178
+        {
+            get
+            {
+                List<PlayerControllerB> players = new List<PlayerControllerB>();
+                foreach (var scp178 in FindObjectsOfType<GrabbableObject>().OfType<SCP178Behavior>())
+                {
+                    if (scp178.playerWornBy != null)
+                    {
+                        players.Add(scp178.playerWornBy);
+                    }
+                }
+                return players;
+            }
+        }*/
 
-        public bool spawningOutsideInstances = false;
+        public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
 
         private float timeSinceAIInterval = 0f;
         private float despawnTimer;
@@ -29,7 +70,8 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             if (Instance == null)
             {
-                Instance = new GameObject("SCP1781Manager").AddComponent<SCP1781Manager>();
+                GameObject singletonObject = new GameObject("SCP1781Manager");
+                Instance = singletonObject.AddComponent<SCP1781Manager>();
             }
         }
 
@@ -39,25 +81,23 @@ namespace HeavyItemSCPs.Items.SCP178
 
             SCPEnemy scpEnemy = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP1781Enemy").FirstOrDefault();
             if (scpEnemy == null) { logger.LogError("Error: Couldnt get SCP-178-1 from enemies list"); return; }
-            GameObject enemy = scpEnemy.enemyType.enemyPrefab;
+            GameObject enemyPrefab = scpEnemy.enemyType.enemyPrefab;
 
             int count = 0;
-            spawningOutsideInstances = true;
             foreach (var node in RoundManager.Instance.outsideAINodes)
             {
-                if (count >= config1781MaxCount.Value) { break; }
-                GameObject spawnableEnemy = Instantiate(enemy, node.transform.position, Quaternion.identity);
+                if (count >= config1781MaxCount.Value && config1781MaxCount.Value != -1) { break; }
+                GameObject spawnableEnemy = Instantiate(enemyPrefab, node.transform.position, Quaternion.identity);
                 spawnableEnemy.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
                 SCP1781Instances.Add(spawnableEnemy);
                 count++;
             }
 
             count = 0;
-            spawningOutsideInstances = false;
             foreach (var node in RoundManager.Instance.insideAINodes)
             {
-                if (count >= config1781MaxCount.Value) { break; }
-                GameObject spawnableEnemy = Instantiate(enemy, node.transform.position, Quaternion.identity);
+                if (count >= config1781MaxCount.Value && config1781MaxCount.Value != -1) { break; }
+                GameObject spawnableEnemy = Instantiate(enemyPrefab, node.transform.position, Quaternion.identity);
                 spawnableEnemy.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
                 SCP1781Instances.Add(spawnableEnemy);
                 count++;
@@ -91,6 +131,21 @@ namespace HeavyItemSCPs.Items.SCP178
                     Destroy(gameObject);
                 }
             }
+
+            CheckIfAngered();
+        }
+
+        public void CheckIfAngered()
+        {
+            bool angry = false;
+            foreach (var player in PlayersAngerLevels)
+            {
+                if (player.Value >= 100)
+                {
+                    angry = true;
+                }
+            }
+            IsAngeryAtPlayer = angry;
         }
 
         public void AddAngerToPlayer(PlayerControllerB player, int anger)
@@ -106,11 +161,11 @@ namespace HeavyItemSCPs.Items.SCP178
             }
         }
 
-        public static void EnableAll1781Meshes(bool enable)
+        public static void EnableAll1781MeshesOnLocalClient(bool enable)
         {
             foreach (var scp in FindObjectsOfType<SCP1781AI>())
             {
-                scp.EnableEnemyMesh(enable);
+                scp.EnableMesh(enable);
             }
         }
 
@@ -127,10 +182,10 @@ namespace HeavyItemSCPs.Items.SCP178
 
             NetworkHandlerHeavy.Instance.Spawned1781Instances.Value = false;
 
-            if (Instance == this)
+            /*if (Instance == this)
             {
                 Instance = null;
-            }
+            }*/
         }
     }
 }
