@@ -65,7 +65,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             spawnPosition = transform.position;
 
-            //SetOutsideOrInside(); // TODO: May be unneeded
+            SetOutsideOrInside(); // TODO: May be unneeded
 
             logger.LogDebug("SCP-178-1 Spawned");
         }
@@ -229,8 +229,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 SetDestinationToPosition(destination);
                 yield return new WaitForSecondsRealtime(1f);
                 yield return new WaitUntil(() => agent.remainingDistance <= agent.stoppingDistance + 0.1f && agent.velocity.sqrMagnitude < 0.01f);
-                if (SCP1781Manager.IsAngeryAtPlayer) { networkAnimator.SetTrigger("angryIdle"); }
-                else { networkAnimator.SetTrigger("passiveIdle"); }
+                networkAnimator.SetTrigger("passiveIdle");
 
                 yield return new WaitForSecondsRealtime(wanderWaitTime / 2f);
 

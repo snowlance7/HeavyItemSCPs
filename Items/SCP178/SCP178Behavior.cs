@@ -47,16 +47,16 @@ namespace HeavyItemSCPs.Items.SCP178
         public override void Wear()
         {
             base.Wear();
-            //StartCoroutine(Enable1781MeshesCoroutine());
-            //WearServerRpc();
+            StartCoroutine(Enable1781MeshesCoroutine());
+            WearServerRpc();
 
             SCP1783DVision.Instance.Enable3DVision(true);
         }
 
         public override void UnWear(bool grabItem = true)
         {
-            //UnWearServerRpc();
-            //SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
+            UnWearServerRpc();
+            SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
             base.UnWear(grabItem);
 
             SCP1783DVision.Instance.Enable3DVision(false);

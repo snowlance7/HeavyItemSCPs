@@ -13,7 +13,6 @@ namespace HeavyItemSCPs.Items.SCP178
     public class SCP1781Manager : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
-        public static bool IsAngeryAtPlayer = false;
 
         public static SCP1781Manager Instance = null!;
 
@@ -131,21 +130,6 @@ namespace HeavyItemSCPs.Items.SCP178
                     Destroy(gameObject);
                 }
             }
-
-            CheckIfAngered();
-        }
-
-        public void CheckIfAngered()
-        {
-            bool angry = false;
-            foreach (var player in PlayersAngerLevels)
-            {
-                if (player.Value >= 100)
-                {
-                    angry = true;
-                }
-            }
-            IsAngeryAtPlayer = angry;
         }
 
         public void AddAngerToPlayer(PlayerControllerB player, int anger)
