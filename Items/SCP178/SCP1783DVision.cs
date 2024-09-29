@@ -11,6 +11,7 @@ using static HeavyItemSCPs.Plugin;
 using BepInEx;
 using System.Linq;
 using UnityEngine.ProBuilder;
+using HarmonyLib;
 
 // lens distortion -0.35
 // chromatic aberration 3.5
@@ -25,7 +26,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         private GameObject camera_object;
 
-        private bool wearingGlasses = false;
+        public static bool wearingGlasses = false;
 
         private GameObject normal_filter;
 
@@ -44,6 +45,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public GameObject highlightObjectPrefab;
         public GameObject highlightObject; // The object to highlight
+
         public Material highlightMaterial;
         public GameObject lungObject;
         public Material lungMaterial;
@@ -128,12 +130,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 glasses_volume.weight = glasses_timer / glasses_response_time;
             }
 
-            /*if (wearingGlasses)
-            {
-                highlightCamera.transform.position = camera_object.transform.position;
-                highlightCamera.transform.rotation = camera_object.transform.rotation;
-                highlightCamera.Render();
-            }*/
+            
         }
 
         public void Enable3DVision(bool enable)
@@ -143,25 +140,24 @@ namespace HeavyItemSCPs.Items.SCP178
                 wearingGlasses = enable;
                 if (wearingGlasses)
                 {
-                    //normal_filter.SetActive(value: false);
+                    normal_filter.SetActive(value: false);
+
                     LungProp lung = FindObjectsOfType<LungProp>().Where(x => x.isLungDocked).FirstOrDefault(); // TODO: Test this IT WORKSSSSSSS
                     if (lung != null)
                     {
                         lungObject = lung.gameObject;
-                        lungMaterial = lungObject.GetComponentInChildren<MeshRenderer>().materials[1];
-                        lungObject.GetComponentInChildren<MeshRenderer>().materials[1] = highlightMaterial;
-                        /*if (highlightObject == null)
-                        {
-                            highlightObject = Instantiate(highlightObjectPrefab, lungObject.transform);
-                            highlightObject.SetActive(value: true);
-                        }*/
+                        lungMaterial = lungObject.GetComponentInChildren<MeshRenderer>().material;
+                        lungObject.GetComponentInChildren<MeshRenderer>().material = highlightMaterial;
                     }
-
                 }
                 else
                 {
-                    //normal_filter.SetActive(value: true);
-                    lungObject.GetComponentInChildren<MeshRenderer>().materials[1] = lungMaterial;
+                    normal_filter.SetActive(value: true);
+
+                    if (lungObject != null)
+                    {
+                        lungObject.GetComponentInChildren<MeshRenderer>().material = lungMaterial;
+                    }
                 }
             }
         }
@@ -178,6 +174,26 @@ namespace HeavyItemSCPs.Items.SCP178
                 logger.LogError(e);
                 return new Color(1.9f, 0f, 3f);
             }
-        } 
+        }
+    }
+
+    [HarmonyPatch]
+    internal class SCP1783DVisionPatches
+    {
+        private static ManualLogSource logger = LoggerInstance;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(LungProp), nameof(LungProp.EquipItem))]
+        public static void EquipItemPostfix(LungProp __instance)
+        {
+            if (__instance.isLungDocked && SCP1783DVision.wearingGlasses)
+            {
+                if (SCP1783DVision.Instance.lungMaterial != null && SCP1783DVision.Instance.lungObject != null)
+                {
+                    SCP1783DVision.Instance.lungObject.GetComponentInChildren<MeshRenderer>().material = SCP1783DVision.Instance.lungMaterial;
+                    SCP1783DVision.Instance.lungObject = null!;
+                }
+            }
+        }
     }
 }
