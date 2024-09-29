@@ -176,24 +176,4 @@ namespace HeavyItemSCPs.Items.SCP178
             }
         }
     }
-
-    [HarmonyPatch]
-    internal class SCP1783DVisionPatches
-    {
-        private static ManualLogSource logger = LoggerInstance;
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(LungProp), nameof(LungProp.EquipItem))]
-        public static void EquipItemPostfix(LungProp __instance)
-        {
-            if (__instance.isLungDocked && SCP1783DVision.wearingGlasses)
-            {
-                if (SCP1783DVision.Instance.lungMaterial != null && SCP1783DVision.Instance.lungObject != null)
-                {
-                    SCP1783DVision.Instance.lungObject.GetComponentInChildren<MeshRenderer>().material = SCP1783DVision.Instance.lungMaterial;
-                    SCP1783DVision.Instance.lungObject = null!;
-                }
-            }
-        }
-    }
 }
