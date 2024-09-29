@@ -136,9 +136,9 @@ namespace HeavyItemSCPs
             config178LevelRarities = Config.Bind("SCP-178 Rarities", "Level Rarities", "ExperimentationLevel:30, AssuranceLevel:30, VowLevel:30, OffenseLevel:25, AdamanceLevel:25, MarchLevel:25, RendLevel:20, DineLevel:20, TitanLevel:10, ArtificeLevel:15, EmbrionLevel:50, All:20, Modded:30", "Rarities for each level. See default for formatting.");
             config178CustomLevelRarities = Config.Bind("SCP-178 Rarities", "Custom Level Rarities", "", "Rarities for modded levels. Same formatting as level rarities.");
 
-            config178LensDistortion = Config.Bind("SCP-178 3D Effects", "Lens Distortion", -0.35f, "Changes the lens distortion effect of the 3D glasses.");
-            config178ChromaticAberration = Config.Bind("SCP-178 3D Effects", "Chromatic Aberration", 3.5f, "Changes the chromatic aberration effect of the 3D glasses.");
-            config178ColorTint = Config.Bind("SCP-178 3D Effects", "Color Tint", "127.5,0,306", "Changes the RGB color tint effect of the 3D glasses.");
+            config178LensDistortion = Config.Bind("SCP-178 3D Effects", "Lens Distortion", -0.2f, "Changes the lens distortion effect of the 3D glasses.");
+            config178ChromaticAberration = Config.Bind("SCP-178 3D Effects", "Chromatic Aberration", 3f, "Changes the chromatic aberration effect of the 3D glasses.");
+            config178ColorTint = Config.Bind("SCP-178 3D Effects", "Color Tint", "484.5,0,675", "Changes the RGB color tint effect of the 3D glasses.");
 
             // SCP-1781
             config1781DespawnTime = Config.Bind("SCP-1781", "Despawn time", 60f, "The time it takes for SCP-178-1 instances to despawn when not wearing the glasses.");

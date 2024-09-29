@@ -9,6 +9,8 @@ using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Rendering;
 using static HeavyItemSCPs.Plugin;
 using BepInEx;
+using System.Linq;
+using UnityEngine.ProBuilder;
 
 // lens distortion -0.35
 // chromatic aberration 3.5
@@ -39,6 +41,13 @@ namespace HeavyItemSCPs.Items.SCP178
 
         private bool initiated = false;
 
+
+        public GameObject highlightObjectPrefab;
+        public GameObject highlightObject; // The object to highlight
+        public Material highlightMaterial;
+        public GameObject lungObject;
+        public Material lungMaterial;
+
         private void Awake()
         {
             if (Instance == null)
@@ -62,7 +71,6 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void Init()
         {
-
             camera_object = localPlayer.gameplayCamera.gameObject;
             normal_filter = GameObject.Find("CustomPass");
             normal_volume = GameObject.Find("VolumeMain").GetComponent<Volume>();
@@ -89,6 +97,10 @@ namespace HeavyItemSCPs.Items.SCP178
             glasses_filter.SetActive(value: true);
             glasses_volume.weight = 0f;
             initiated = true;
+
+
+            highlightObjectPrefab = NetworkHandlerHeavy.Instance.Sphere178;
+            highlightMaterial = NetworkHandlerHeavy.Instance.OverlayMaterial;
         }
 
         private void Update()
@@ -115,6 +127,13 @@ namespace HeavyItemSCPs.Items.SCP178
                 normal_volume.weight = (glasses_response_time - glasses_timer) / glasses_response_time;
                 glasses_volume.weight = glasses_timer / glasses_response_time;
             }
+
+            /*if (wearingGlasses)
+            {
+                highlightCamera.transform.position = camera_object.transform.position;
+                highlightCamera.transform.rotation = camera_object.transform.rotation;
+                highlightCamera.Render();
+            }*/
         }
 
         public void Enable3DVision(bool enable)
@@ -124,15 +143,29 @@ namespace HeavyItemSCPs.Items.SCP178
                 wearingGlasses = enable;
                 if (wearingGlasses)
                 {
-                    normal_filter.SetActive(value: false);
+                    //normal_filter.SetActive(value: false);
+                    LungProp lung = FindObjectsOfType<LungProp>().Where(x => x.isLungDocked).FirstOrDefault(); // TODO: Test this IT WORKSSSSSSS
+                    if (lung != null)
+                    {
+                        lungObject = lung.gameObject;
+                        lungMaterial = lungObject.GetComponentInChildren<MeshRenderer>().materials[1];
+                        lungObject.GetComponentInChildren<MeshRenderer>().materials[1] = highlightMaterial;
+                        /*if (highlightObject == null)
+                        {
+                            highlightObject = Instantiate(highlightObjectPrefab, lungObject.transform);
+                            highlightObject.SetActive(value: true);
+                        }*/
+                    }
+
                 }
                 else
                 {
-                    normal_filter.SetActive(value: true);
+                    //normal_filter.SetActive(value: true);
+                    lungObject.GetComponentInChildren<MeshRenderer>().materials[1] = lungMaterial;
                 }
             }
         }
-
+        
         public static Color GetColor(string colorString)
         {
             try
@@ -143,7 +176,7 @@ namespace HeavyItemSCPs.Items.SCP178
             catch (Exception e)
             {
                 logger.LogError(e);
-                return new Color(0.5f, 0f, 1.2f);
+                return new Color(1.9f, 0f, 3f);
             }
         } 
     }

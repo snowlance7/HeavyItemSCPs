@@ -6,8 +6,9 @@ using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
-using static Netcode.Transports.Facepunch.FacepunchTransport;
+using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs
 {
@@ -16,11 +17,15 @@ namespace HeavyItemSCPs
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
         public static NetworkHandlerHeavy Instance { get; private set; }
-        public static PlayerControllerB localPlayer { get { return StartOfRound.Instance.localPlayerController; } }
 
         public static PlayerControllerB PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts[StartOfRound.Instance.ClientPlayerList[id]]; }
 
         public NetworkVariable<bool> Spawned1781Instances = new NetworkVariable<bool>(false);
+
+#pragma warning disable 0649
+        public GameObject Sphere178 = null!;
+        public Material OverlayMaterial = null!;
+#pragma warning restore 0649
 
         public override void OnNetworkSpawn()
         {
@@ -187,8 +192,8 @@ namespace HeavyItemSCPs
 
             networkPrefab = (GameObject)Plugin.ModAssets.LoadAsset("Assets/ModAssets/SharedAssets/NetworkHandlerHeavyItemSCPs.prefab");
             logger.LogDebug("Got networkPrefab");
-            networkPrefab.AddComponent<NetworkHandlerHeavy>();
-            logger.LogDebug("Added component");
+            //networkPrefab.AddComponent<NetworkHandlerHeavy>();
+            //logger.LogDebug("Added component");
 
             NetworkManager.Singleton.AddNetworkPrefab(networkPrefab);
             logger.LogDebug("Added networkPrefab");

@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 960802964
+CRC: 1994973227
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 1fbf869391524a156e09b92bf3cb9e4e
+    Hash: 24cde8beaccf98251459296dc35d05bf
   TypeTreeHash:
     serializedVersion: 2
-    Hash: 7d2ea4dcb1018dc0c1a39b081c337457
+    Hash: b99698109ec18756f9bdc648e640c8cf
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 1fbf869391524a156e09b92bf3cb9e4e
+    Hash: 24cde8beaccf98251459296dc35d05bf
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -48,6 +48,8 @@ ClassTypes:
   Script: {fileID: 11500000, guid: 04f75356a7e9c978bddc7d568e58a50b, type: 3}
 - Class: 114
   Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
+- Class: 114
+  Script: {fileID: 1339316418, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: -2111379243, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
@@ -95,11 +97,12 @@ SerializeReferenceClassIdentifiers:
   ClassName: NavSizeLimit
 - AssemblyName: Unity.Netcode.Components
   ClassName: Unity.Netcode.Components.NetworkAnimator/TransitionStateinfo
+- AssemblyName: Unity.Netcode.Runtime
+  ClassName: Unity.Netcode.NetworkVariable`1[System.Boolean]
 Assets:
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset
-- Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset
 - Assets/ModAssets/SharedAssets/NetworkHandlerHeavyItemSCPs.prefab
 - Assets/ModAssets/SCP178/SCP1781Enemy.asset

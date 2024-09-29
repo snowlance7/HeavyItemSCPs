@@ -58,6 +58,11 @@ namespace HeavyItemSCPs.Patches
             }*/
             //string name = RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name;
             //logger.LogDebug(name);
+            var shaders = Resources.FindObjectsOfTypeAll<Shader>();
+            foreach (var shader in shaders)
+            {
+                Debug.Log(shader.name);
+            }
         }
 
         /*[HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]

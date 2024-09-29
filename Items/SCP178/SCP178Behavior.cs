@@ -35,8 +35,6 @@ namespace HeavyItemSCPs.Items.SCP178
 
         float timeSinceDelayedUpdate = 0f;
 
-        //public Material Anaglyph3DMaterial;
-
         public override void ItemActivate(bool used, bool buttonDown = true)
         {
             base.ItemActivate(used, buttonDown);
@@ -49,17 +47,16 @@ namespace HeavyItemSCPs.Items.SCP178
         public override void Wear()
         {
             base.Wear();
-            StartCoroutine(Enable1781MeshesCoroutine());
-            WearServerRpc();
+            //StartCoroutine(Enable1781MeshesCoroutine());
+            //WearServerRpc();
 
-            //playerWornBy.drunkness = 0.5f;
             SCP1783DVision.Instance.Enable3DVision(true);
         }
 
         public override void UnWear(bool grabItem = true)
         {
-            UnWearServerRpc();
-            SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
+            //UnWearServerRpc();
+            //SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
             base.UnWear(grabItem);
 
             SCP1783DVision.Instance.Enable3DVision(false);
@@ -68,7 +65,7 @@ namespace HeavyItemSCPs.Items.SCP178
         private IEnumerator Enable1781MeshesCoroutine()
         {
             //yield return new WaitUntil(() => NetworkHandlerHeavy.Instance.Spawned1781Instances.Value);
-            yield return new WaitForSecondsRealtime(5f);
+            yield return new WaitForSecondsRealtime(4f);
             SCP1781Manager.EnableAll1781MeshesOnLocalClient(true);
         }
 
@@ -81,6 +78,7 @@ namespace HeavyItemSCPs.Items.SCP178
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 SCP1781Manager.PlayersWearing178.Add(playerWornBy);
+                playerWornBy.voiceMuffledByEnemy = true;
 
                 if (StartOfRound.Instance.inShipPhase) { return; }
 
@@ -100,6 +98,7 @@ namespace HeavyItemSCPs.Items.SCP178
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 SCP1781Manager.PlayersWearing178.Remove(playerWornBy);
+                playerWornBy.voiceMuffledByEnemy = false;
             }
         }
 
