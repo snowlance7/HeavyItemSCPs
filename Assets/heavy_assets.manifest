@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 2087686694
+CRC: 952054489
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 11eaffd26fc8e5f6d1e266035850dff2
+    Hash: d858a66665dcba9208f6d0f309c6aca0
   TypeTreeHash:
     serializedVersion: 2
-    Hash: b99698109ec18756f9bdc648e640c8cf
+    Hash: d84cbc3e3e10e81e339c92de9e4d9a87
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 11eaffd26fc8e5f6d1e266035850dff2
+    Hash: d858a66665dcba9208f6d0f309c6aca0
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -43,13 +43,13 @@ ClassTypes:
 - Class: 95
   Script: {instanceID: 0}
 - Class: 114
+  Script: {fileID: 1339316418, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
   Script: {fileID: 11500000, guid: 65d3fcb39dd67306e9bb17a603308070, type: 3}
 - Class: 114
   Script: {fileID: 11500000, guid: 04f75356a7e9c978bddc7d568e58a50b, type: 3}
 - Class: 114
   Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
-- Class: 114
-  Script: {fileID: 1339316418, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: -2111379243, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
@@ -97,8 +97,6 @@ SerializeReferenceClassIdentifiers:
   ClassName: NavSizeLimit
 - AssemblyName: Unity.Netcode.Components
   ClassName: Unity.Netcode.Components.NetworkAnimator/TransitionStateinfo
-- AssemblyName: Unity.Netcode.Runtime
-  ClassName: Unity.Netcode.NetworkVariable`1[System.Boolean]
 Assets:
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset

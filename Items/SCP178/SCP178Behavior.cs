@@ -47,7 +47,14 @@ namespace HeavyItemSCPs.Items.SCP178
         public override void Wear()
         {
             base.Wear();
-            StartCoroutine(Enable1781MeshesCoroutine());
+            if (NetworkHandlerHeavy.Instance.Spawned1781Instances.Value)
+            {
+                SCP1781Manager.EnableAll1781MeshesOnLocalClient(true);
+            }
+            else
+            {
+                StartCoroutine(Enable1781MeshesCoroutine());
+            }
             WearServerRpc();
 
             SCP1783DVision.Instance.Enable3DVision(true);
@@ -64,8 +71,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         private IEnumerator Enable1781MeshesCoroutine()
         {
-            //yield return new WaitUntil(() => NetworkHandlerHeavy.Instance.Spawned1781Instances.Value);
-            yield return new WaitForSecondsRealtime(4f);
+            yield return new WaitForSecondsRealtime(2.5f);
             SCP1781Manager.EnableAll1781MeshesOnLocalClient(true);
         }
 
@@ -77,6 +83,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
+                if (playerWornBy == null) { logger.LogError("playerWornBy is null."); return; }
                 SCP1781Manager.PlayersWearing178.Add(playerWornBy);
                 playerWornBy.voiceMuffledByEnemy = true;
 
@@ -97,6 +104,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
+                if (playerWornBy == null) { logger.LogError("playerWornBy is null."); return; }
                 SCP1781Manager.PlayersWearing178.Remove(playerWornBy);
                 playerWornBy.voiceMuffledByEnemy = false;
             }

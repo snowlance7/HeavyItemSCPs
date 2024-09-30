@@ -58,11 +58,6 @@ namespace HeavyItemSCPs.Patches
             }*/
             //string name = RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name;
             //logger.LogDebug(name);
-            var shaders = Resources.FindObjectsOfTypeAll<Shader>();
-            foreach (var shader in shaders)
-            {
-                Debug.Log(shader.name);
-            }
         }
 
         /*[HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
@@ -74,66 +69,7 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
-                case "/refresh":
-                    HoarderBugAI.RefreshGrabbableObjectsInMapList();
-                    RoundManager.Instance.RefreshLightsList();
-                    RoundManager.Instance.RefreshEnemyVents();
-                    RoundManager.Instance.RefreshEnemiesList();
-                    break;
-                case "/spawn":
-                    NetworkHandlerHeavy.Instance.SpawnEnemyServerRpc("SCP-427-1", localPlayer.transform.forward);
-                    break;
-                case "/testRoom":
-                    StartOfRound.Instance.Debug_EnableTestRoomServerRpc(StartOfRound.Instance.testRoom == null);
-                    break;
-                case "/fear":
-                    localPlayer.JumpToFearLevel(int.Parse(args[1]));
-                    break;
-                case "/playNoise":
-                    RoundManager.Instance.PlayAudibleNoise(localPlayer.transform.position, default, 1f, default, default, int.Parse(args[1]));
-                    break;
-                case "/drunkness":
-                    localPlayer.drunkness = float.Parse(args[1]);
-                    break;
-                case "/getLevels":
-                    logger.LogDebug("Getting levels");
-                    foreach (var level in StartOfRound.Instance.levels)
-                    {
-                        logger.LogDebug(level.name);
-                    }
-                    break; // TODO: Get custom levels so i can add the scp moons as defaults for custom levels config
-                case "/getItemTypes":
-                    List<ItemGroup> itemGroups = new List<ItemGroup>();
-                    foreach(ItemGroup itemGroup in Resources.FindObjectsOfTypeAll<ItemGroup>())
-                    {
-                        if (!itemGroups.Contains(itemGroup))
-                        {
-                            itemGroups.Add(itemGroup);
-                            logger.LogDebug(itemGroup.name);
-                        }
-                    }
-                    break;
-                case "/damageSelf":
-                    int damage = int.Parse(args[1]);
-                    localPlayer.DamagePlayer(damage);
-                    HUDManager.Instance.UpdateHealthUI(localPlayer.health, true);
-                    break;
-                case "/setHealth":
-                    localPlayer.health = int.Parse(args[1]);
-                    HUDManager.Instance.UpdateHealthUI(localPlayer.health, true);
-                    break;
-                case "/SpeedAccelerationEffect":
-                    SCP4271AI.SpeedAccelerationEffect = float.Parse(args[1]);
-                    break;
-                case "/BaseAcceleration":
-                    SCP4271AI.BaseAcceleration = float.Parse(args[1]);
-                    break;
-                case "/SpeedIncreaseRate":
-                    SCP4271AI.SpeedIncreaseRate = float.Parse(args[1]);
-                    break;
-                case "/throwing":
-                    SCP4271AI.throwingPlayerEnabled = bool.Parse(args[1]);
-                    break;
+
                 default:
                     break;
             }

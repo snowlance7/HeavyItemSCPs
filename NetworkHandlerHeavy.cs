@@ -20,10 +20,9 @@ namespace HeavyItemSCPs
 
         public static PlayerControllerB PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts[StartOfRound.Instance.ClientPlayerList[id]]; }
 
-        public NetworkVariable<bool> Spawned1781Instances = new NetworkVariable<bool>(false);
+        internal NetworkVariable<bool> Spawned1781Instances = new NetworkVariable<bool>(false);
 
 #pragma warning disable 0649
-        public GameObject Sphere178 = null!;
         public Material OverlayMaterial = null!;
 #pragma warning restore 0649
 

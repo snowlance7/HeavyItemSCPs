@@ -102,6 +102,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 count++;
             }
 
+            RoundManager.Instance.RefreshEnemiesList();
             logger.LogDebug($"Spawned {SCP1781Instances.Count} SCP-178-1 instances");
             NetworkHandlerHeavy.Instance.Spawned1781Instances.Value = true;
         }

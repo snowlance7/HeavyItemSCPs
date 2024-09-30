@@ -1,3 +1,7 @@
+## 1.1.0
+- Added SCP-178
+- Bug fixes for SCP-427
+
 ## 1.0.3
 - Some fixes to how SCP-427-1 throws players
 - AI Changes

@@ -34,10 +34,13 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public PlayerControllerB observingPlayer;
         public PlayerControllerB lastObservingPlayer;
+        float stareTime;
+        float observationTimer;
+        float postObservationTimer;
+        const float observationGracePeriod = 1f;
+        const float distanceToAddAnger = 20f;
 
         Coroutine wanderingRoutine;
-        float stareTime;
-        float postObservationTimer;
         float timeSinceLastAngerCalc;
         float timeSinceEmoteUsed;
         float timeSinceDamagePlayer = 0f;
@@ -91,16 +94,17 @@ namespace HeavyItemSCPs.Items.SCP178
 
                 if (observingPlayer != null)
                 {
+                    observationTimer += Time.deltaTime;
                     postObservationTimer = 0f;
                 }
                 else
                 {
+                    observationTimer = 0f;
                     postObservationTimer += Time.deltaTime;
                 }
             }
         }
-
-        public override void DoAIInterval()
+        public override void DoAIInterval() // TODO: make sure they are staying within their radius and go back to their spot after player is dead
         {
             base.DoAIInterval();
 
@@ -146,7 +150,7 @@ namespace HeavyItemSCPs.Items.SCP178
                         SwitchToBehaviourClientRpc((int)State.Roaming);
                         return;
                     }
-                    if (timeSinceLastAngerCalc > 1f)
+                    if (timeSinceLastAngerCalc > 1f && observingPlayer != null && observationTimer > observationGracePeriod)
                     {
                         DoAngerCalculations();
                         timeSinceLastAngerCalc = 0f;
@@ -155,11 +159,11 @@ namespace HeavyItemSCPs.Items.SCP178
 
                 case (int)State.Chasing:
                     agent.speed = 10f;
-                    agent.stoppingDistance = 3f; // TODO: Get this right
+                    agent.stoppingDistance = 2.5f; // TODO: Get this right
 
                     if (TargetPlayerIfClose())
                     {
-                        SetDestinationToPosition(targetPlayer.transform.position);
+                        SetMovingTowardsTargetPlayer(targetPlayer);
                     }
                     else
                     {
@@ -247,13 +251,15 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void DoAngerCalculations()
         {
-            //logger.LogDebug(lastObservingPlayer.playerUsername);
-            //if (lastObservingPlayer == null) { return; }
-
-            bool wearing178 = SCP1781Manager.PlayersWearing178.Contains(lastObservingPlayer);
-            logger.LogDebug($"Wearing178: {wearing178}");
+            if (observationTimer < observationGracePeriod || observingPlayer == null) { return; }
 
             int anger = 1;
+
+            bool wearing178 = SCP1781Manager.PlayersWearing178.Contains(observingPlayer);
+            logger.LogDebug($"wearing178: {wearing178}");
+
+            if (!wearing178 && !IsNearbySCP178(observingPlayer)) { return; }
+
 
             if (wearing178 && lobPlayerNoise)
             {
@@ -266,13 +272,18 @@ namespace HeavyItemSCPs.Items.SCP178
                 lobPlayerNoise = false;
             }
 
-            if (lastObservingPlayer.performingEmote && timeSinceEmoteUsed > 5f)
+            if (observingPlayer.performingEmote && timeSinceEmoteUsed > 5f)
             {
                 timeSinceEmoteUsed = 0f;
                 anger = 70;
             }
 
-            SCP1781Manager.Instance.AddAngerToPlayer(lastObservingPlayer, anger); // TODO: Isnt getting to here
+            SCP1781Manager.Instance.AddAngerToPlayer(observingPlayer, anger);
+        }
+
+        public bool IsNearbySCP178(PlayerControllerB player)
+        {
+            return FindObjectsOfType<SCP178Behavior>().Any(x => Vector3.Distance(player.transform.position, x.transform.position) < distanceToAddAnger);
         }
 
         public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet)
@@ -317,7 +328,7 @@ namespace HeavyItemSCPs.Items.SCP178
             return closestNode;
         }
 
-        public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
+        public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1) // TODO: Check if this is run on host or client
         {
             base.HitEnemy(force, playerWhoHit, playHitSFX, hitID);
 

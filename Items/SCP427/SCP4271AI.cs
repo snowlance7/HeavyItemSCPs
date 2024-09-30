@@ -54,7 +54,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public static float BaseAcceleration = 30f; // default 42f
         public static float SpeedIncreaseRate = 4f; // default 5f
 
-        public static bool throwingPlayerEnabled = true; // TESTING REMOVE LATER
+        //public static bool throwingPlayerEnabled = true; // TESTING REMOVE LATER
 
         public static float heldObjectVerticalOffset = 4f; // TODO: Get this from testing
 

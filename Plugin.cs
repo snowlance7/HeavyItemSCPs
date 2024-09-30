@@ -28,7 +28,7 @@ namespace HeavyItemSCPs
     {
         const string PLUGIN_GUID = "ProjectSCP.HeavyItemSCPs";
         const string PLUGIN_NAME = "HeavyItemSCPs";
-        const string PLUGIN_VERSION = "1.0.2";
+        const string PLUGIN_VERSION = "1.1.0";
 
         public static Plugin PluginInstance;
         public static ManualLogSource LoggerInstance;
@@ -80,7 +80,7 @@ namespace HeavyItemSCPs
 
         // SCP-178-1 Configs
         public static ConfigEntry<int> config1781MaxCount;
-        public static ConfigEntry<float> config1781RenderDistance;
+        //public static ConfigEntry<float> config1781RenderDistance;
         public static ConfigEntry<float> config1781DespawnTime;
         public static ConfigEntry<float> config1781WanderingWaitTime;
         public static ConfigEntry<float> config1781WanderingRadius;
@@ -134,17 +134,17 @@ namespace HeavyItemSCPs
             config178MinValue = Config.Bind("SCP-178", "Minimum value", 100, "The minimum value of SCP-178.");
             config178MaxValue = Config.Bind("SCP-178", "Maximum value", 150, "The maximum value of SCP-178.");
             config178LevelRarities = Config.Bind("SCP-178 Rarities", "Level Rarities", "ExperimentationLevel:30, AssuranceLevel:30, VowLevel:30, OffenseLevel:25, AdamanceLevel:25, MarchLevel:25, RendLevel:20, DineLevel:20, TitanLevel:10, ArtificeLevel:15, EmbrionLevel:50, All:20, Modded:30", "Rarities for each level. See default for formatting.");
-            config178CustomLevelRarities = Config.Bind("SCP-178 Rarities", "Custom Level Rarities", "", "Rarities for modded levels. Same formatting as level rarities.");
+            config178CustomLevelRarities = Config.Bind("SCP-178 Rarities", "Custom Level Rarities", "Secret LabsLevel:75", "Rarities for modded levels. Same formatting as level rarities.");
 
             config178LensDistortion = Config.Bind("SCP-178 3D Effects", "Lens Distortion", -0.2f, "Changes the lens distortion effect of the 3D glasses.");
             config178ChromaticAberration = Config.Bind("SCP-178 3D Effects", "Chromatic Aberration", 3f, "Changes the chromatic aberration effect of the 3D glasses.");
             config178ColorTint = Config.Bind("SCP-178 3D Effects", "Color Tint", "484.5,0,675", "Changes the RGB color tint effect of the 3D glasses.");
 
             // SCP-1781
-            config1781DespawnTime = Config.Bind("SCP-1781", "Despawn time", 60f, "The time it takes for SCP-178-1 instances to despawn when not wearing the glasses.");
-            config1781MaxCount = Config.Bind("SCP-1781", "Max count", 60, "The maximum number of SCP-178-1 instances that can be spawned. This is for outside and inside instances. ex: 50 will spawn a max of 50 inside and 50 outside.");
+            config1781MaxCount = Config.Bind("SCP-1781", "Max count", 50, "The maximum number of SCP-178-1 instances that can be spawned. This is for outside and inside instances. ex: 50 will spawn a max of 50 inside and 50 outside.");
+            //config1781RenderDistance = Config.Bind("SCP-1781", "Render distance", 50f, "The distance at which SCP-178-1 instances will run their AI. Any instances outside this distance will be disabled, still showing the model but not moving around. Lower values can help with performance.");
+            config1781DespawnTime = Config.Bind("SCP-1781", "Despawn time", 30f, "The time it takes for SCP-178-1 instances to despawn when not wearing the glasses.");
             config1781PostObservationTime = Config.Bind("SCP-1781", "Post observation time", 3f, "The time it takes for SCP-178-1 instances to return to their roaming phase after being stared at.");
-            config1781RenderDistance = Config.Bind("SCP-1781", "Render distance", 50f, "The distance at which SCP-178-1 instances will run their AI. Any instances outside this distance will be disabled, still showing the model but not moving around. Lower values can help with performance.");
             config1781WanderingRadius = Config.Bind("SCP-1781", "Wandering radius", 10f, "The radius around SCP-178-1 spawn position that they will roam around in.");
             config1781WanderingWaitTime = Config.Bind("SCP-1781", "Wandering wait time", 5f, "When spawned, SCP-178-1 will pick a random position in their wandering radius and walk to it. This determines how long they will wait until picking another position to walk to.");
 

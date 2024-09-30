@@ -42,10 +42,6 @@ namespace HeavyItemSCPs.Items.SCP178
 
         private bool initiated = false;
 
-
-        public GameObject highlightObjectPrefab;
-        public GameObject highlightObject; // The object to highlight
-
         public Material highlightMaterial;
         public GameObject lungObject;
         public Material lungMaterial;
@@ -101,7 +97,6 @@ namespace HeavyItemSCPs.Items.SCP178
             initiated = true;
 
 
-            highlightObjectPrefab = NetworkHandlerHeavy.Instance.Sphere178;
             highlightMaterial = NetworkHandlerHeavy.Instance.OverlayMaterial;
         }
 
