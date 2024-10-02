@@ -68,7 +68,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             spawnPosition = transform.position;
 
-            SetOutsideOrInside(); // TODO: May be unneeded
+            SetOutsideOrInside();
 
             logger.LogDebug("SCP-178-1 Spawned");
         }

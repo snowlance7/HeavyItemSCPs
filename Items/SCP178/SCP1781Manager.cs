@@ -156,21 +156,28 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void OnDestroy()
         {
-            if (SCP1781Instances != null && SCP1781Instances.Count > 0)
+            try
             {
-                foreach (var scp in SCP1781Instances)
+                if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
                 {
-                    Destroy(scp.gameObject);
-                    scp.GetComponent<NetworkObject>().Despawn();
+                    if (Instance == null) return;
+                    if (SCP1781Instances != null && SCP1781Instances.Count > 0)
+                    {
+                        foreach (var scp in SCP1781Instances)
+                        {
+                            scp.GetComponent<NetworkObject>().Despawn();
+                            Destroy(scp.gameObject);
+                        }
+                    }
+
+                    NetworkHandlerHeavy.Instance.Spawned1781Instances.Value = false;
                 }
             }
-
-            NetworkHandlerHeavy.Instance.Spawned1781Instances.Value = false;
-
-            /*if (Instance == this)
+            catch (Exception e)
             {
-                Instance = null;
-            }*/
+                logger.LogError(e);
+                return;
+            }
         }
     }
 }

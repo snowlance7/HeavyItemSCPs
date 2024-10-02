@@ -53,7 +53,6 @@ namespace HeavyItemSCPs
         public static ConfigEntry<float> configHoarderBugTransformTime;
         public static ConfigEntry<float> configBaboonHawkTransformTime;
         public static ConfigEntry<float> configTimeToSpawnSCP4271;
-        public static ConfigEntry<bool> configContinueSpawningAfterPickup;
         public static ConfigEntry<int> configMaxSpawns;
         public static ConfigEntry<bool> configIncreaseTimeWhenInInventory;
         public static ConfigEntry<bool> config427_500Compatibility;
@@ -116,7 +115,6 @@ namespace HeavyItemSCPs
             configHoarderBugTransformTime = Config.Bind("SCP-427", "Hoarder bug transform time", 15f, "The time it takes for the hoarder bug to transform into SCP-427-1. Set to -1 to disable transforming.");
             configBaboonHawkTransformTime = Config.Bind("SCP-427", "Baboon hawk transform time", 10f, "The time it takes for the baboon hawk to transform into SCP-427-1. Set to -1 to disable transforming.");
             configTimeToSpawnSCP4271 = Config.Bind("SCP-427", "Time to spawn SCP-427-1", 300f, "The time it takes for SCP-427 to spawn SCP-427-1 when on the ground. Set to -1 to disable spawning from necklace.");
-            configContinueSpawningAfterPickup = Config.Bind("SCP-427", "Continue spawning after picked up", false, "Whether or not SCP-427 should continue spawning SCP-427-1 instances after being picked up by a player or lootbug. Setting this to true will make SCP-427 keep spawning SCP-427-1 instances if its on the ground, regardless of whether its been picked up or not."); // TODO: Set to true for testing, change back later
             configMaxSpawns = Config.Bind("SCP-427", "Max spawns", 1, "The maximum number of SCP-427-1 instances that can be spawned when SCP-427 is on the ground.");
             configIncreaseTimeWhenInInventory = Config.Bind("SCP-427", "Increase time when in inventory", true, "Whether or not timeHoldingSCP427 should increase when SCP-427 is on hotbar but not being held.");
             config427_500Compatibility = Config.Bind("SCP-427", "SCP-500 compatibility", true, "Whether or not SCP-427 should be compatible with the SCP-500 mod. This will only work if you have the SCP-500 mod installed. If enabled, it will temporarily halt the transformation timer when holding or using SCP-427 when you take SCP-500.");
