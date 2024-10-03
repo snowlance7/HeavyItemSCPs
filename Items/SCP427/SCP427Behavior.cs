@@ -255,6 +255,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 Vector3 spawnPos = player.deadBody.transform.position;
 
                 Destroy(player.deadBody);
+                logger.LogDebug("INSIDE FACTORY: " + player.isInsideFactory);
                 SpawnSCP4271ServerRpc(spawnPos, !player.isInsideFactory);
             }
 
@@ -289,6 +290,7 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             int newHealth = playerHeldBy.health + health;
 
+            playerHeldBy.MakeCriticallyInjured(false);
             playerHeldBy.health = Mathf.Clamp(newHealth, 0, 100);
             HUDManager.Instance.UpdateHealthUI(playerHeldBy.health, false);
         }
@@ -327,15 +329,9 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 logger.LogDebug("Spawning SCP-427-1");
 
-                //int index = RoundManager.Instance.currentLevel.Enemies.FindIndex(x => x.enemyType.name == "SCP4271Enemy");
-                //RoundManager.Instance.SpawnEnemyOnServer(spawnPos, UnityEngine.Random.Range(0f, 360f), index);
-
                 EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP4271Enemy").FirstOrDefault().enemyType;
 
-                GameObject gameObject = UnityEngine.Object.Instantiate(scp.enemyPrefab, spawnPos, Quaternion.identity);
-                gameObject.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
-                RoundManager.Instance.SpawnedEnemies.Add(gameObject.GetComponent<EnemyAI>());
-                if (outside) { gameObject.GetComponent<SCP4271AI>().SetEnemyOutsideClientRpc(true); }
+                RoundManager.Instance.SpawnEnemyGameObject(spawnPos, Quaternion.identity.y, 0, scp);
             }
         }
     }

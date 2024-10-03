@@ -61,7 +61,7 @@ namespace HeavyItemSCPs.Patches
             //logger.LogDebug(name);
         }
 
-        [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
+        /*[HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
         {
             string msg = __instance.chatTextField.text;
@@ -71,12 +71,12 @@ namespace HeavyItemSCPs.Patches
             switch (args[0])
             {
                 case "/outside":
-                    UnityEngine.Object.FindObjectOfType<SCP4271AI>().SetEnemyOutsideClientRpc(bool.Parse(args[1]));
+                    //UnityEngine.Object.FindObjectOfType<SCP4271AI>().SetEnemyOutsideClientRpc(bool.Parse(args[1]));
                     break;
                 default:
                     break;
             }
-        }
+        }*/
 
         public static List<SpawnableEnemyWithRarity> GetEnemies()
         {

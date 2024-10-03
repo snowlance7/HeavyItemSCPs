@@ -114,7 +114,7 @@ namespace HeavyItemSCPs.Items.SCP427
             base.Start();
             logger.LogDebug("SCP-427-1 Spawned");
 
-            //SetOutsideOrInside();
+            SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
             debugEnemyAI = true;
 
@@ -433,10 +433,10 @@ namespace HeavyItemSCPs.Items.SCP427
             creatureSFX.PlayOneShot(stompSFXList[index], volume);
         }
 
-        /*public void SetOutsideOrInside()
+        public void SetOutsideOrInside()
         {
-            GameObject closestOutsideNode = GetClosestAINode(RoundManager.Instance.outsideAINodes.ToList());
-            GameObject closestInsideNode = GetClosestAINode(RoundManager.Instance.insideAINodes.ToList());
+            GameObject closestOutsideNode = GetClosestAINode(GameObject.FindGameObjectsWithTag("OutsideAINode").ToList());
+            GameObject closestInsideNode = GetClosestAINode(GameObject.FindGameObjectsWithTag("AINode").ToList());
 
             if (Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position))
             {
@@ -458,7 +458,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 }
             }
             return closestNode;
-        }*/
+        }
 
         private void MoveTowardsScrapInLineOfSight()
         {
@@ -577,18 +577,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void GrabPlayer() // Set up to run with animation
         {
-            /*logger.LogDebug("Grabbing a player");
-            if (!FoundClosestPlayerInRange(4f)) // TODO: Test this
-            {
-                logger.LogDebug("Canceling grab");
-                inSpecialAnimation = false;
-
-                if (IsServerOrHost)
-                {
-                    Roar();
-                }
-                return;
-            }*/
+            if (!throwingPlayer) { return; }
 
             //inSpecialAnimationWithPlayer = targetPlayer;
             PlayerControllerB player = inSpecialAnimationWithPlayer;
@@ -601,15 +590,48 @@ namespace HeavyItemSCPs.Items.SCP427
             // Grab player
             logger.LogDebug("Grabbing player: " + inSpecialAnimationWithPlayer.playerUsername);
             grabbingPlayer = true;
-            StartCoroutine(FailsafeCoroutine(5f));
         }
 
         public void ThrowPlayer() // Set up to run with animation
         {
-            StartCoroutine(ThrowPlayerCoroutine());
+            if (!throwingPlayer) { return; }
+            //StartCoroutine(ThrowPlayerCoroutine());
+            grabbingPlayer = false;
+            logger.LogDebug("Throwing player: " + inSpecialAnimationWithPlayer.playerUsername);
+            PlayerControllerB player = inSpecialAnimationWithPlayer;
+            player.transform.position = transform.position;
+
+            // Throw player
+            logger.LogDebug("Applying force: " + throwDirection * throwForce);
+            player.playerRigidbody.velocity = Vector3.zero;
+            player.externalForceAutoFade += throwDirection * throwForce;
+
+            CancelSpecialAnimationWithPlayer();
+
+            // Damage player
+            if (localPlayer == player)
+            {
+                StartCoroutine(InjureLocalPlayerCoroutine());
+            }
+
+            logger.LogDebug("Finished throwing player");
+
+            if (IsServerOrHost)
+            {
+                Roar();
+            }
+        }
+        public IEnumerator InjureLocalPlayerCoroutine()
+        {
+            yield return new WaitUntil(() => localPlayer.thisController.isGrounded || localPlayer.isInHangarShipRoom);
+            if (localPlayer.isPlayerDead) { yield break; }
+            localPlayer.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
+            localPlayer.sprintMeter /= 2;
+            localPlayer.JumpToFearLevel(0.8f);
+            localPlayer.drunkness = 0.2f;
         }
 
-        public IEnumerator ThrowPlayerCoroutine()
+        /*public IEnumerator ThrowPlayerCoroutine()
         {
             grabbingPlayer = false;
             logger.LogDebug("Throwing player: " + inSpecialAnimationWithPlayer.playerUsername);
@@ -652,7 +674,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public IEnumerator FailsafeCoroutine(float time)
         {
             yield return new WaitForSeconds(time);
-            if ()
+            //if ()
         }
 
         public void InjureLocalPlayer()
@@ -661,7 +683,7 @@ namespace HeavyItemSCPs.Items.SCP427
             localPlayer.JumpToFearLevel(0.8f);
             localPlayer.drunkness = 0.2f;
             //localPlayer.MakeCriticallyInjured(true);
-        }
+        }*/
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
         {
@@ -684,12 +706,10 @@ namespace HeavyItemSCPs.Items.SCP427
             StartCoroutine(FreezePlayerCoroutine(player, freezeTime));
         }
 
-        public IEnumerator FreezePlayerCoroutine(PlayerControllerB player, float freezeTime)
+        private IEnumerator FreezePlayerCoroutine(PlayerControllerB player, float freezeTime)
         {
             player.disableMoveInput = true;
-
             yield return new WaitForSeconds(freezeTime);
-
             player.disableMoveInput = false;
         }
 
@@ -756,10 +776,12 @@ namespace HeavyItemSCPs.Items.SCP427
                 {
                     KillEnemyOnOwnerClient();
                 }
-                else if (!throwingPlayer && !pickingUpScrap && !grabbingPlayer)
+                /*else if (!throwingPlayer && !pickingUpScrap && !grabbingPlayer)
                 {
                     Roar();
-                }
+                }*/
+                CancelSpecialAnimationWithPlayer();
+                Roar();
             }
         }
 
@@ -782,16 +804,11 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 inSpecialAnimationWithPlayer.playerRigidbody.isKinematic = true;
             }
-            if (targetPlayer != null)
-            {
-                targetPlayer.playerRigidbody.isKinematic = true;
-            }
             base.CancelSpecialAnimationWithPlayer();
             grabbingPlayer = false;
             throwingPlayer = false;
             pickingUpScrap = false;
             targetObject = null!;
-            DropItem(transform.position);
         }
 
         // RPC's
@@ -809,13 +826,15 @@ namespace HeavyItemSCPs.Items.SCP427
         [ClientRpc]
         private void ThrowPlayerClientRpc(ulong clientId)
         {
+            logger.LogDebug("In throwplayerclientid");
+            throwingPlayer = true;
             currentBehaviourStateIndex = (int)State.Throwing;
             inSpecialAnimation = true;
             inSpecialAnimationWithPlayer = NetworkHandlerHeavy.PlayerFromId(clientId);
             inSpecialAnimationWithPlayer.inAnimationWithEnemy = this;
         }
 
-        [ServerRpc(RequireOwnership = false)]
+        /*[ServerRpc(RequireOwnership = false)]
         private void PlayerHitGroundServerRpc()
         {
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
@@ -828,11 +847,10 @@ namespace HeavyItemSCPs.Items.SCP427
         private void PlayerHitGroundClientRpc()
         {
             CancelSpecialAnimationWithPlayer();
-            targetPlayer = null!;
-        }
+        }*/
 
         [ClientRpc]
-        public void SetEnemyOutsideClientRpc(bool value)
+        private void SetEnemyOutsideClientRpc(bool value)
         {
             SetEnemyOutside(value);
         }
