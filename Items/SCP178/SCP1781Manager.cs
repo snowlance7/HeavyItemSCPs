@@ -15,50 +15,9 @@ namespace HeavyItemSCPs.Items.SCP178
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
         public static SCP1781Manager Instance = null!;
-
-        /*private static SCP1781Manager _instance = null!;
-
-        public static SCP1781Manager Instance
-        {
-            get
-            {
-                // If the instance doesn't exist, try to find it in the scene
-                if (_instance == null)
-                {
-                    _instance = FindObjectOfType<SCP1781Manager>();
-
-                    // If it's still null, create a new GameObject and add the component
-                    if (_instance == null)
-                    {
-                        GameObject singletonObject = new GameObject("SCP1781Manager");
-                        _instance = singletonObject.AddComponent<SCP1781Manager>();
-                    }
-                }
-                return _instance;
-            }
-            set
-            {
-                _instance = value;
-            }
-        }*/
         public List<GameObject> SCP1781Instances = new List<GameObject>();
 
         public static List<PlayerControllerB> PlayersWearing178 = new List<PlayerControllerB>();
-        /*public static List<PlayerControllerB> PlayersWearing178
-        {
-            get
-            {
-                List<PlayerControllerB> players = new List<PlayerControllerB>();
-                foreach (var scp178 in FindObjectsOfType<GrabbableObject>().OfType<SCP178Behavior>())
-                {
-                    if (scp178.playerWornBy != null)
-                    {
-                        players.Add(scp178.playerWornBy);
-                    }
-                }
-                return players;
-            }
-        }*/
 
         public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
 

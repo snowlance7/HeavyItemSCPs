@@ -53,6 +53,7 @@ namespace HeavyItemSCPs.Items.SCP427
         bool isOpen = false;
         float multiplier = 1f;
 
+        // Object was not thrown because it does not exist on the server.
 
         public override void Start()
         {
@@ -112,9 +113,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     if (timeSCP427HeldByLocalPlayer >= timeToTransform)
                     {
                         logger.LogDebug("Transforming player");
-                        PlayerControllerB player = playerHeldBy;
-                        player.DropAllHeldItemsAndSync();
-                        TransformPlayer(player);
+                        TransformPlayer(playerHeldBy);
                     }
                 }
             }
@@ -221,7 +220,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void OpenNecklace()
         {
-            logger.LogDebug("Opening necklace");
+            //logger.LogDebug("Opening necklace");
             itemAnimator.SetTrigger("open");
             ItemSFX.Play();
             multiplier = transformOpenMultiplier;
@@ -230,7 +229,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void CloseNecklace()
         {
-            logger.LogDebug("Closing necklace");
+            //logger.LogDebug("Closing necklace");
             itemAnimator.SetTrigger("close");
             ItemSFX.Stop();
             multiplier = 1f;
@@ -330,7 +329,6 @@ namespace HeavyItemSCPs.Items.SCP427
                 logger.LogDebug("Spawning SCP-427-1");
 
                 EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP4271Enemy").FirstOrDefault().enemyType;
-
                 RoundManager.Instance.SpawnEnemyGameObject(spawnPos, Quaternion.identity.y, 0, scp);
             }
         }

@@ -1,6 +1,11 @@
 ## 1.1.0
 - Added SCP-178
-- Bug fixes for SCP-427
+- Fixed bug with network handler when leaving a lobby and re-entering
+- Fixed bug where client transforming will softlock them
+- Fixed bug where 427-1 freezes
+- Fixed bug where player softlocks after being thrown in some cases
+- Fixed bug where player cant move and screen shakes after being thrown
+- Fixed desync issues with 427
 
 ## 1.0.3
 - Some fixes to how SCP-427-1 throws players

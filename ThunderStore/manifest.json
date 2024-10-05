@@ -1,8 +1,8 @@
 {
   "name": "HeavyItemSCPs",
-  "version_number": "1.0.3",
+  "version_number": "1.1.0",
   "website_url": "https://github.com/snowlance7/HeavyItemSCPs",
-  "description": "A collection of heavy item SCPs",
+  "description": "A collection of SCP items with a monster attached to it",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
     "Evaisa-LethalLib-0.16.1",

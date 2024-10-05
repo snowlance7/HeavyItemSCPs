@@ -314,7 +314,7 @@ namespace HeavyItemSCPs.Items.SCP178
             float closestDistance = Mathf.Infinity;
             GameObject closestNode = null!;
 
-            List<GameObject> nodes = inside ? RoundManager.Instance.insideAINodes.ToList() : RoundManager.Instance.outsideAINodes.ToList();
+            List<GameObject> nodes = inside ? GameObject.FindGameObjectsWithTag("AINode").ToList() : GameObject.FindGameObjectsWithTag("OutsideAINode").ToList();
 
             foreach (GameObject node in nodes)
             {

@@ -16,7 +16,7 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
-        public static NetworkHandlerHeavy Instance { get; private set; }
+        public static NetworkHandlerHeavy? Instance { get; private set; }
 
         public static PlayerControllerB PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts[StartOfRound.Instance.ClientPlayerList[id]]; }
 
@@ -30,8 +30,11 @@ namespace HeavyItemSCPs
         {
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
-                Instance?.gameObject.GetComponent<NetworkObject>().Despawn();
-                logger.LogDebug("Despawned network object");
+                if (Instance != null)
+                {
+                    Instance.gameObject.GetComponent<NetworkObject>().Despawn();
+                    logger.LogDebug("Despawned network object");
+                }
             }
 
             Instance = this;

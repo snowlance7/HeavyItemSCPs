@@ -103,15 +103,15 @@ namespace HeavyItemSCPs
             configEnableSCP427 = Config.Bind("SCP-427", "Enable SCP-427", true, "Whether or not SCP-427 can spawn as scrap.");
             config427MinValue = Config.Bind("SCP-427", "Minimum value", 100, "The minimum value of SCP-427.");
             config427MaxValue = Config.Bind("SCP-427", "Maximum value", 150, "The maximum value of SCP-427.");
-            config427LevelRarities = Config.Bind("SCP-427 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, All:10, Modded:15", "Rarities for each level. See default for formatting.");
+            config427LevelRarities = Config.Bind("SCP-427 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
             config427CustomLevelRarities = Config.Bind("SCP-427 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
             config427SCPDungeonRarity = Config.Bind("SCP-427 Rarities", "SCP Dungeon Rarity", 100, "The rarity of SCP-427 in the SCP Dungeon. Set to -1 to use level rarities.");
 
             configEnableOpenNecklace = Config.Bind("SCP-427", "Enable isOpen necklace", true, "Whether or not players can isOpen the necklace.");
             configTimeToTransform = Config.Bind("SCP-427", "Time to transform", 120f, "How long a player can hold the necklace before they transform into SCP-427-1. Set to -1 to disable transforming.");
             configTransformOpenMultiplier = Config.Bind("SCP-427", "Transform isOpen multiplier", 3f, "The multiplier applied to the time it takes to transform when the necklace is opened. configTimeToTransform will be multiplied by this value.");
-            configHealthPerSecondHolding = Config.Bind("SCP-427", "Health per second holding", 5, "The health gained per second while holding SCP-427.");
-            configHealthPerSecondOpen = Config.Bind("SCP-427", "Health per second isOpen", 10, "The health gained per second while opening SCP-427.");
+            configHealthPerSecondHolding = Config.Bind("SCP-427", "Health per second holding", 4, "The health gained per second while holding SCP-427.");
+            configHealthPerSecondOpen = Config.Bind("SCP-427", "Health per second isOpen", 9, "The health gained per second while opening SCP-427.");
             configHoarderBugTransformTime = Config.Bind("SCP-427", "Hoarder bug transform time", 15f, "The time it takes for the hoarder bug to transform into SCP-427-1. Set to -1 to disable transforming.");
             configBaboonHawkTransformTime = Config.Bind("SCP-427", "Baboon hawk transform time", 10f, "The time it takes for the baboon hawk to transform into SCP-427-1. Set to -1 to disable transforming.");
             configTimeToSpawnSCP4271 = Config.Bind("SCP-427", "Time to spawn SCP-427-1", 300f, "The time it takes for SCP-427 to spawn SCP-427-1 when on the ground. Set to -1 to disable spawning from necklace.");
@@ -123,7 +123,7 @@ namespace HeavyItemSCPs
             // SCP-427-1
             configEnableSCP4271Transformation = Config.Bind("SCP-427-1", "Enable SCP-427-1 transformation", true, "Whether or not players or monsters can turn into SCP-427-1.");
             configEnableSCP4271Spawning = Config.Bind("SCP-427-1", "Enable SCP-427-1 spawning", false, "Whether or not SCP-427-1 can spawn naturally from vents.");
-            config4271LevelRarities = Config.Bind("SCP-427-1 Rarities", "Level Rarities", "ExperimentationLevel:40, AssuranceLevel:40, VowLevel:40, OffenseLevel:60, AdamanceLevel:60, MarchLevel:60, RendLevel:25, DineLevel:25, TitanLevel:65, ArtificeLevel:70, EmbrionLevel:75, All:30, Modded:30", "Rarities for each level. See default for formatting.");
+            config4271LevelRarities = Config.Bind("SCP-427-1 Rarities", "Level Rarities", "ExperimentationLevel:40, AssuranceLevel:40, VowLevel:40, OffenseLevel:60, AdamanceLevel:60, MarchLevel:60, RendLevel:25, DineLevel:25, TitanLevel:65, ArtificeLevel:70, EmbrionLevel:75, Modded:30", "Rarities for each level. See default for formatting.");
             config4271CustomLevelRarities = Config.Bind("SCP-427-1 Rarities", "Custom Level Rarities", "", "Rarities for modded levels. Same formatting as level rarities.");
             config4271SCPDungeonRarity = Config.Bind("SCP-427-1 Rarities", "SCP Dungeon Rarity", 100, "The rarity of SCP-427-1 in the SCP Dungeon. Set to -1 to use level rarities.");
 
@@ -131,12 +131,12 @@ namespace HeavyItemSCPs
             configEnableSCP178 = Config.Bind("SCP-178", "Enable SCP-178", true, "Whether or not SCP-178 can spawn as scrap.");
             config178MinValue = Config.Bind("SCP-178", "Minimum value", 100, "The minimum value of SCP-178.");
             config178MaxValue = Config.Bind("SCP-178", "Maximum value", 150, "The maximum value of SCP-178.");
-            config178LevelRarities = Config.Bind("SCP-178 Rarities", "Level Rarities", "ExperimentationLevel:30, AssuranceLevel:30, VowLevel:30, OffenseLevel:25, AdamanceLevel:25, MarchLevel:25, RendLevel:20, DineLevel:20, TitanLevel:10, ArtificeLevel:15, EmbrionLevel:50, All:20, Modded:30", "Rarities for each level. See default for formatting.");
+            config178LevelRarities = Config.Bind("SCP-178 Rarities", "Level Rarities", "ExperimentationLevel:30, AssuranceLevel:30, VowLevel:30, OffenseLevel:25, AdamanceLevel:25, MarchLevel:25, RendLevel:20, DineLevel:20, TitanLevel:10, ArtificeLevel:15, EmbrionLevel:50, Modded:30", "Rarities for each level. See default for formatting.");
             config178CustomLevelRarities = Config.Bind("SCP-178 Rarities", "Custom Level Rarities", "Secret LabsLevel:75", "Rarities for modded levels. Same formatting as level rarities.");
 
             config178LensDistortion = Config.Bind("SCP-178 3D Effects", "Lens Distortion", -0.2f, "Changes the lens distortion effect of the 3D glasses.");
             config178ChromaticAberration = Config.Bind("SCP-178 3D Effects", "Chromatic Aberration", 3f, "Changes the chromatic aberration effect of the 3D glasses.");
-            config178ColorTint = Config.Bind("SCP-178 3D Effects", "Color Tint", "484.5,0,675", "Changes the RGB color tint effect of the 3D glasses.");
+            config178ColorTint = Config.Bind("SCP-178 3D Effects", "Color Tint", "500,0,500", "Changes the RGB color tint effect of the 3D glasses.");
 
             // SCP-1781
             config1781MaxCount = Config.Bind("SCP-1781", "Max count", 50, "The maximum number of SCP-178-1 instances that can be spawned. This is for outside and inside instances. ex: 50 will spawn a max of 50 inside and 50 outside.");

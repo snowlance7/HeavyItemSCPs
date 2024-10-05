@@ -116,7 +116,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
-            debugEnemyAI = true;
+            //debugEnemyAI = true;
 
             currentBehaviourStateIndex = (int)State.Roaming;
             RoundManager.Instance.RefreshEnemiesList();
@@ -279,79 +279,6 @@ namespace HeavyItemSCPs.Items.SCP427
             return targetPlayer != null;
         }
 
-        /*private void CalculateAgentSpeed()
-        {
-            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
-            {
-                logger.LogDebug("Stopping agent speed");
-                agent.speed = 0f;
-                agent.acceleration = 200f;
-                return;
-            }
-            creatureAnimator.SetFloat("speedMultiplier", Mathf.Clamp(averageVelocity / 12f * 1.5f, 0.5f, 3f));
-            float currentVelocity = (transform.position - previousPosition).magnitude / (Time.deltaTime / 1.4f);
-            if (velocityInterval <= 0f)
-            {
-                previousVelocity = averageVelocity;
-                velocityInterval = 0.05f;
-                velocityAverageCount += 1f;
-                if (velocityAverageCount > 5f)
-                {
-                    averageVelocity += (currentVelocity - averageVelocity) / 3f;
-                }
-                else
-                {
-                    averageVelocity += currentVelocity;
-                    if (velocityAverageCount == 2f)
-                    {
-                        averageVelocity /= velocityAverageCount;
-                    }
-                }
-            }
-            else
-            {
-                velocityInterval -= Time.deltaTime;
-            }
-            if (IsOwner &&
-                averageVelocity - currentVelocity > Mathf.Clamp(currentVelocity * 0.17f, 2f, 100f) &&
-                currentVelocity > 3f &&
-                currentBehaviourStateIndex == 1)
-            {
-                if (wallCollisionSFXDebounce > 0.5f)
-                {
-                    creatureSFX.PlayOneShot(hitWallSFX, 0.7f);
-                    SetEnemyStunned(true, 0.5f);
-
-                    NetworkHandlerHeavy.Instance.ShakePlayerCamerasServerRpc(ScreenShakeType.Big, 15f, transform.position);
-                    //averageVelocity = 0f;
-                }
-                agentSpeedWithNegative *= 0.2f; // ??
-                wallCollisionSFXDebounce = 0f;
-            }
-            wallCollisionSFXDebounce += Time.deltaTime;
-            previousPosition = transform.position;
-            if (currentBehaviourStateIndex == 0)
-            {
-                agent.speed = 2f;
-                agent.acceleration = 26f;
-            }
-            else if (currentBehaviourStateIndex == 1)
-            {
-                agentSpeedWithNegative += Time.deltaTime * SpeedIncreaseRate;
-                agent.speed = Mathf.Clamp(agentSpeedWithNegative, 0f, 10f);
-                agent.acceleration = Mathf.Clamp(BaseAcceleration - averageVelocity * SpeedAccelerationEffect, 4f, 30f);
-                if (agent.acceleration > 15f)
-                {
-                    agent.angularSpeed = 500f;
-                    agent.acceleration += 25f;
-                }
-                else
-                {
-                    agent.angularSpeed = 230f;
-                }
-            }
-        }*/
-
         private void CalculateAgentSpeed()
         {
             if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
@@ -440,8 +367,11 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position))
             {
+                logger.LogDebug("Setting enemy outside");
                 SetEnemyOutsideClientRpc(true);
+                return;
             }
+            logger.LogDebug("Setting enemy inside");
         }
 
         public GameObject GetClosestAINode(List<GameObject> nodes)
@@ -579,7 +509,6 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             if (!throwingPlayer) { return; }
 
-            //inSpecialAnimationWithPlayer = targetPlayer;
             PlayerControllerB player = inSpecialAnimationWithPlayer;
             player.playerRigidbody.isKinematic = false;
 
@@ -595,7 +524,6 @@ namespace HeavyItemSCPs.Items.SCP427
         public void ThrowPlayer() // Set up to run with animation
         {
             if (!throwingPlayer) { return; }
-            //StartCoroutine(ThrowPlayerCoroutine());
             grabbingPlayer = false;
             logger.LogDebug("Throwing player: " + inSpecialAnimationWithPlayer.playerUsername);
             PlayerControllerB player = inSpecialAnimationWithPlayer;
@@ -631,60 +559,6 @@ namespace HeavyItemSCPs.Items.SCP427
             localPlayer.drunkness = 0.2f;
         }
 
-        /*public IEnumerator ThrowPlayerCoroutine()
-        {
-            grabbingPlayer = false;
-            logger.LogDebug("Throwing player: " + inSpecialAnimationWithPlayer.playerUsername);
-            PlayerControllerB player = inSpecialAnimationWithPlayer;
-            player.transform.position = transform.position;
-
-            // Throw player
-            logger.LogDebug("Applying force: " + throwDirection * throwForce);
-            player.playerRigidbody.velocity = Vector3.zero;
-            player.externalForceAutoFade += throwDirection * throwForce;
-
-            yield return new WaitUntil(() => player.thisController.isGrounded || player.isPlayerDead || throwingPlayer == false || player.isInHangarShipRoom);
-
-            player.playerRigidbody.isKinematic = true;
-            logger.LogDebug("Grounded");
-
-            // Damage player
-            if (localPlayer == player)
-            {
-                if (!player.isPlayerDead)
-                {
-                    player.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
-                    InjureLocalPlayer();
-                }
-
-                PlayerHitGroundServerRpc();
-            }
-
-            logger.LogDebug("Finished throwing player");
-
-            if (IsServerOrHost)
-            {
-                targetPlayer = player;
-
-                logger.LogDebug("Roaring");
-                Roar();
-            }
-        }
-
-        public IEnumerator FailsafeCoroutine(float time)
-        {
-            yield return new WaitForSeconds(time);
-            //if ()
-        }
-
-        public void InjureLocalPlayer()
-        {
-            localPlayer.sprintMeter /= 2;
-            localPlayer.JumpToFearLevel(0.8f);
-            localPlayer.drunkness = 0.2f;
-            //localPlayer.MakeCriticallyInjured(true);
-        }*/
-
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
         {
             base.OnCollideWithPlayer(other);
@@ -709,7 +583,9 @@ namespace HeavyItemSCPs.Items.SCP427
         private IEnumerator FreezePlayerCoroutine(PlayerControllerB player, float freezeTime)
         {
             player.disableMoveInput = true;
+            player.disableInteract = true;
             yield return new WaitForSeconds(freezeTime);
+            player.disableInteract = false;
             player.disableMoveInput = false;
         }
 
@@ -819,6 +695,7 @@ namespace HeavyItemSCPs.Items.SCP427
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 ThrowPlayerClientRpc(clientId);
+                throwingPlayer = true;
                 networkAnimator.SetTrigger("pickupThrow");
             }
         }
@@ -833,21 +710,6 @@ namespace HeavyItemSCPs.Items.SCP427
             inSpecialAnimationWithPlayer = NetworkHandlerHeavy.PlayerFromId(clientId);
             inSpecialAnimationWithPlayer.inAnimationWithEnemy = this;
         }
-
-        /*[ServerRpc(RequireOwnership = false)]
-        private void PlayerHitGroundServerRpc()
-        {
-            if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
-            {
-                PlayerHitGroundClientRpc();
-            }
-        }
-
-        [ClientRpc]
-        private void PlayerHitGroundClientRpc()
-        {
-            CancelSpecialAnimationWithPlayer();
-        }*/
 
         [ClientRpc]
         private void SetEnemyOutsideClientRpc(bool value)

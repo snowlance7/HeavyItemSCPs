@@ -27,6 +27,8 @@ using HarmonyLib;
  * 9 left shoulder
  * 10 right shoulder */
 
+// Pos offset 0, 0.17, 0
+
 namespace HeavyItemSCPs.Items.SCP178
 {
     internal class SCP178Behavior : WearableItem
