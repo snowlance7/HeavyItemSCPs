@@ -80,7 +80,7 @@ namespace HeavyItemSCPs.Patches
                 default:
                     break;
             }
-        }
+        } // TODO: Figure out how to get baboon hawks to pick up 427 and transform
 
         public static List<SpawnableEnemyWithRarity> GetEnemies()
         {

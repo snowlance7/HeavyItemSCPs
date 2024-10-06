@@ -89,8 +89,11 @@ namespace HeavyItemSCPs.Items.SCP178
             if (currentBehaviourStateIndex == (int)State.Observing)
             {
                 timeSincePlayerTalked += Time.deltaTime;
-                turnCompass.LookAt(lastObservingPlayer.gameplayCamera.transform.position);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
+                if (lastObservingPlayer != null)
+                {
+                    turnCompass.LookAt(lastObservingPlayer.gameplayCamera.transform.position);
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
+                }
 
                 if (observingPlayer != null)
                 {

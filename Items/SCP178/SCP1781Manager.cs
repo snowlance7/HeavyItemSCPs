@@ -121,7 +121,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 logger.LogDebug("in SCP1781Manager OnDestroy()");
                 if (SCP1781Instances != null && SCP1781Instances.Count > 0)
                 {
-                    foreach (var scp in SCP1781Instances) // TODO: TEST THIS TO MAKE SURE IF DESTROYING AUTOMATICALLY DESTROYS THE INSTANCES AS WELL
+                    foreach (var scp in SCP1781Instances)
                     {
                         if (scp != null)
                         {

@@ -28,7 +28,7 @@ namespace HeavyItemSCPs
     {
         const string PLUGIN_GUID = "ProjectSCP.HeavyItemSCPs";
         const string PLUGIN_NAME = "HeavyItemSCPs";
-        const string PLUGIN_VERSION = "1.1.0";
+        const string PLUGIN_VERSION = "1.1.1";
 
         public static Plugin PluginInstance;
         public static ManualLogSource LoggerInstance;

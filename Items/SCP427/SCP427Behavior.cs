@@ -76,7 +76,6 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.Update();
 
-            if (hasHitGround && isOpen) { CloseNecklace(); }
             if (StartOfRound.Instance.inShipPhase) { return; }
 
             timeSinceLastHeal += Time.deltaTime;
@@ -120,8 +119,8 @@ namespace HeavyItemSCPs.Items.SCP427
             else if (isHeldByEnemy) // Held by enemy
             {
                 if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)) { return; }
-                HoarderBugAI bug = FindObjectsOfType<HoarderBugAI>().Where(x => x.heldItem.itemGrabbableObject == this).FirstOrDefault();
-                BaboonBirdAI bird = FindObjectsOfType<BaboonBirdAI>().Where(x => x.heldScrap == this).FirstOrDefault();
+                HoarderBugAI bug = FindObjectsOfType<HoarderBugAI>().Where(x => x.heldItem != null && x.heldItem.itemGrabbableObject == this).FirstOrDefault();
+                BaboonBirdAI bird = FindObjectsOfType<BaboonBirdAI>().Where(x => x.heldScrap != null && x.heldScrap == this).FirstOrDefault();
 
                 if (bug != null)
                 {
@@ -193,7 +192,7 @@ namespace HeavyItemSCPs.Items.SCP427
                         if (FindObjectsOfType<SCP4271AI>().Count() >= maxSpawns) { return; } // TODO: This may cause errors?
                         logger.LogDebug("Spawning SCP-427-1");
                         timeToSpawnSCP4271 += timeToSpawnSCP4271;
-                        SpawnSCP4271ServerRpc(transform.position, false);
+                        SpawnSCP4271ServerRpc(transform.position);
                     }
                 }
             }
@@ -215,6 +214,18 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void PocketItem()
         {
             base.PocketItem();
+            CloseNecklace();
+        }
+
+        public override void GrabItem()
+        {
+            base.GrabItem();
+            hasBeenHeld = true;
+        }
+
+        public override void DiscardItem()
+        {
+            base.DiscardItem();
             CloseNecklace();
         }
 
@@ -254,8 +265,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 Vector3 spawnPos = player.deadBody.transform.position;
 
                 Destroy(player.deadBody);
-                logger.LogDebug("INSIDE FACTORY: " + player.isInsideFactory);
-                SpawnSCP4271ServerRpc(spawnPos, !player.isInsideFactory);
+                SpawnSCP4271ServerRpc(spawnPos);
             }
 
             timeSCP427HeldByLocalPlayer = 0f;
@@ -270,7 +280,6 @@ namespace HeavyItemSCPs.Items.SCP427
         private IEnumerator TransformEnemyCoroutine(EnemyAI enemy)
         {
             Vector3 spawnPos = enemy.transform.position;
-            bool outside = enemy.isOutside;
 
             enemy.KillEnemy();
             ItemSFX.PlayOneShot(FullTransformationSFX, 1f);
@@ -282,7 +291,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 enemy.thisNetworkObject.Despawn();
             }
 
-            SpawnSCP4271ServerRpc(spawnPos, outside);
+            SpawnSCP4271ServerRpc(spawnPos);
         }
 
         public void HealPlayer(int health)
@@ -322,7 +331,7 @@ namespace HeavyItemSCPs.Items.SCP427
         }
 
         [ServerRpc(RequireOwnership = false)]
-        public void SpawnSCP4271ServerRpc(Vector3 spawnPos, bool outside)
+        public void SpawnSCP4271ServerRpc(Vector3 spawnPos)
         {
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
