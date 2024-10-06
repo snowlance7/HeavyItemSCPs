@@ -1,7 +1,7 @@
 ## 1.1.1
 - Fixed issue with SCP-178-1 able to be scanned by other clients not wearing the glasses
 - Fixed desyncing and softlocking issues when client other than host picks up and drops SCP-427
-- 
+- Fixed issue with baboon hawks not transforming or picking up 427
 
 ## 1.1.0
 - Added SCP-178

@@ -305,10 +305,7 @@ namespace HeavyItemSCPs.Items.SCP427
         
         public void HealEnemy(EnemyAI enemyToHeal)
         {
-            SpawnableEnemyWithRarity spawnableEnemy = RoundManager.Instance.currentLevel.Enemies.Where(x => x.enemyType.enemyName == enemyToHeal.enemyType.enemyName).FirstOrDefault();
-            if (spawnableEnemy == null) { logger.LogError("Enemy not found: " + enemyToHeal.enemyType.enemyName); return; }
-
-            int maxHealth = spawnableEnemy.enemyType.enemyPrefab.GetComponent<EnemyAI>().enemyHP;
+            int maxHealth = enemyToHeal.enemyType.enemyPrefab.GetComponent<EnemyAI>().enemyHP;
 
             if (enemyToHeal.enemyHP < maxHealth && timeSinceLastHeal > 1f)
             {
