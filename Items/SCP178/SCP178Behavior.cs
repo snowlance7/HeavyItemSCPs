@@ -49,14 +49,9 @@ namespace HeavyItemSCPs.Items.SCP178
         public override void Wear()
         {
             base.Wear();
-            if (NetworkHandlerHeavy.Instance.Spawned1781Instances.Value)
-            {
-                SCP1781Manager.EnableAll1781MeshesOnLocalClient(true);
-            }
-            else
-            {
-                StartCoroutine(Enable1781MeshesCoroutine());
-            }
+            if (playerWornBy.drunkness < 0.2f) { playerWornBy.drunkness = 0.2f; }
+
+            StartCoroutine(Enable1781MeshesCoroutine());
             WearServerRpc();
 
             SCP1783DVision.Instance.Enable3DVision(true);
@@ -145,7 +140,7 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             if (configEnableSCP178.Value && SCP1781Manager.Instance != null)
             {
-                Object.Destroy(SCP1781Manager.Instance.gameObject);
+                Object.Destroy(SCP1781Manager.Instance);
             }
         }
 

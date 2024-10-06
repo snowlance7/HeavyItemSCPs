@@ -63,7 +63,6 @@ namespace HeavyItemSCPs.Items.SCP178
 
             RoundManager.Instance.RefreshEnemiesList();
             logger.LogDebug($"Spawned {SCP1781Instances.Count} SCP-178-1 instances");
-            NetworkHandlerHeavy.Instance.Spawned1781Instances.Value = true;
         }
 
         public void Update()
@@ -84,10 +83,12 @@ namespace HeavyItemSCPs.Items.SCP178
             }
             else
             {
-                despawnTimer -= Time.deltaTime;
+                logger.LogDebug("Despawning in " + despawnTimer);
+                despawnTimer -= 0.2f;
                 if (despawnTimer <= 0)
                 {
-                    Destroy(gameObject);
+                    logger.LogDebug("Despawning all SCP-178-1 instances");
+                    Destroy(this);
                 }
             }
         }
@@ -117,19 +118,19 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             try
             {
-                if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
+                logger.LogDebug("in SCP1781Manager OnDestroy()");
+                if (SCP1781Instances != null && SCP1781Instances.Count > 0)
                 {
-                    if (Instance == null) return;
-                    if (SCP1781Instances != null && SCP1781Instances.Count > 0)
+                    foreach (var scp in SCP1781Instances) // TODO: TEST THIS TO MAKE SURE IF DESTROYING AUTOMATICALLY DESTROYS THE INSTANCES AS WELL
                     {
-                        foreach (var scp in SCP1781Instances)
+                        if (scp != null)
                         {
-                            scp.GetComponent<NetworkObject>().Despawn();
-                            Destroy(scp.gameObject);
+                            NetworkObjectReference scpRef = scp.GetComponent<NetworkObject>();
+                            RoundManager.Instance.DespawnEnemyOnServer(scpRef);
                         }
                     }
 
-                    NetworkHandlerHeavy.Instance.Spawned1781Instances.Value = false;
+                    UnityEngine.Object.Destroy(this.gameObject);
                 }
             }
             catch (Exception e)
