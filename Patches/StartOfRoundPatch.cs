@@ -55,32 +55,42 @@ namespace HeavyItemSCPs.Patches
         [HarmonyPatch(nameof(StartOfRound.OnShipLandedMiscEvents))]
         public static void OnShipLandedMiscEventsPostfix() // TEST THIS
         {
-            foreach (var scpItem in SCPItems.SCPItemsList)
+            try
             {
-                scpItem.itemsSpawnedInRound = 0;
-            }
-
-            logger.LogDebug("Checking for Keter SCPs");
-
-            List<string> KeterList = new List<string>();
-
-            foreach (var item in UnityEngine.Object.FindObjectsOfType<GrabbableObject>())
-            {
-                foreach (SCPItem scpItem in SCPItems.SCPItemsList)
+                if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
                 {
-                    if (scpItem.item == item.itemProperties && scpItem.MaxSpawns != 0)
+                    foreach (var scpItem in SCPItems.SCPItemsList)
                     {
-                        if (scpItem.itemsSpawnedInRound < scpItem.MaxSpawns)
+                        scpItem.amountInCurrentLevel = 0;
+                    }
+
+                    List<GrabbableObject> allItems = UnityEngine.Object.FindObjectsOfType<GrabbableObject>().ToList();
+
+                    allItems.RemoveAll(x => !SCPItems.SCPItemsList.Any(y => y.item.name == x.itemProperties.name));
+                    //allItems = allItems.OrderBy(x => x.isInShipRoom || x.hasBeenHeld).ToList();
+                    List<GrabbableObject> itemsInShip = allItems.Where(x => x.isInShipRoom || x.hasBeenHeld).ToList();
+                    List<GrabbableObject> itemsNotInShip = allItems.Where(x => !x.isInShipRoom && !x.hasBeenHeld).ToList();
+
+                    foreach (var item in SCPItems.SCPItemsList)
+                    {
+                        item.amountInCurrentLevel = itemsInShip.Count(x => x.itemProperties.name == item.item.name);
+                    }
+
+                    foreach (var item in itemsNotInShip)
+                    {
+                        SCPItem scp = SCPItems.SCPItemsList.Where(x => x.item.name == item.itemProperties.name).First();
+
+                        if (scp.MaxSpawns > 0)
                         {
-                            scpItem.itemsSpawnedInRound++;
-                        }
-                        else
-                        {
-                            if (!item.hasBeenHeld && !item.isInShipRoom)
+                            if (scp.amountInCurrentLevel < scp.MaxSpawns)
+                            {
+                                scp.amountInCurrentLevel++;
+                            }
+                            else
                             {
                                 NetworkObject networkObject = item.gameObject.GetComponent<NetworkObject>();
 
-                                if (networkObject != null && networkObject.IsSpawned && (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer))
+                                if (networkObject != null && networkObject.IsSpawned)
                                 {
                                     item.gameObject.GetComponent<NetworkObject>().Despawn(true);
                                 }
@@ -91,16 +101,14 @@ namespace HeavyItemSCPs.Patches
                                 }
                             }
                         }
-
-                        if (scpItem.ObjectClass == ObjectClass.Keter)
-                        {
-                            KeterList.Add(item.itemProperties.itemName);
-                        }
                     }
                 }
             }
-
-            if (KeterList.Count > 0) { HUDManager.Instance.DisplayTip("Warning", $"{KeterList.Count} anomalies of class Keter detected:\n{string.Join(", ", KeterList)}", true); }
+            catch (Exception e)
+            {
+                logger.LogError("Error in StartOfRoundPatch/OnShipLandedMiscEventsPostfix: " + e);
+                return;
+            }
         }
     }
 }

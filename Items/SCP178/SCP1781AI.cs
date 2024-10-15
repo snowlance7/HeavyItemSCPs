@@ -37,17 +37,21 @@ namespace HeavyItemSCPs.Items.SCP178
         float stareTime;
         float observationTimer;
         float postObservationTimer;
-        const float observationGracePeriod = 1f;
-        const float distanceToAddAnger = 20f;
+        float observationGracePeriod;
+        float distanceToAddAnger;
+        float renderDistance;
 
         Coroutine wanderingRoutine;
         float timeSinceLastAngerCalc;
         float timeSinceEmoteUsed;
-        float timeSinceDamagePlayer = 0f;
-        float timeSincePlayerTalked = 0f;
+        float timeSinceDamagePlayer;
+        float timeSincePlayerTalked;
         float wanderingRadius;
         float wanderWaitTime;
         bool lobPlayerNoise = false;
+        bool playersNearby = false;
+
+        float timeSincePlayersCheck;
 
         public enum State
         {
@@ -65,6 +69,9 @@ namespace HeavyItemSCPs.Items.SCP178
             stareTime = config1781PostObservationTime.Value;
             wanderingRadius = config1781WanderingRadius.Value;
             wanderWaitTime = config1781WanderingWaitTime.Value;
+            observationGracePeriod = config1781ObservationGracePeriod.Value;
+            distanceToAddAnger = config1781DistanceToAddAnger.Value;
+            renderDistance = config1781RenderDistance.Value;
 
             spawnPosition = transform.position;
 
@@ -75,16 +82,24 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public override void Update()
         {
-            base.Update();
+            timeSincePlayersCheck += Time.deltaTime;
 
-            if (StartOfRound.Instance.allPlayersDead)
+            if (timeSincePlayersCheck > 1f)
+            {
+                playersNearby = ArePlayersAroundMe(renderDistance);
+            }
+
+            if (StartOfRound.Instance.allPlayersDead || !playersNearby)
             {
                 return;
             };
 
+            base.Update();
+
             timeSinceDamagePlayer += Time.deltaTime;
             timeSinceEmoteUsed += Time.deltaTime;
             timeSinceLastAngerCalc += Time.deltaTime;
+            
 
             if (currentBehaviourStateIndex == (int)State.Observing)
             {
@@ -107,7 +122,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 }
             }
         }
-        public override void DoAIInterval() // TODO: make sure they are staying within their radius and go back to their spot after player is dead
+        public override void DoAIInterval()
         {
             base.DoAIInterval();
 
@@ -180,6 +195,16 @@ namespace HeavyItemSCPs.Items.SCP178
                     logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
                     break;
             }
+        }
+
+        public bool ArePlayersAroundMe(float distance)
+        {
+            foreach (var player in StartOfRound.Instance.allPlayerScripts)
+            {
+                if (Vector3.Distance(transform.position, player.transform.position) < distance) { return true; }
+            }
+
+            return false;
         }
 
         public bool TargetPlayerIfClose()
@@ -399,6 +424,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 {
                     player.DamagePlayer(40);
                     DoAttackAnimation();
+                    creatureSFX.PlayOneShot(creatureSFX.clip, 1f);
 
                     if (targetPlayer.isPlayerDead || targetPlayer.disconnectedMidGame)
                     {

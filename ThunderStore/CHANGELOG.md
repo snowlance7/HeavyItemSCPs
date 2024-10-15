@@ -1,3 +1,14 @@
+## 1.2.0
+- Added variations for SCP-427-1 depending on what he transforms from
+- SCP-427-1 now throws hoarder bugs and baboon hawks
+- Baboon hawks and RadMechs now see SCP-427-1 as a threat
+- Fixed issue with player body not despawning properly when transforming
+- Fixed issue with hoarderbugs not transforming
+- More configs added for SCP-427-1 and SCP-178-1
+- Optimizations for SCP-178-1
+- SCP-427-1 now has 150 hp and can take damage from anything now
+- SCP-427-1 now takes 75 damage from explosions
+
 ## 1.1.1
 - Fixed issue with SCP-178-1 able to be scanned by other clients not wearing the glasses
 - Fixed desyncing and softlocking issues when client other than host picks up and drops SCP-427

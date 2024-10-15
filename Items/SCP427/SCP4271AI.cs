@@ -15,7 +15,7 @@ using Unity.Netcode.Components;
 
 namespace HeavyItemSCPs.Items.SCP427
 {
-    internal class SCP4271AI : EnemyAI
+    internal class SCP4271AI : EnemyAI, IVisibleThreat
     {
 
         // Thumper variables for reference:
@@ -46,6 +46,17 @@ namespace HeavyItemSCPs.Items.SCP427
          */
 
         private static ManualLogSource logger = LoggerInstance;
+
+#pragma warning disable 0649
+        public Transform turnCompass = null!;
+        public Transform RightHandTransform = null!;
+        public AudioClip[] stompSFXList = null!;
+        public AudioClip roarSFX = null!;
+        public AudioClip warningRoarSFX = null!;
+        public AudioClip hitWallSFX = null!;
+        public NetworkAnimator networkAnimator = null!;
+        public Material[] materials = null!;
+#pragma warning restore 0649
 
         readonly float throwForce = 70f;
 
@@ -88,25 +99,23 @@ namespace HeavyItemSCPs.Items.SCP427
         Vector3 upDirection;
         Vector3 throwDirection;
 
-#pragma warning disable 0649
-        public Transform turnCompass = null!;
-        public Transform RightHandTransform = null!;
+        EnemyAI targetEnemy = null!;
 
-        public AudioClip[] stompSFXList = null!;
-        public AudioClip roarSFX = null!;
-        public AudioClip warningRoarSFX = null!;
-        public AudioClip hitWallSFX = null!;
-
-        public NetworkAnimator networkAnimator = null!;
-#pragma warning restore 0649
-
-        bool IsServerOrHost => NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost;
+        public ThreatType type => ThreatType.ForestGiant;
 
         public enum State
         {
             Roaming,
             Chasing,
             Throwing
+        }
+
+        public enum MaterialVariants
+        {
+            Player,
+            Hoarderbug,
+            BaboonHawk,
+            None
         }
 
         public override void Start()
@@ -456,7 +465,6 @@ namespace HeavyItemSCPs.Items.SCP427
         public void AttemptThrowScrapAtTargetPlayer()
         {
             logger.LogDebug("Throwing held object at target player");
-            //throwingScrap = true;
             StartCoroutine(ThrowScrapCoroutine());
         }
 
@@ -473,8 +481,6 @@ namespace HeavyItemSCPs.Items.SCP427
                 targetPlayer.DamagePlayer(15, true, true, CauseOfDeath.Inertia);
             }
 
-            //throwingScrap = false;
-
             if (timeSinceSeenPlayer > 60f)
             {
                 Roar();
@@ -490,7 +496,6 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             if (heldObject == null)
             {
-                //logger.LogWarning("My held item is null when attempting to drop it!!");
                 return;
             }
             GrabbableObject itemGrabbableObject = heldObject;
@@ -505,9 +510,12 @@ namespace HeavyItemSCPs.Items.SCP427
             heldObject = null!;
         }
 
-        public void GrabPlayer() // Set up to run with animation
+        public void Grab() // Set up to run with animation
         {
-            if (!throwingPlayer) { return; }
+            if (!throwingPlayer)
+            {
+                return;
+            }
 
             PlayerControllerB player = inSpecialAnimationWithPlayer;
             player.playerRigidbody.isKinematic = false;
@@ -519,11 +527,31 @@ namespace HeavyItemSCPs.Items.SCP427
             // Grab player
             logger.LogDebug("Grabbing player: " + inSpecialAnimationWithPlayer.playerUsername);
             grabbingPlayer = true;
+            StartCoroutine(FailsafeCoroutine());
         }
 
-        public void ThrowPlayer() // Set up to run with animation
+        public void Throw() // Set up to run with animation
         {
-            if (!throwingPlayer) { return; }
+            if (!throwingPlayer)
+            {
+                if (targetEnemy != null)
+                {
+                    forwardDirection = transform.TransformDirection(Vector3.forward).normalized * 2;
+                    upDirection = transform.TransformDirection(Vector3.up).normalized;
+                    throwDirection = (forwardDirection + upDirection).normalized;
+
+                    targetEnemy.agent.enabled = false;
+                    Rigidbody enemyRb = targetEnemy.gameObject.AddComponent<Rigidbody>();
+                    enemyRb.isKinematic = false;
+
+                    enemyRb.velocity = Vector3.zero;
+                    enemyRb.AddForce(throwDirection.normalized * throwForce, ForceMode.Impulse);
+                    StartCoroutine(RemoveRigidbodyAfterDelay(1f));
+                }
+
+                return;
+            }
+
             grabbingPlayer = false;
             logger.LogDebug("Throwing player: " + inSpecialAnimationWithPlayer.playerUsername);
             PlayerControllerB player = inSpecialAnimationWithPlayer;
@@ -549,6 +577,34 @@ namespace HeavyItemSCPs.Items.SCP427
                 Roar();
             }
         }
+
+        public IEnumerator FailsafeCoroutine()
+        {
+            yield return new WaitForSeconds(5f);
+            CancelSpecialAnimationWithPlayer();
+        }
+
+        public IEnumerator RemoveRigidbodyAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            Rigidbody enemyRb = targetEnemy.gameObject.GetComponent<Rigidbody>();
+
+            if (enemyRb != null)
+            {
+                enemyRb.isKinematic = true;
+                Destroy(enemyRb);
+            }
+
+            targetEnemy.agent.enabled = true;
+            targetEnemy.HitEnemy(4, null, true);
+
+            targetEnemy = null!;
+            inSpecialAnimation = false;
+            creatureAnimator.SetTrigger("startWalk");
+            SwitchToBehaviourStateOnLocalClient((int)State.Roaming);
+        }
+
         public IEnumerator InjureLocalPlayerCoroutine()
         {
             yield return new WaitUntil(() => localPlayer.thisController.isGrounded || localPlayer.isInHangarShipRoom);
@@ -557,22 +613,6 @@ namespace HeavyItemSCPs.Items.SCP427
             localPlayer.sprintMeter /= 2;
             localPlayer.JumpToFearLevel(0.8f);
             localPlayer.drunkness = 0.2f;
-        }
-
-        public override void OnCollideWithPlayer(Collider other) // This only runs on client
-        {
-            base.OnCollideWithPlayer(other);
-            //if (!throwingPlayerEnabled) { return; } // TODO: For testing, remove later
-            PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
-            if (player != null && currentBehaviourStateIndex != (int)State.Throwing && !inSpecialAnimation)
-            {
-                logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
-                logger.LogDebug("Throwing player");
-
-                inSpecialAnimation = true;
-                FreezePlayer(player, 2f);
-                ThrowPlayerServerRpc(player.actualClientId);
-            }
         }
 
         public void FreezePlayer(PlayerControllerB player, float freezeTime)
@@ -606,7 +646,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             yield return new WaitUntil(() => stunNormalizedTimer <= 0f);
 
-            if (TargetClosestPlayerInAnyCase())
+            if (targetPlayer != null)
             {
                 SwitchToBehaviourClientRpc((int)State.Chasing);
                 networkAnimator.SetTrigger("startRun");
@@ -647,15 +687,12 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (!isEnemyDead)
             {
-                enemyHP -= 1;
+                enemyHP -= 75;
                 if (enemyHP <= 0 && IsOwner)
                 {
                     KillEnemyOnOwnerClient();
+                    return;
                 }
-                /*else if (!throwingPlayer && !pickingUpScrap && !grabbingPlayer)
-                {
-                    Roar();
-                }*/
                 CancelSpecialAnimationWithPlayer();
                 Roar();
             }
@@ -671,7 +708,14 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public override void HitEnemy(int force = 0, PlayerControllerB playerWhoHit = null!, bool playHitSFX = true, int hitID = -1)
         {
-            return;
+            if (!isEnemyDead)
+            {
+                enemyHP -= force;
+                if (enemyHP <= 0 && IsOwner)
+                {
+                    KillEnemyOnOwnerClient();
+                }
+            }
         }
 
         public override void CancelSpecialAnimationWithPlayer()
@@ -685,6 +729,85 @@ namespace HeavyItemSCPs.Items.SCP427
             throwingPlayer = false;
             pickingUpScrap = false;
             targetObject = null!;
+        }
+
+        public override void OnCollideWithPlayer(Collider other) // This only runs on client
+        {
+            base.OnCollideWithPlayer(other);
+            //if (!throwingPlayerEnabled) { return; } // TODO: For testing, remove later
+            PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
+            if (player != null && currentBehaviourStateIndex != (int)State.Throwing && !inSpecialAnimation)
+            {
+                logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
+                logger.LogDebug("Throwing player");
+
+                inSpecialAnimation = true;
+                FreezePlayer(player, 2f);
+                ThrowPlayerServerRpc(player.actualClientId);
+            }
+        }
+
+        public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null) // TODO: TEST THIS
+        {
+            base.OnCollideWithEnemy(other, collidedEnemy);
+
+            if (collidedEnemy.enemyType.name == "BaboonHawk" || collidedEnemy.enemyType.name == "HoarderBug")
+            {
+                if (!isEnemyDead && !collidedEnemy.isEnemyDead && !inSpecialAnimation && currentBehaviourStateIndex != (int)State.Throwing)
+                {
+                    if (IsServerOrHost)
+                    {
+                        logger.LogDebug("Throwing enemy");
+                        inSpecialAnimation = true;
+                        targetEnemy = collidedEnemy;
+                        SwitchToBehaviourClientRpc((int)State.Throwing);
+                        networkAnimator.SetTrigger("throw");
+                    }
+                }
+            }
+        }
+
+        int IVisibleThreat.SendSpecialBehaviour(int id)
+        {
+            return 0;
+        }
+
+        int IVisibleThreat.GetThreatLevel(Vector3 seenByPosition)
+        {
+            return 5;
+        }
+
+        int IVisibleThreat.GetInterestLevel()
+        {
+            return 1;
+        }
+
+        Transform IVisibleThreat.GetThreatLookTransform()
+        {
+            return eye;
+        }
+
+        Transform IVisibleThreat.GetThreatTransform()
+        {
+            return base.transform;
+        }
+
+        Vector3 IVisibleThreat.GetThreatVelocity()
+        {
+            if (base.IsOwner)
+            {
+                return agent.velocity;
+            }
+            return Vector3.zero;
+        }
+
+        float IVisibleThreat.GetVisibility()
+        {
+            if (isEnemyDead)
+            {
+                return 0f;
+            }
+            return 1f;
         }
 
         // RPC's
@@ -715,6 +838,12 @@ namespace HeavyItemSCPs.Items.SCP427
         private void SetEnemyOutsideClientRpc(bool value)
         {
             SetEnemyOutside(value);
+        }
+
+        [ClientRpc]
+        public void SetMaterialVariantClientRpc(MaterialVariants variant)
+        {
+            skinnedMeshRenderers[0].material = materials[(int)variant];
         }
     }
 

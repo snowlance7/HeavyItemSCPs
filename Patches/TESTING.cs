@@ -19,7 +19,7 @@ using static HeavyItemSCPs.Plugin;
  * 9 left shoulder
  * 10 right shoulder */
 
-namespace HeavyItemSCPs.Patches
+/*namespace HeavyItemSCPs.Patches
 {
     [HarmonyPatch]
     internal class TESTING : MonoBehaviour
@@ -29,37 +29,9 @@ namespace HeavyItemSCPs.Patches
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
-            //logger.LogDebug($"Instanity: {localPlayer.insanityLevel}");
-            //logger.LogDebug($"Drunkness: {localPlayer.drunkness}");
-            //logger.LogDebug($"Fear: {localPlayer.playersManager.fearLevel}");
+            
 
-            //RoundManager.Instance.PlayAudibleNoise(localPlayer.transform.position, 50f, 1f, 0, false, 0);
-
-            /*LungProp apparatus = UnityEngine.Object.FindObjectOfType<LungProp>();
-            MeshRenderer renderer = apparatus.gameObject.GetComponentInChildren<MeshRenderer>();
-
-            Material outlineMat = ModAssets.LoadAsset<Material>("Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat");
-
-            Material[] originalMaterials = renderer.materials;  // Save original materials
-            Material[] newMaterials = new Material[originalMaterials.Length + 1];
-            for (int i = 0; i < originalMaterials.Length; i++)
-            {
-                newMaterials[i] = originalMaterials[i];
-            }
-            newMaterials[originalMaterials.Length] = outlineMat;  // Add the outline material
-
-            renderer.materials = newMaterials;*/
-
-            //logger.LogDebug("Done");
-
-            /*foreach(var dungeon in RoundManager.Instance.dungeonFlowTypes) // SCPFlow
-            {
-                logger.LogDebug(dungeon.dungeonFlow.GetType().ToString());
-                logger.LogDebug(dungeon.dungeonFlow.name);
-            }*/
-            //string name = RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name;
-            //logger.LogDebug(name);
-        }
+        } // HoarderBug, BaboonHawk
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
@@ -80,7 +52,7 @@ namespace HeavyItemSCPs.Patches
                 default:
                     break;
             }
-        } // TODO: Figure out how to get baboon hawks to pick up 427 and transform
+        }
 
         public static List<SpawnableEnemyWithRarity> GetEnemies()
         {
@@ -98,4 +70,4 @@ namespace HeavyItemSCPs.Patches
             return enemies;
         }
     }
-}
+}*/

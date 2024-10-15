@@ -14,6 +14,7 @@ using HarmonyLib;
 using static HeavyItemSCPs.Plugin;
 using SCPItems;
 using Unity.Netcode.Components;
+using HeavyItemSCPs.Items.SCP178;
 
 namespace HeavyItemSCPs.Items.SCP427
 {
@@ -24,8 +25,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public static float timeSCP427HeldByLocalPlayer = 0f;
         //bool transformingEntity = false;
 
-        public static Dictionary<HoarderBugAI, float> LootBugHoldTimes = new Dictionary<HoarderBugAI, float>();
-        public static Dictionary<BaboonBirdAI, float> BirdHoldTimes = new Dictionary<BaboonBirdAI, float>();
+        public static Dictionary<EnemyAI, float> EnemyHoldTimes = new Dictionary<EnemyAI, float>();
 
         bool enableOpenNecklace;
         float timeToTransform;
@@ -34,6 +34,7 @@ namespace HeavyItemSCPs.Items.SCP427
         int healthPerSecondOpen;
         float lootBugTransformTime;
         float birdTransformTime;
+        float otherEnemyTransformTime;
         float timeToSpawnSCP4271;
         int maxSpawns;
         bool inInventoryCounts;
@@ -53,6 +54,8 @@ namespace HeavyItemSCPs.Items.SCP427
         bool isOpen = false;
         float multiplier = 1f;
 
+        EnemyAI? enemyHeldBy;
+
         // Object was not thrown because it does not exist on the server.
 
         public override void Start()
@@ -65,6 +68,7 @@ namespace HeavyItemSCPs.Items.SCP427
             healthPerSecondOpen = configHealthPerSecondOpen.Value;
             lootBugTransformTime = configHoarderBugTransformTime.Value;
             birdTransformTime = configBaboonHawkTransformTime.Value;
+            otherEnemyTransformTime = configOtherEnemyTransformTime.Value;
             timeToSpawnSCP4271 = configTimeToSpawnSCP4271.Value;
             maxSpawns = configMaxSpawns.Value;
             inInventoryCounts = configIncreaseTimeWhenInInventory.Value;
@@ -116,63 +120,56 @@ namespace HeavyItemSCPs.Items.SCP427
                     }
                 }
             }
-            else if (isHeldByEnemy) // Held by enemy
+            else if (enemyHeldBy != null) // Held by enemy
             {
                 if (!(NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)) { return; }
-                HoarderBugAI bug = FindObjectsOfType<HoarderBugAI>().Where(x => x.heldItem != null && x.heldItem.itemGrabbableObject == this).FirstOrDefault();
-                BaboonBirdAI bird = FindObjectsOfType<BaboonBirdAI>().Where(x => x.heldScrap != null && x.heldScrap == this).FirstOrDefault();
 
-                if (bug != null)
+                if (timeSinceLastHeal > 1f)
                 {
-                    hasBeenHeld = true;
+                    HealEnemy(enemyHeldBy);
+                    timeSinceLastHeal = 0f;
+                }
 
-                    if (!LootBugHoldTimes.ContainsKey(bug))
+                if (enemyHeldBy.enemyType.name == "SCP4271Enemy") { return; }
+
+                if (!EnemyHoldTimes.ContainsKey(enemyHeldBy))
+                {
+                    EnemyHoldTimes.Add(enemyHeldBy, 0f);
+                }
+
+                EnemyHoldTimes[enemyHeldBy] += Time.deltaTime;
+                logger.LogDebug($"{enemyHeldBy.enemyType.name} hold time: {EnemyHoldTimes[enemyHeldBy]}");
+
+                if (enemyHeldBy.enemyType.name == "BaboonHawk")
+                {
+                    if (birdTransformTime != -1)
                     {
-                        LootBugHoldTimes.Add(bug, 0f);
-                    }
-
-                    if (timeSinceLastHeal > 1f)
-                    {
-                        HealEnemy(bug);
-                        timeSinceLastHeal = 0f;
-                    }
-
-                    if (lootBugTransformTime != -1)
-                    {
-                        LootBugHoldTimes[bug] += Time.deltaTime;
-                        //logger.LogDebug($"Loot bug hold time: {LootBugHoldTimes[bug]}");
-
-                        if (LootBugHoldTimes[bug] >= lootBugTransformTime)
+                        if (EnemyHoldTimes[enemyHeldBy] >= birdTransformTime)
                         {
-                            logger.LogDebug("Transforming bug");
-                            TransformEnemy(bug);
+                            logger.LogDebug("Transforming bird");
+                            TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.BaboonHawk);
                         }
                     }
                 }
-                else if (bird != null)
+                else if (enemyHeldBy.enemyType.name == "HoarderBug")
                 {
-                    hasBeenHeld = true;
-
-                    if (!BirdHoldTimes.ContainsKey(bird))
+                    if (lootBugTransformTime != -1)
                     {
-                        BirdHoldTimes.Add(bird, 0f);
-                    }
-
-                    if (timeSinceLastHeal > 1f)
-                    {
-                        HealEnemy(bird);
-                        timeSinceLastHeal = 0f;
-                    }
-
-                    if (birdTransformTime != -1)
-                    {
-                        BirdHoldTimes[bird] += Time.deltaTime;
-                        //logger.LogDebug($"Bird hold time: {BirdHoldTimes[bird]}");
-
-                        if (BirdHoldTimes[bird] >= birdTransformTime)
+                        if (EnemyHoldTimes[enemyHeldBy] >= lootBugTransformTime)
                         {
-                            logger.LogDebug("Transforming bird");
-                            TransformEnemy(bird);
+                            logger.LogDebug("Transforming bug");
+                            TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.Hoarderbug);
+                        }
+                    }
+                }
+                else
+                {
+                    if (otherEnemyTransformTime != -1)
+                    {
+                        if (EnemyHoldTimes[enemyHeldBy] >= otherEnemyTransformTime)
+                        {
+                            logger.LogDebug("Transforming enemy");
+                            TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.None);
                         }
                     }
                 }
@@ -192,7 +189,7 @@ namespace HeavyItemSCPs.Items.SCP427
                         if (FindObjectsOfType<SCP4271AI>().Count() >= maxSpawns) { return; } // TODO: This may cause errors?
                         logger.LogDebug("Spawning SCP-427-1");
                         timeToSpawnSCP4271 += timeToSpawnSCP4271;
-                        SpawnSCP4271ServerRpc(transform.position);
+                        SpawnSCP4271ServerRpc(transform.position, SCP4271AI.MaterialVariants.None);
                     }
                 }
             }
@@ -209,6 +206,20 @@ namespace HeavyItemSCPs.Items.SCP427
                 return;
             }
             CloseNecklace();
+        }
+
+        public override void OnHitGround()
+        {
+            base.OnHitGround();
+            enemyHeldBy = null;
+            CloseNecklace();
+        }
+
+        public override void GrabItemFromEnemy(EnemyAI enemy)
+        {
+            base.GrabItemFromEnemy(enemy);
+            hasBeenHeld = true;
+            enemyHeldBy = enemy;
         }
 
         public override void PocketItem()
@@ -264,20 +275,21 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 Vector3 spawnPos = player.deadBody.transform.position;
 
-                Destroy(player.deadBody);
-                SpawnSCP4271ServerRpc(spawnPos);
+                player.deadBody.DeactivateBody(setActive: false); // TODO: Test this
+                SpawnSCP4271ServerRpc(spawnPos, SCP4271AI.MaterialVariants.Player);
             }
 
             timeSCP427HeldByLocalPlayer = 0f;
         }
 
-        private void TransformEnemy(EnemyAI enemy)
+        private void TransformEnemy(EnemyAI enemy, SCP4271AI.MaterialVariants variant)
         {
             logger.LogDebug($"Transforming {enemy.enemyType.enemyName}");
-            StartCoroutine(TransformEnemyCoroutine(enemy));
+            enemyHeldBy = null;
+            StartCoroutine(TransformEnemyCoroutine(enemy, variant));
         }
 
-        private IEnumerator TransformEnemyCoroutine(EnemyAI enemy)
+        private IEnumerator TransformEnemyCoroutine(EnemyAI enemy, SCP4271AI.MaterialVariants variant)
         {
             Vector3 spawnPos = enemy.transform.position;
 
@@ -291,7 +303,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 enemy.thisNetworkObject.Despawn();
             }
 
-            SpawnSCP4271ServerRpc(spawnPos);
+            SpawnSCP4271ServerRpc(spawnPos, variant);
         }
 
         public void HealPlayer(int health)
@@ -328,14 +340,20 @@ namespace HeavyItemSCPs.Items.SCP427
         }
 
         [ServerRpc(RequireOwnership = false)]
-        public void SpawnSCP4271ServerRpc(Vector3 spawnPos)
+        public void SpawnSCP4271ServerRpc(Vector3 spawnPos, SCP4271AI.MaterialVariants variant)
         {
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 logger.LogDebug("Spawning SCP-427-1");
 
                 EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP4271Enemy").FirstOrDefault().enemyType;
-                RoundManager.Instance.SpawnEnemyGameObject(spawnPos, Quaternion.identity.y, 0, scp);
+                NetworkObjectReference scpRef = RoundManager.Instance.SpawnEnemyGameObject(spawnPos, Quaternion.identity.y, 0, scp);
+
+                if (variant != SCP4271AI.MaterialVariants.None && scpRef.TryGet(out var netObj))
+                {
+                    logger.LogDebug("Got net obj for SCP-427-1");
+                    netObj.GetComponent<SCP4271AI>().SetMaterialVariantClientRpc(variant);
+                }
             }
         }
     }
@@ -344,14 +362,6 @@ namespace HeavyItemSCPs.Items.SCP427
     internal class SCP427Patches
     {
         private static ManualLogSource logger = LoggerInstance;
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.KillPlayer))]
-        public static void KillPlayerPostfix()
-        {
-            logger.LogDebug("In KillPlayerPatch");
-            SCP427Behavior.timeSCP427HeldByLocalPlayer = 0f;
-        }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.DespawnPropsAtEndOfRound))]
@@ -366,8 +376,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)
             {
-                SCP427Behavior.LootBugHoldTimes.Clear();
-                SCP427Behavior.BirdHoldTimes.Clear();
+                SCP427Behavior.EnemyHoldTimes.Clear();
             }
         }
     }

@@ -6,8 +6,6 @@ using System.Text;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
 
-// scp-428
-
 namespace HeavyItemSCPs
 {
     public static class SCPItems
@@ -15,91 +13,40 @@ namespace HeavyItemSCPs
         public static List<SCPItem> SCPItemsList = new List<SCPItem>();
         public static List<SCPEnemy> SCPEnemiesList = new List<SCPEnemy>();
 
-
-        public static void Load(string pathName, ObjectClass objClass, string? levelRarities = null, string? customLevelRarities = null, int scpDungeonRarity = 0, int minValue = 0, int maxValue = 0, int? maxSpawns = null, bool tabletop = false, bool general = false, bool small = false)
+        public static void Load(string path, ObjectClass objClass, string? levelRarities = null, string? customLevelRarities = null, int scpDungeonRarity = 100, int minValue = 0, int maxValue = 0, int? maxSpawns = null, bool tabletop = false, bool general = false, bool small = false)
         {
-            Item SCP = ModAssets.LoadAsset<Item>($"Assets/ModAssets/{pathName}/{pathName}Item.asset");
-            if (SCP == null) { LoggerInstance.LogError($"Error: Couldnt get {pathName} from assets"); return; }
-            LoggerInstance.LogDebug($"Got {pathName} prefab");
+            Item SCP = ModAssets.LoadAsset<Item>(path);
+            if (SCP == null) { LoggerInstance.LogError($"Error: Couldnt get item with path {path} in assets"); return; }
+            LoggerInstance.LogDebug($"Got {SCP.name} prefab");
 
-            if (maxValue > 0 && minValue < maxValue)
-            {
-                SCP.minValue = minValue;
-                SCP.maxValue = maxValue;
-            }
+            SCP.minValue = minValue;
+            SCP.maxValue = Mathf.Max(minValue, maxValue);
 
-            SCPItem scp = new SCPItem();
-            scp.item = SCP;
-            scp.MaxSpawns = maxSpawns;
-            scp.ObjectClass = objClass;
-            scp.TabletopItem = tabletop;
-            scp.GeneralItem = general;
-            scp.SmallItem = small;
-            scp.SCPDungeonRarity = scpDungeonRarity;
+            SCPItem scpItem = new SCPItem();
+            scpItem.item = SCP;
+            scpItem.MaxSpawns = maxSpawns;
+            scpItem.scpDungeonRarity = scpDungeonRarity;
+            scpItem.ObjectClass = objClass;
+            scpItem.TabletopItem = tabletop;
+            scpItem.GeneralItem = general;
+            scpItem.SmallItem = small;
+            SCPItemsList.Add(scpItem);
 
-            Dictionary<Levels.LevelTypes, int> levelRaritiesDict = new Dictionary<Levels.LevelTypes, int>();
-            Dictionary<string, int> customLevelRaritiesDict = new Dictionary<string, int>();
-
-            if (levelRarities != null)
-            {
-                /*string[] levels = levelRarities.Split(',');
-
-                foreach (string level in levels)
-                {
-                    string[] levelSplit = level.Split(':');
-                    if (levelSplit.Length != 2) { continue; }
-                    string levelType = levelSplit[0].Trim();
-                    string levelRarity = levelSplit[1].Trim();
-
-                    if (Enum.TryParse<Levels.LevelTypes>(levelType, out Levels.LevelTypes levelTypeEnum) && int.TryParse(levelRarity, out int levelRarityInt))
-                    {
-                        levelRaritiesDict.Add(levelTypeEnum, levelRarityInt);
-                    }
-                    else
-                    {
-                        LoggerInstance.LogError($"Error: Invalid level rarity: {levelType}:{levelRarity}");
-                    }
-                }*/
-                levelRaritiesDict = GetLevelRarities(levelRarities);
-            }
-            if (customLevelRarities != null)
-            {
-                /*string[] levels = customLevelRarities.Split(',');
-
-                foreach (string level in levels)
-                {
-                    string[] levelSplit = level.Split(':');
-                    if (levelSplit.Length != 2) { continue; }
-                    string levelType = levelSplit[0].Trim();
-                    string levelRarity = levelSplit[1].Trim();
-
-                    if (int.TryParse(levelRarity, out int levelRarityInt))
-                    {
-                        customLevelRaritiesDict.Add(levelType, levelRarityInt);
-                    }
-                    else
-                    {
-                        LoggerInstance.LogError($"Error: Invalid level rarity: {levelType}:{levelRarity}");
-                    }
-                }*/
-                customLevelRaritiesDict = GetCustomLevelRarities(customLevelRarities);
-            }
-
-            SCPItemsList.Add(scp);
             LethalLib.Modules.NetworkPrefabs.RegisterNetworkPrefab(SCP.spawnPrefab);
             LethalLib.Modules.Utilities.FixMixerGroups(SCP.spawnPrefab);
-            LethalLib.Modules.Items.RegisterScrap(SCP, levelRaritiesDict, customLevelRaritiesDict);
+            LethalLib.Modules.Items.RegisterScrap(SCP, GetLevelRarities(levelRarities), GetCustomLevelRarities(customLevelRarities));
         }
 
-        public static void LoadShopItem(string pathName, ObjectClass objClass, int price = -1, bool keter = false)
+        public static void LoadShopItem(string path, ObjectClass objClass, int price)
         {
-            Item SCP = ModAssets.LoadAsset<Item>($"Assets/ModAssets/{pathName}/{pathName}Item.asset");
-            if (SCP == null) { LoggerInstance.LogError($"Error: Couldnt get {pathName} from assets"); return; }
-            LoggerInstance.LogDebug($"Got {pathName} prefab");
+            Item SCP = ModAssets.LoadAsset<Item>(path);
+            if (SCP == null) { LoggerInstance.LogError($"Error: Couldnt get item with path {path} from assets"); return; }
+            LoggerInstance.LogDebug($"Got {SCP.name} prefab");
 
             SCPItem scp = new SCPItem();
             scp.item = SCP;
             scp.ObjectClass = objClass;
+            scp.price = price;
             SCPItemsList.Add(scp);
 
             LethalLib.Modules.NetworkPrefabs.RegisterNetworkPrefab(SCP.spawnPrefab);
@@ -107,53 +54,42 @@ namespace HeavyItemSCPs
             LethalLib.Modules.Items.RegisterShopItem(SCP, price);
         }
 
-        public static void LoadEnemy(string enemyPath, string itemPath, string? levelRarities = null, string? customLevelRarities = null, int scpDungeonRarity = 0, bool enableSpawning = true)
+        public static void LoadEnemy(string path, string TNPath, string TKPath, string? levelRarities = null, string? customLevelRarities = null, int scpDungeonRarity = 100, ObjectClass objClass = ObjectClass.Unknown)
         {
-            EnemyType enemy = ModAssets.LoadAsset<EnemyType>($"Assets/ModAssets/{itemPath}/{enemyPath}Enemy.asset");
-            if (enemy == null) { LoggerInstance.LogError($"Error: Couldnt get {enemyPath} from assets"); return; }
-            LoggerInstance.LogDebug($"Got {enemyPath} prefab");
-            enemy.spawningDisabled = !enableSpawning;
-            TerminalNode terminalNode = ModAssets.LoadAsset<TerminalNode>($"Assets/ModAssets/{itemPath}/Bestiary/{enemyPath}TN.asset");
-            TerminalKeyword terminalKeyword = ModAssets.LoadAsset<TerminalKeyword>($"Assets/ModAssets/{itemPath}/Bestiary/{enemyPath}TK.asset");
-            if (terminalNode == null) { LoggerInstance.LogError($"Error: Couldnt get {enemyPath}TN from assets"); return; }
-            if (terminalKeyword == null) { LoggerInstance.LogError($"Error: Couldnt get {enemyPath}TK from assets"); return; }
+            EnemyType enemy = ModAssets.LoadAsset<EnemyType>(path);
+            if (enemy == null) { LoggerInstance.LogError($"Error: Couldnt get enemy with path {path} from assets"); return; }
+            LoggerInstance.LogDebug($"Got {enemy.name} prefab");
+            if (levelRarities == null && customLevelRarities == null) { enemy.spawningDisabled = true; }
+            TerminalNode terminalNode = ModAssets.LoadAsset<TerminalNode>(TNPath);
+            TerminalKeyword terminalKeyword = ModAssets.LoadAsset<TerminalKeyword>(TKPath);
+            if (terminalNode == null) { LoggerInstance.LogError($"Error: Couldnt get terminal node from path {TNPath} in assets"); return; }
+            if (terminalKeyword == null) { LoggerInstance.LogError($"Error: Couldnt get terminal keyword from path {TKPath} in assets"); return; }
 
-            SCPEnemy scpEnemy = new SCPEnemy();
-            scpEnemy.enemyType = enemy;
-            scpEnemy.SCPDungeonRarity = scpDungeonRarity;
+            SCPEnemy scp = new SCPEnemy();
+            scp.ObjectClass = objClass;
+            scp.enemyType = enemy;
+            scp.SCPDungeonRarity = scpDungeonRarity;
+            SCPEnemiesList.Add(scp);
 
-            Dictionary<Levels.LevelTypes, int> levelRaritiesDict = new Dictionary<Levels.LevelTypes, int>();
-            Dictionary<string, int> customLevelRaritiesDict = new Dictionary<string, int>();
-
-            if (levelRarities != null)
-            {
-                levelRaritiesDict = GetLevelRarities(levelRarities);
-            }
-            if (customLevelRarities != null)
-            {
-                customLevelRaritiesDict = GetCustomLevelRarities(customLevelRarities);
-            }
-
-            SCPEnemiesList.Add(scpEnemy);
-            LoggerInstance.LogDebug($"Registering {enemyPath} enemy network prefab...");
+            LoggerInstance.LogDebug($"Registering {enemy.name} enemy network prefab...");
             LethalLib.Modules.NetworkPrefabs.RegisterNetworkPrefab(enemy.enemyPrefab);
-            LoggerInstance.LogDebug($"Registering {enemyPath} enemy...");
-            LethalLib.Modules.Enemies.RegisterEnemy(enemy, levelRaritiesDict, customLevelRaritiesDict, terminalNode, terminalKeyword);
+            LoggerInstance.LogDebug($"Registering {enemy.name} enemy...");
+            LethalLib.Modules.Enemies.RegisterEnemy(enemy, GetLevelRarities(levelRarities), GetCustomLevelRarities(customLevelRarities), terminalNode, terminalKeyword);
         }
     }
 
     public class SCPEnemy
     {
         public string enemyName { get { return enemyType.enemyName; } }
-        public EnemyType enemyType;
+        public ObjectClass ObjectClass;
+        public EnemyType enemyType = null!;
         public int SCPDungeonRarity;
         public int currentLevelRarity;
     }
 
     public class SCPItem
     {
-        public string itemName { get { return item.itemName; } }
-        public Item item;
+        public Item item = null!;
         public int? MaxSpawns;
         public ObjectClass ObjectClass;
 
@@ -161,13 +97,16 @@ namespace HeavyItemSCPs
         public bool GeneralItem = false;
         public bool SmallItem = false;
 
-        public int itemsSpawnedInRound = 0;
+        public int amountInCurrentLevel = 0;
 
-        public int SCPDungeonRarity;
+        public int scpDungeonRarity = 100;
         public int currentLevelRarity;
+
+        public int price;
     }
     public enum ObjectClass
     {
+        Unknown,
         Safe,
         Euclid,
         Keter

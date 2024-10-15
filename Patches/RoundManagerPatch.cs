@@ -29,13 +29,14 @@ namespace HeavyItemSCPs.Patches
                 logger.LogDebug("SCPFlow detected");
                 foreach (var scpItem in SCPItems.SCPItemsList)
                 {
-                    if (scpItem.SCPDungeonRarity == -1) { continue; }
+                    if (scpItem.scpDungeonRarity == -1) { continue; }
                     SpawnableItemWithRarity item = __instance.currentLevel.spawnableScrap.Where(x => x.spawnableItem.name == scpItem.item.name).FirstOrDefault();
 
                     if (item != null)
                     {
                         scpItem.currentLevelRarity = item.rarity;
-                        item.rarity = scpItem.SCPDungeonRarity;
+                        item.rarity = scpItem.scpDungeonRarity;
+                        logger.LogDebug($"Rarity for {scpItem.item.name} set to {item.rarity} from {scpItem.currentLevelRarity}");
                     }
                 }
 
@@ -54,12 +55,13 @@ namespace HeavyItemSCPs.Patches
 
                 foreach (var scpItem in SCPItems.SCPItemsList)
                 {
-                    if (scpItem.SCPDungeonRarity == -1) { continue; }
+                    if (scpItem.scpDungeonRarity == -1) { continue; }
                     SpawnableItemWithRarity item = __instance.currentLevel.spawnableScrap.Where(x => x.spawnableItem.name == scpItem.item.name).FirstOrDefault();
 
                     if (item != null)
                     {
                         item.rarity = scpItem.currentLevelRarity;
+                        logger.LogDebug($"Rarity for {scpItem.item.name} reset to {item.rarity} from {scpItem.scpDungeonRarity}");
                     }
                 }
             }

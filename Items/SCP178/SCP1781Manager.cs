@@ -44,7 +44,7 @@ namespace HeavyItemSCPs.Items.SCP178
             int count = 0;
             foreach (var node in RoundManager.Instance.outsideAINodes)
             {
-                if (count >= config1781MaxCount.Value && config1781MaxCount.Value != -1) { break; }
+                if (count >= config1781MaxCountOutside.Value && config1781MaxCountOutside.Value != -1) { break; }
                 GameObject spawnableEnemy = Instantiate(enemyPrefab, node.transform.position, Quaternion.identity);
                 spawnableEnemy.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
                 SCP1781Instances.Add(spawnableEnemy);
@@ -54,7 +54,7 @@ namespace HeavyItemSCPs.Items.SCP178
             count = 0;
             foreach (var node in RoundManager.Instance.insideAINodes)
             {
-                if (count >= config1781MaxCount.Value && config1781MaxCount.Value != -1) { break; }
+                if (count >= config1781MaxCountInside.Value && config1781MaxCountInside.Value != -1) { break; }
                 GameObject spawnableEnemy = Instantiate(enemyPrefab, node.transform.position, Quaternion.identity);
                 spawnableEnemy.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
                 SCP1781Instances.Add(spawnableEnemy);

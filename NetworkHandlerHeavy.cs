@@ -16,7 +16,7 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
-        public static NetworkHandlerHeavy? Instance { get; private set; }
+        public static NetworkHandlerHeavy Instance { get; private set; }
 
         public static PlayerControllerB PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts[StartOfRound.Instance.ClientPlayerList[id]]; }
 
