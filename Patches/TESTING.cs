@@ -19,7 +19,7 @@ using static HeavyItemSCPs.Plugin;
  * 9 left shoulder
  * 10 right shoulder */
 
-/*namespace HeavyItemSCPs.Patches
+namespace HeavyItemSCPs.Patches
 {
     [HarmonyPatch]
     internal class TESTING : MonoBehaviour
@@ -29,8 +29,8 @@ using static HeavyItemSCPs.Plugin;
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
-            
-
+            Vector3 speed = GetSpeed();
+            logger.LogDebug(speed.magnitude.ToString());
         } // HoarderBug, BaboonHawk
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
@@ -42,6 +42,12 @@ using static HeavyItemSCPs.Plugin;
 
             switch (args[0])
             {
+                case "/enemies":
+                    foreach (var enemy in GetEnemies())
+                    {
+                        logger.LogDebug(enemy.enemyType.name);
+                    }
+                    break;
                 case "/outside":
                     //UnityEngine.Object.FindObjectOfType<SCP4271AI>().SetEnemyOutsideClientRpc(bool.Parse(args[1]));
                     break;
@@ -69,5 +75,74 @@ using static HeavyItemSCPs.Plugin;
             logger.LogDebug($"Enemy types: {enemies.Count}");
             return enemies;
         }
+
+        public static Vector3 GetSpeed()
+        {
+            float num3 = localPlayer.movementSpeed / localPlayer.carryWeight;
+            if (localPlayer.sinkingValue > 0.73f)
+            {
+                num3 = 0f;
+            }
+            else
+            {
+                if (localPlayer.isCrouching)
+                {
+                    num3 /= 1.5f;
+                }
+                else if (localPlayer.criticallyInjured && !localPlayer.isCrouching)
+                {
+                    num3 *= localPlayer.limpMultiplier;
+                }
+                if (localPlayer.isSpeedCheating)
+                {
+                    num3 *= 15f;
+                }
+                if (localPlayer.movementHinderedPrev > 0)
+                {
+                    num3 /= 2f * localPlayer.hinderedMultiplier;
+                }
+                if (localPlayer.drunkness > 0f)
+                {
+                    num3 *= StartOfRound.Instance.drunknessSpeedEffect.Evaluate(localPlayer.drunkness) / 5f + 1f;
+                }
+                if (!localPlayer.isCrouching && localPlayer.crouchMeter > 1.2f)
+                {
+                    num3 *= 0.5f;
+                }
+                if (!localPlayer.isCrouching)
+                {
+                    float num4 = Vector3.Dot(localPlayer.playerGroundNormal, localPlayer.walkForce);
+                    if (num4 > 0.05f)
+                    {
+                        localPlayer.slopeModifier = Mathf.MoveTowards(localPlayer.slopeModifier, num4, (localPlayer.slopeModifierSpeed + 0.45f) * Time.deltaTime);
+                    }
+                    else
+                    {
+                        localPlayer.slopeModifier = Mathf.MoveTowards(localPlayer.slopeModifier, num4, localPlayer.slopeModifierSpeed / 2f * Time.deltaTime);
+                    }
+                    num3 = Mathf.Max(num3 * 0.8f, num3 + localPlayer.slopeIntensity * localPlayer.slopeModifier);
+                }
+            }
+
+            Vector3 vector3 = new Vector3(0f, 0f, 0f);
+            int num5 = Physics.OverlapSphereNonAlloc(localPlayer.transform.position, 0.65f, localPlayer.nearByPlayers, StartOfRound.Instance.playersMask);
+            for (int i = 0; i < num5; i++)
+            {
+                vector3 += Vector3.Normalize((localPlayer.transform.position - localPlayer.nearByPlayers[i].transform.position) * 100f) * 1.2f;
+            }
+            int num6 = Physics.OverlapSphereNonAlloc(localPlayer.transform.position, 1.25f, localPlayer.nearByPlayers, 524288);
+            for (int j = 0; j < num6; j++)
+            {
+                EnemyAICollisionDetect component = localPlayer.nearByPlayers[j].gameObject.GetComponent<EnemyAICollisionDetect>();
+                if (component != null && component.mainScript != null && !component.mainScript.isEnemyDead && Vector3.Distance(localPlayer.transform.position, localPlayer.nearByPlayers[j].transform.position) < component.mainScript.enemyType.pushPlayerDistance)
+                {
+                    vector3 += Vector3.Normalize((localPlayer.transform.position - localPlayer.nearByPlayers[j].transform.position) * 100f) * component.mainScript.enemyType.pushPlayerForce;
+                }
+            }
+
+            Vector3 vector4 = localPlayer.walkForce * num3 * localPlayer.sprintMultiplier + new Vector3(0f, localPlayer.fallValue, 0f) + vector3;
+            vector4 += localPlayer.externalForces;
+            return vector4;
+        }
     }
-}*/
+}
