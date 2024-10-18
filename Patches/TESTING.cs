@@ -29,8 +29,7 @@ namespace HeavyItemSCPs.Patches
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
-            Vector3 speed = GetSpeed();
-            logger.LogDebug(speed.magnitude.ToString());
+            logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
         } // HoarderBug, BaboonHawk
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]

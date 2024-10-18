@@ -12,14 +12,6 @@ namespace HeavyItemSCPs.Items.SCP323
 {
     internal class SCP323Behavior : PhysicsProp, IVisibleThreat
     {
-        // posOffset wearing 0.05 -0.8 -0.25
-        // rotOffset wearing -55 -63 0
-
-        // posOffset shoving -0.28 -0.75 -0.08
-        // rotOffset shoving -90 -63 0
-
-        // posOffset holding 0.05 -0.55 -0.15
-        // rotOffset holding -60 -90 0
 
         // scale 0.31
 
@@ -29,7 +21,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
 #pragma warning restore 0649
 
-        readonly Vector3 posOffsetWearing = new Vector3(0.05f, -0.8f, -0.25f);
+        readonly Vector3 posOffsetWearing = new Vector3(0.05f, -0.5f, -0.25f);
         readonly Vector3 rotOffsetWearing = new Vector3(-55f, -63f, 0f);
         readonly Vector3 posOffsetShoving = new Vector3(-0.28f, -0.75f, -0.08f);
         readonly Vector3 rotOffsetShoving = new Vector3(-90f, -63f, 0f);
@@ -46,8 +38,6 @@ namespace HeavyItemSCPs.Items.SCP323
         float insanityNearby; // default 5
         float insanityHolding; // default 10
         float insanityWearing; // default 10
-        float insanityToTransform; // default 50
-        bool transformWhileHolding; // default false
 
         public ThreatType type => ThreatType.Player;
 
@@ -60,8 +50,6 @@ namespace HeavyItemSCPs.Items.SCP323
             insanityNearby = 5f;
             insanityHolding = 10f;
             insanityWearing = 10f;
-            insanityToTransform = 50f;
-            transformWhileHolding = false;
         }
 
         public override void Update()
@@ -76,28 +64,23 @@ namespace HeavyItemSCPs.Items.SCP323
                 {
                     timeSinceInsanityIncrease = 0f;
 
-                    if (playerHeldBy != null) // TODO: Test this if isowner works
+                    if (playerHeldBy != null)
                     {
                         lastPlayerHeldBy = playerHeldBy;
-                        if (IsOwner)
+                        if (localPlayer == playerHeldBy)
                         {
                             if (skullOn)
                             {
                                 playerHeldBy.insanityLevel += insanityWearing;
-
-                                if (playerHeldBy.insanityLevel > insanityToTransform)
-                                {
-                                    AttemptTransformLocalPlayer();
-                                }
                             }
                             else
                             {
                                 playerHeldBy.insanityLevel += insanityHolding;
+                            }
 
-                                if (transformWhileHolding && playerHeldBy.insanityLevel > insanityToTransform)
-                                {
-                                    AttemptTransformLocalPlayer();
-                                }
+                            if (playerHeldBy.insanityLevel >= 50)
+                            {
+                                AttemptTransformLocalPlayer();
                             }
                         }
                     }
@@ -134,35 +117,6 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        public override void ItemInteractLeftRight(bool right) // TODO: FOR DEMO TESTING DELETE LATER
-        {
-            base.ItemInteractLeftRight(right);
-
-            if (right)
-            {
-                AttemptTransformLocalPlayer();
-            }
-        }
-
-        public override void PocketItem()
-        {
-            if (attaching) { return; }
-            base.PocketItem();
-        }
-
-        public override void DiscardItem()
-        {
-            if (attaching) { return; }
-            base.DiscardItem();
-        }
-
-        public override void GrabItem()
-        {
-            base.GrabItem();
-            OwnerClientId = playerHeldBy.actualClientId;
-            playerHeldBy.equippedUsableItemQE = true; // TODO: FOR DEMO TESTING DELETE LATER
-        }
-
         bool PlayerIsTargetable(PlayerControllerB player)
         {
             if (player != null && player.isPlayerControlled && !player.isPlayerDead && player.inAnimationWithEnemy == null!)
@@ -183,10 +137,11 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             if (!StartOfRound.Instance.shipIsLeaving && (!StartOfRound.Instance.inShipPhase || !(StartOfRound.Instance.testRoom == null)) && !attaching)
             {
-                playerHeldBy.SwitchToItemSlot(0, this); // TODO: Test this
+                playerHeldBy.SwitchToItemSlot(0, this);
                 if (!isPocketed)
                 {
                     attaching = true;
+                    playerHeldBy.activatingItem = true;
                     TransformPlayerServerRpc();
                 }
             }
@@ -238,15 +193,15 @@ namespace HeavyItemSCPs.Items.SCP323
         void FinishTransformation()
         {
             lastPlayerHeldBy!.voiceMuffledByEnemy = false;
-            DestroyObjectInHand(playerHeldBy);
             lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", false);
-            lastPlayerHeldBy.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning);
+            SetOffsets(posOffsetHolding, rotOffsetHolding);
+            lastPlayerHeldBy.activatingItem = false;
+            lastPlayerHeldBy.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning); // This despawns the item too?
             attaching = false;
 
             if (IsServerOrHost)
             {
                 SpawnSCP3231(lastPlayerHeldBy.transform.position);
-                NetworkObject.Despawn(destroy: true);
             }
         }
 
@@ -254,9 +209,9 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             lastPlayerHeldBy!.voiceMuffledByEnemy = false;
             lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", false);
+            SetOffsets(posOffsetHolding, rotOffsetHolding);
             attaching = false;
             skullOn = false;
-            SetOffsets(posOffsetHolding, rotOffsetHolding);
         }
 
         void SpawnSCP3231(Vector3 spawnPos)
