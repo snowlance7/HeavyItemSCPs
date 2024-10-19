@@ -75,6 +75,11 @@ namespace HeavyItemSCPs.Patches
             return enemies;
         }
 
+        public static void LogChat(string msg)
+        {
+            HUDManager.Instance.AddChatMessage(msg, "Server");
+        }
+
         public static Vector3 GetSpeed()
         {
             float num3 = localPlayer.movementSpeed / localPlayer.carryWeight;

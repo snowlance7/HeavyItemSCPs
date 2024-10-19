@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,12 @@ namespace HeavyItemSCPs.Items.SCP323
 #pragma warning disable 0649
         //public Transform turnCompass = null!;
         public NetworkAnimator networkAnimator = null!;
+        public AudioClip doorWooshSFX = null!;
+        public AudioClip eatingSFX = null!;
+        public AudioClip metalDoorSmashSFX = null!;
+        public AudioClip bashSFX = null!;
+        public AudioClip slashSFX = null!;
+        public AudioClip[] walkingSFX = null!;
 #pragma warning restore 0649
 
         Vector3 forwardDirection;
@@ -24,6 +31,10 @@ namespace HeavyItemSCPs.Items.SCP323
         Vector3 throwDirection;
 
         EnemyAI targetEnemy = null!;
+        EnemyAI lastEnemyAttackedMe = null!;
+
+        float timeSinceDamagePlayer;
+        
 
         public enum State
         {
@@ -46,9 +57,6 @@ namespace HeavyItemSCPs.Items.SCP323
             currentBehaviourStateIndex = (int)State.Roaming;
             RoundManager.Instance.SpawnedEnemies.Add(this);
 
-            StartSearch(transform.position);
-            StartCoroutine(DecayHealthCoroutine());
-
             logger.LogDebug("Finished spawning SCP-323-1");
         }
 
@@ -60,6 +68,8 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 return;
             };
+
+            timeSinceDamagePlayer += Time.deltaTime;
         }
 
         public override void DoAIInterval()
@@ -77,7 +87,14 @@ namespace HeavyItemSCPs.Items.SCP323
             switch (currentBehaviourStateIndex)
             {
                 case (int)State.Transforming:
+                    agent.speed = 0f;
+                    if (timeSinceSpawn > 5f)
+                    {
+                        SwitchToBehaviourClientRpc((int)State.Roaming);
 
+                        StartSearch(transform.position);
+                        StartCoroutine(DecayHealthCoroutine());
+                    }
                     break;
 
                 case (int)State.Roaming:
@@ -142,13 +159,14 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             mostOptimalDistance = 2000f;
             targetPlayer = null;
-            for (int i = 0; i < StartOfRound.Instance.connectedPlayersAmount + 1; i++)
+            foreach (var player in StartOfRound.Instance.allPlayerScripts)
             {
-                tempDist = Vector3.Distance(transform.position, StartOfRound.Instance.allPlayerScripts[i].transform.position);
+                if (!PlayerIsTargetable(player)) { continue; }
+                tempDist = Vector3.Distance(transform.position, player.transform.position);
                 if (tempDist < mostOptimalDistance)
                 {
                     mostOptimalDistance = tempDist;
-                    targetPlayer = StartOfRound.Instance.allPlayerScripts[i];
+                    targetPlayer = player;
                 }
             }
 
@@ -233,7 +251,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null) // TODO: TEST THIS
+        public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null!) // TODO: TEST THIS
         {
             base.OnCollideWithEnemy(other, collidedEnemy);
 
@@ -246,6 +264,15 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     }
                 }
+            }
+        }
+
+        public void DoRandomWalkSFX()
+        {
+            if (walkingSFX.Length > 0)
+            {
+                int randomNum = Random.Range(0, walkingSFX.Length);
+                creatureSFX.PlayOneShot(walkingSFX[randomNum], 1f);
             }
         }
 

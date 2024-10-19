@@ -32,14 +32,28 @@ namespace HeavyItemSCPs.Items.SCP323
         bool attaching;
         bool skullOn;
         PlayerControllerB? lastPlayerHeldBy;
+        bool forceTransforming;
+        Coroutine? transformingCoroutine;
 
         // Config variables
         float distanceToIncreaseInstanity; // default 10 or 15
-        float insanityNearby; // default 5
-        float insanityHolding; // default 10
-        float insanityWearing; // default 10
+        int insanityNearby; // default 5
+        int insanityHolding; // default 10
+        int insanityWearing; // default 10
+        float forceSwitchChance; // default 0.25
+        float forceTransformChance; // default 0.1
+        int insanityToForceSwitch; // default 20
+        int insanityToForceTransform; // default 35
+        int insanityToTransform; // default 50
 
         public ThreatType type => ThreatType.Player;
+
+        public enum AttachState
+        {
+            None,
+            Wearing,
+            Transforming
+        }
 
         public override void Start()
         {
@@ -47,14 +61,24 @@ namespace HeavyItemSCPs.Items.SCP323
 
             // TEMP VALUES
             distanceToIncreaseInstanity = 10f;
-            insanityNearby = 5f;
-            insanityHolding = 10f;
-            insanityWearing = 10f;
+            insanityNearby = 5;
+            insanityHolding = 10;
+            insanityWearing = 10;
+            forceSwitchChance = 0.25f;
+            forceTransformChance = 0.1f;
+            insanityToForceSwitch = 20;
+            insanityToForceTransform = 35;
+            insanityToTransform = 50;
         }
 
         public override void Update()
         {
             base.Update();
+
+            if (playerHeldBy != null)
+            {
+                lastPlayerHeldBy = playerHeldBy;
+            }
 
             if (PlayerIsTargetable(localPlayer) && Vector3.Distance(transform.position, localPlayer.transform.position) < distanceToIncreaseInstanity)
             {
@@ -78,9 +102,28 @@ namespace HeavyItemSCPs.Items.SCP323
                                 playerHeldBy.insanityLevel += insanityHolding;
                             }
 
-                            if (playerHeldBy.insanityLevel >= 50)
+                            if (playerHeldBy.insanityLevel >= insanityToTransform)
                             {
                                 AttemptTransformLocalPlayer();
+                                return;
+                            }
+
+                            if (playerHeldBy.insanityLevel >= insanityToForceTransform) // TODO: Test this
+                            {
+                                if (UnityEngine.Random.Range(0f, 1f) > forceTransformChance)
+                                {
+                                    AttemptTransformLocalPlayer(forced: true);
+                                    return;
+                                }
+                            }
+
+                            if (playerHeldBy.insanityLevel >= insanityToForceSwitch) // TODO: Test this
+                            {
+                                if (UnityEngine.Random.Range(0f, 1f) > forceSwitchChance)
+                                {
+                                    playerHeldBy.SwitchToItemSlot(1, this);
+                                    return;
+                                }
                             }
                         }
                     }
@@ -96,12 +139,21 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.ItemActivate(used, buttonDown);
 
-            if (!attaching && playerHeldBy != null)
+            
+            if (playerHeldBy != null)
             {
-                Wear(buttonDown);
-                playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
-                skullOn = buttonDown;
-                playerHeldBy.activatingItem = buttonDown;
+                if (forceTransforming && !buttonDown) // TODO: Test this
+                {
+                    StopTransformation();
+                }
+
+                if (!attaching)
+                {
+                    Wear(buttonDown);
+                    playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
+                    skullOn = buttonDown;
+                    playerHeldBy.activatingItem = buttonDown;
+                }
             }
         }
 
@@ -109,11 +161,11 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             if (buttonDown)
             {
-                SetOffsets(posOffsetWearing, rotOffsetWearing);
+                ChangeAttachState(AttachState.Wearing);
             }
             else
             {
-                SetOffsets(posOffsetHolding, rotOffsetHolding);
+                ChangeAttachState(AttachState.None);
             }
         }
 
@@ -127,13 +179,28 @@ namespace HeavyItemSCPs.Items.SCP323
             return false;
         }
 
-        void SetOffsets(Vector3 position, Vector3 rotation)
+        void ChangeAttachState(AttachState newState) // TODO: Test this
         {
-            itemProperties.positionOffset = position;
-            itemProperties.rotationOffset = rotation;
+            switch (newState)
+            {
+                case AttachState.None:
+                    itemProperties.positionOffset = posOffsetHolding;
+                    itemProperties.rotationOffset = rotOffsetHolding;
+                    break;
+                case AttachState.Wearing:
+                    itemProperties.positionOffset = posOffsetWearing;
+                    itemProperties.rotationOffset = rotOffsetWearing;
+                    break;
+                case AttachState.Transforming:
+                    itemProperties.positionOffset = posOffsetShoving;
+                    itemProperties.rotationOffset = rotOffsetShoving;
+                    break;
+                default:
+                    break;
+            }
         }
 
-        void AttemptTransformLocalPlayer()
+        void AttemptTransformLocalPlayer(bool forced = false)
         {
             if (!StartOfRound.Instance.shipIsLeaving && (!StartOfRound.Instance.inShipPhase || !(StartOfRound.Instance.testRoom == null)) && !attaching)
             {
@@ -142,7 +209,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 {
                     attaching = true;
                     playerHeldBy.activatingItem = true;
-                    TransformPlayerServerRpc();
+                    TransformPlayerServerRpc(forced);
                 }
             }
         }
@@ -150,7 +217,7 @@ namespace HeavyItemSCPs.Items.SCP323
         void DoTransformationAnimation()
         {
             attaching = true;
-            SetOffsets(posOffsetShoving, rotOffsetShoving);
+            ChangeAttachState(AttachState.Transforming);
             playerHeldBy.playerBodyAnimator.SetBool("HoldMask", true);
 
             try
@@ -172,8 +239,13 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 logger.LogError($"Caught exception while attempting to muffle player voice from SCP-323 item: {arg}");
             }
-
-            StartCoroutine(DoTransformationAnimationCoroutine());
+            
+            if (transformingCoroutine != null)
+            {
+                StopCoroutine(transformingCoroutine);
+                transformingCoroutine = null;
+            }
+            transformingCoroutine = StartCoroutine(DoTransformationAnimationCoroutine()); // TODO: Test this
         }
 
         IEnumerator DoTransformationAnimationCoroutine()
@@ -186,30 +258,41 @@ namespace HeavyItemSCPs.Items.SCP323
             }
             else
             {
-                CancelTransformation();
+                StopTransformation();
             }
         }
 
-        void FinishTransformation()
+        void FinishTransformation() // TODO: Test this
         {
-            lastPlayerHeldBy!.voiceMuffledByEnemy = false;
-            lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", false);
-            SetOffsets(posOffsetHolding, rotOffsetHolding);
-            lastPlayerHeldBy.activatingItem = false;
-            lastPlayerHeldBy.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning); // This despawns the item too?
-            attaching = false;
+            lastPlayerHeldBy!.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning); // This despawns the item too?
+            StopTransformation();
 
-            if (IsServerOrHost)
+            if (lastPlayerHeldBy != null && lastPlayerHeldBy.isPlayerDead)
             {
-                SpawnSCP3231(lastPlayerHeldBy.transform.position);
+                if (IsServerOrHost)
+                {
+                    SpawnSCP3231(lastPlayerHeldBy.transform.position);
+                    if (NetworkObject.IsSpawned) { NetworkObject.Despawn(); }
+                }
             }
         }
 
-        void CancelTransformation()
+        void StopTransformation()
         {
-            lastPlayerHeldBy!.voiceMuffledByEnemy = false;
-            lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", false);
-            SetOffsets(posOffsetHolding, rotOffsetHolding);
+            if (transformingCoroutine != null) // TODO: Test this
+            {
+                StopCoroutine(transformingCoroutine);
+                transformingCoroutine = null;
+            }
+
+            if (lastPlayerHeldBy != null)
+            {
+                if (!lastPlayerHeldBy.isPlayerDead) { lastPlayerHeldBy.DropAllHeldItemsAndSync(); }
+                lastPlayerHeldBy.activatingItem = false;
+                lastPlayerHeldBy.voiceMuffledByEnemy = false;
+                lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", false);
+            }
+            ChangeAttachState(AttachState.None);
             attaching = false;
             skullOn = false;
         }
@@ -225,7 +308,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         // IVisibleThreat Settings
 
-        ThreatType IVisibleThreat.type => ThreatType.Item;
+        ThreatType IVisibleThreat.type => ThreatType.Player;
 
         int IVisibleThreat.SendSpecialBehaviour(int id)
         {
@@ -241,7 +324,7 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             if (skullOn)
             {
-                return 50;
+                return 100;
             }
             return 1;
         }
@@ -273,19 +356,39 @@ namespace HeavyItemSCPs.Items.SCP323
         // RPCs
 
         [ServerRpc(RequireOwnership = false)]
-        void TransformPlayerServerRpc()
+        void TransformPlayerServerRpc(bool forced = false)
         {
             if (IsServerOrHost)
             {
-                TransformPlayerClientRpc();
+                TransformPlayerClientRpc(forced);
             }
         }
 
         [ClientRpc]
-        void TransformPlayerClientRpc()
+        void TransformPlayerClientRpc(bool forced = false)
         {
+            forceTransforming = forced;
             lastPlayerHeldBy = playerHeldBy;
             DoTransformationAnimation();
         }
+
+        [ServerRpc(RequireOwnership = false)]
+        void ChangeAttachStateServerRpc(AttachState state)
+        {
+            if (IsServerOrHost)
+            {
+                ChangeAttachStateClientRpc(state);
+            }
+        }
+
+        [ClientRpc]
+        void ChangeAttachStateClientRpc(AttachState state)
+        {
+            ChangeAttachState(state);
+        }
     }
 }
+
+// TODO:
+// When scp3231 dies, spawn scp323 on the head of the dead wendigo
+// Set up so that only one scp323 can be spawned at a time
