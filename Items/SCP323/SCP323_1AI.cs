@@ -24,6 +24,8 @@ namespace HeavyItemSCPs.Items.SCP323
         public AudioClip bashSFX = null!;
         public AudioClip slashSFX = null!;
         public AudioClip[] walkingSFX = null!;
+        public GameObject SCP323Prefab = null!;
+        public Transform SkullTransform = null!;
 #pragma warning restore 0649
 
         Vector3 forwardDirection;
@@ -57,6 +59,7 @@ namespace HeavyItemSCPs.Items.SCP323
             currentBehaviourStateIndex = (int)State.Roaming;
             RoundManager.Instance.SpawnedEnemies.Add(this);
 
+            // TODO: Do black smoke here
             logger.LogDebug("Finished spawning SCP-323-1");
         }
 
@@ -227,6 +230,16 @@ namespace HeavyItemSCPs.Items.SCP323
             CancelSpecialAnimationWithPlayer();
             StopAllCoroutines();
             base.KillEnemy(false);
+            SpawnSkullOnHead();
+        }
+
+        public void SpawnSkullOnHead()
+        {
+            //Vector3 position = base.transform.position + Vector3.up * 0.6f;
+            //position += new Vector3(UnityEngine.Random.Range(-0.8f, 0.8f), 0f, UnityEngine.Random.Range(-0.8f, 0.8f));
+            GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, SkullTransform);
+            skullObj.GetComponent<NetworkObject>().Spawn();
+            skullObj.GetComponent<SCP323Behavior>().AttachedToWendigo = this;
         }
 
         public override void HitEnemy(int force = 0, PlayerControllerB playerWhoHit = null!, bool playHitSFX = true, int hitID = -1)

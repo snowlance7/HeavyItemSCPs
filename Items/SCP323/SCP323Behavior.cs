@@ -21,11 +21,18 @@ namespace HeavyItemSCPs.Items.SCP323
 
 #pragma warning restore 0649
 
-        readonly Vector3 posOffsetWearing = new Vector3(0.05f, -0.5f, -0.25f);
+        public static bool isTesting = false;
+        public static AttachState testState = AttachState.None;
+
+        //readonly Vector3 posOffsetWearing = new Vector3(0.05f, -0.5f, -0.25f);
+        //readonly Vector3 posOffsetShoving = new Vector3(-0.28f, -0.75f, -0.08f);
+        //readonly Vector3 posOffsetHolding = new Vector3(0.05f, -0.55f, -0.15f); // new posOffsetHolding -0.23 0.05 -0.16
+        readonly Vector3 posOffsetWearing = new Vector3(-0.23f, 0.10f, -0.26f); // TODO: Find these in testing
+        readonly Vector3 posOffsetShoving = new Vector3(-0.56f, -0.15f, -0.09f); // TODO: Find these in testing
+        readonly Vector3 posOffsetHolding = new Vector3(-0.23f, 0.05f, -0.16f);
+
         readonly Vector3 rotOffsetWearing = new Vector3(-55f, -63f, 0f);
-        readonly Vector3 posOffsetShoving = new Vector3(-0.28f, -0.75f, -0.08f);
         readonly Vector3 rotOffsetShoving = new Vector3(-90f, -63f, 0f);
-        readonly Vector3 posOffsetHolding = new Vector3(0.05f, -0.55f, -0.15f);
         readonly Vector3 rotOffsetHolding = new Vector3(-60f, -90f, 0f);
 
         float timeSinceInsanityIncrease;
@@ -34,6 +41,8 @@ namespace HeavyItemSCPs.Items.SCP323
         PlayerControllerB? lastPlayerHeldBy;
         bool forceTransforming;
         Coroutine? transformingCoroutine;
+
+        public SCP323_1AI AttachedToWendigo = null!;
 
         // Config variables
         float distanceToIncreaseInstanity; // default 10 or 15
@@ -139,6 +148,14 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.ItemActivate(used, buttonDown);
 
+            if (isTesting)
+            {
+                ChangeAttachState(testState);
+                playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
+                skullOn = buttonDown;
+                playerHeldBy.activatingItem = buttonDown;
+                return;
+            }
             
             if (playerHeldBy != null)
             {
@@ -295,6 +312,7 @@ namespace HeavyItemSCPs.Items.SCP323
             ChangeAttachState(AttachState.None);
             attaching = false;
             skullOn = false;
+            forceTransforming = false;
         }
 
         void SpawnSCP3231(Vector3 spawnPos)

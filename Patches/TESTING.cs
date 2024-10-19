@@ -1,5 +1,6 @@
 using BepInEx.Logging;
 using HarmonyLib;
+using HeavyItemSCPs.Items.SCP323;
 using HeavyItemSCPs.Items.SCP427;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +42,10 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/state":
+                    SCP323Behavior.isTesting = true;
+                    SCP323Behavior.testState = (SCP323Behavior.AttachState)int.Parse(args[1]);
+                    break;
                 case "/enemies":
                     foreach (var enemy in GetEnemies())
                     {
