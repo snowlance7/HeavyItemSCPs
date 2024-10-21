@@ -283,7 +283,8 @@ namespace HeavyItemSCPs.Items.SCP178
 
             int anger = 1;
 
-            bool wearing178 = SCP1781Manager.PlayersWearing178.Contains(observingPlayer);
+            //bool wearing178 = SCP1781Manager.PlayersWearing178.Contains(observingPlayer);
+            bool wearing178 = SCP178Behavior.Instance != null && SCP178Behavior.Instance.playerWornBy != null && SCP178Behavior.Instance.playerWornBy == observingPlayer;
             logger.LogDebug($"wearing178: {wearing178}");
 
             if (!wearing178 && !IsNearbySCP178(observingPlayer)) { return; }
@@ -437,7 +438,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 }
                 else
                 {
-                    if (SCP1781Manager.PlayersWearing178.Contains(player) && !player.isPlayerDead)
+                    if (SCP178Behavior.Instance != null && SCP178Behavior.Instance.playerWornBy != null && SCP178Behavior.Instance.playerWornBy == player && !player.isPlayerDead)
                     {
                         SCP1781Manager.Instance.AddAngerToPlayer(player, 10);
                     }

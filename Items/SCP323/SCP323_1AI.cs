@@ -343,6 +343,41 @@ namespace HeavyItemSCPs.Items.SCP323
             SetEnemyOutside(value);
         }
     }
+
+    //[HarmonyPatch] // TODO: Set this later
+    internal class SCP3231Patches
+    {
+        private static ManualLogSource logger = LoggerInstance;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnEnemyFromVent))]
+        public static bool SpawnEnemyFromVentPrefix(EnemyVent vent)
+        {
+            try
+            {
+                if (IsServerOrHost)
+                {
+                    int index = vent.enemyTypeIndex;
+                    if (index < 0) { return true; }
+                    SpawnableEnemyWithRarity enemy = RoundManager.Instance.currentLevel.Enemies[index];
+                    if (enemy != null && enemy.enemyType.name == "SCP323_1Enemy")
+                    {
+                        if (SCP323Behavior.Instance != null)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e);
+                return true;
+            }
+
+            return true;
+        }
+    }
 }
 
 // TODO: statuses: shakecamera, playerstun, drunkness, fear, insanity

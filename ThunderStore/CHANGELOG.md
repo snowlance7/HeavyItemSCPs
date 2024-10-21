@@ -1,3 +1,9 @@
+## 1.2.1
+- Players now drop all held items they were carrying when being picked up by SCP-427-1 (including the Cave Dweller baby) (configurable)
+- Decreased priority of SCP-178-1's navmesh agent so they dont collide with other enemies
+- Decreased SCP-427-1's player push force and distance as well as size limit so they dont get stuck in doorways and block players
+- Only one instance of SCP-178 can and should exist at a time
+
 ## 1.2.0
 - Added variations for SCP-427-1 depending on what he transforms from
 - SCP-427-1 now throws hoarder bugs and baboon hawks

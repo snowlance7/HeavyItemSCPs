@@ -14,10 +14,11 @@ namespace HeavyItemSCPs.Items.SCP178
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
+        public static SCP178Behavior? SCP178Instance = SCP178Behavior.Instance;
         public static SCP1781Manager Instance = null!;
         public List<GameObject> SCP1781Instances = new List<GameObject>();
 
-        public static List<PlayerControllerB> PlayersWearing178 = new List<PlayerControllerB>();
+        //public static List<PlayerControllerB> PlayersWearing178 = new List<PlayerControllerB>();
 
         public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
 
@@ -77,7 +78,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void DoAIInterval()
         {
-            if (PlayersWearing178.Count != 0)
+            if (SCP178Instance != null && SCP178Instance.playerWornBy != null)
             {
                 despawnTimer = config1781DespawnTime.Value;
             }

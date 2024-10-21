@@ -13,7 +13,7 @@ namespace HeavyItemSCPs
         public static List<SCPItem> SCPItemsList = new List<SCPItem>();
         public static List<SCPEnemy> SCPEnemiesList = new List<SCPEnemy>();
 
-        public static void Load(string path, ObjectClass objClass, string? levelRarities = null, string? customLevelRarities = null, int scpDungeonRarity = 100, int minValue = 0, int maxValue = 0, int? maxSpawns = null, bool tabletop = false, bool general = false, bool small = false)
+        public static void Load(string path, ObjectClass objClass, string? levelRarities = null, string? customLevelRarities = null, int scpDungeonRarity = 100, int minValue = 0, int maxValue = 0, bool tabletop = false, bool general = false, bool small = false)
         {
             Item SCP = ModAssets.LoadAsset<Item>(path);
             if (SCP == null) { LoggerInstance.LogError($"Error: Couldnt get item with path {path} in assets"); return; }
@@ -24,7 +24,6 @@ namespace HeavyItemSCPs
 
             SCPItem scpItem = new SCPItem();
             scpItem.item = SCP;
-            scpItem.MaxSpawns = maxSpawns;
             scpItem.scpDungeonRarity = scpDungeonRarity;
             scpItem.ObjectClass = objClass;
             scpItem.TabletopItem = tabletop;
@@ -76,6 +75,18 @@ namespace HeavyItemSCPs
             LoggerInstance.LogDebug($"Registering {enemy.name} enemy...");
             LethalLib.Modules.Enemies.RegisterEnemy(enemy, GetLevelRarities(levelRarities), GetCustomLevelRarities(customLevelRarities), terminalNode, terminalKeyword);
         }
+
+        public static SCPItem? GetSCPItem(Item item)
+        {
+            foreach (var scp in SCPItemsList)
+            {
+                if (scp.item.spawnPrefab == item.spawnPrefab)
+                {
+                    return scp;
+                }
+            }
+            return null;
+        }
     }
 
     public class SCPEnemy
@@ -90,14 +101,11 @@ namespace HeavyItemSCPs
     public class SCPItem
     {
         public Item item = null!;
-        public int? MaxSpawns;
         public ObjectClass ObjectClass;
 
         public bool TabletopItem = false;
         public bool GeneralItem = false;
         public bool SmallItem = false;
-
-        public int amountInCurrentLevel = 0;
 
         public int scpDungeonRarity = 100;
         public int currentLevelRarity;

@@ -31,11 +31,47 @@ using HarmonyLib;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    internal class SCP178Behavior : WearableItem
+    public class SCP178Behavior : WearableItem
     {
         private static ManualLogSource logger = LoggerInstance;
+        public static SCP178Behavior? Instance { get; private set; }
 
         float timeSinceDelayedUpdate = 0f;
+
+        public override void Start()
+        {
+            base.Start();
+
+            if (IsServerOrHost)
+            {
+                StartCoroutine(DelayedStart());
+            }
+        }
+
+        IEnumerator DelayedStart()
+        {
+            yield return new WaitUntil(() => NetworkObject.IsSpawned);
+
+            if (Instance != null && NetworkObject.IsSpawned)
+            {
+                logger.LogDebug("There is already a SCP-178 in the scene. Removing this one.");
+                NetworkObject.Despawn(true);
+            }
+            else
+            {
+                Instance = this;
+            }
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+        }
 
         public override void ItemActivate(bool used, bool buttonDown = true)
         {
@@ -81,7 +117,6 @@ namespace HeavyItemSCPs.Items.SCP178
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 if (playerWornBy == null) { logger.LogError("playerWornBy is null."); return; }
-                SCP1781Manager.PlayersWearing178.Add(playerWornBy);
                 playerWornBy.voiceMuffledByEnemy = true;
 
                 if (StartOfRound.Instance.inShipPhase) { return; }
@@ -102,7 +137,6 @@ namespace HeavyItemSCPs.Items.SCP178
             if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsServer)
             {
                 if (playerWornBy == null) { logger.LogError("playerWornBy is null."); return; }
-                SCP1781Manager.PlayersWearing178.Remove(playerWornBy);
                 playerWornBy.voiceMuffledByEnemy = false;
             }
         }
@@ -148,7 +182,7 @@ namespace HeavyItemSCPs.Items.SCP178
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnShipLandedMiscEvents))]
         public static void OnShipLandedMiscEventsPostfix()
         {
-            if (configEnableSCP178.Value && SCP1781Manager.Instance == null && SCP1781Manager.PlayersWearing178.Count > 0)
+            if (SCP1781Manager.Instance == null && SCP178Behavior.Instance != null && SCP178Behavior.Instance.playerWornBy != null)
             {
                 SCP1781Manager.Init();
             }

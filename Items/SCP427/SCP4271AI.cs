@@ -101,7 +101,8 @@ namespace HeavyItemSCPs.Items.SCP427
 
         EnemyAI targetEnemy = null!;
 
-        public ThreatType type => ThreatType.ForestGiant;
+        // Config values
+        DropMethod dropMethod;
 
         public enum State
         {
@@ -122,6 +123,8 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.Start();
             logger.LogDebug("SCP-427-1 Spawned");
+
+            dropMethod = config4271DropMethod.Value;
 
             SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
@@ -741,9 +744,35 @@ namespace HeavyItemSCPs.Items.SCP427
                 logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
                 logger.LogDebug("Throwing player");
 
+                MakePlayerDrop(player);
                 inSpecialAnimation = true;
                 FreezePlayer(player, 2f);
                 ThrowPlayerServerRpc(player.actualClientId);
+            }
+        }
+
+        void MakePlayerDrop(PlayerControllerB player)
+        {
+            switch (dropMethod)
+            {
+                case DropMethod.DropHeldItem:
+                    player.DiscardHeldObject();
+                    break;
+                case DropMethod.DropTwoHandedItem:
+                    if (player.twoHanded)
+                    {
+                        player.DiscardHeldObject();
+                    }
+                    break;
+                case DropMethod.DropAllItems:
+                    player.DropAllHeldItemsAndSync();
+                    break;
+                default:
+                    if (player.currentlyHeldObjectServer.itemProperties.name == "CaveDwellerBaby")
+                    {
+                        player.DiscardHeldObject();
+                    }
+                    break;
             }
         }
 
@@ -766,6 +795,9 @@ namespace HeavyItemSCPs.Items.SCP427
                 }
             }
         }
+
+        // IVisibleThreat Settings
+        public ThreatType type => ThreatType.ForestGiant;
 
         int IVisibleThreat.SendSpecialBehaviour(int id)
         {

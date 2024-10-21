@@ -16,6 +16,7 @@ namespace HeavyItemSCPs.Items.SCP323
         // scale 0.31
 
         private static ManualLogSource logger = LoggerInstance;
+        public static SCP323Behavior? Instance { get; private set; }
 
 #pragma warning disable 0649
 
@@ -78,6 +79,33 @@ namespace HeavyItemSCPs.Items.SCP323
             insanityToForceSwitch = 20;
             insanityToForceTransform = 35;
             insanityToTransform = 50;
+
+            StartCoroutine(DelayedStart());
+        }
+
+        IEnumerator DelayedStart()
+        {
+            yield return new WaitUntil(() => NetworkObject.IsSpawned);
+
+            if (Instance != null && NetworkObject.IsSpawned)
+            {
+                logger.LogDebug("There is already a SCP-323 in the scene. Removing this one.");
+                NetworkObject.Despawn(true);
+            }
+            else
+            {
+                Instance = this;
+            }
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
         public override void Update()
