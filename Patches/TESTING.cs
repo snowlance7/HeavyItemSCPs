@@ -22,7 +22,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Patches
 {
-    //[HarmonyPatch]
+    [HarmonyPatch]
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
@@ -45,6 +45,7 @@ namespace HeavyItemSCPs.Patches
                 case "/state":
                     SCP323Behavior.isTesting = true;
                     SCP323Behavior.testState = (SCP323Behavior.AttachState)int.Parse(args[1]);
+                    SCP323Behavior.Instance?.ChangeAttachStateServerRpc(SCP323Behavior.testState);
                     break;
                 case "/enemies":
                     foreach (var enemy in GetEnemies())

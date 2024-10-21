@@ -178,7 +178,7 @@ namespace HeavyItemSCPs
             config1781ObservationGracePeriod = Config.Bind("SCP-1781", "Observation grace period", 5f, "The time it takes for SCP-178-1 instances to start looking at you after staring at them.");
 
             // SCP-323
-            /*configEnableSCP323 = Config.Bind("SCP-323", "Enable SCP-323", true, "Whether or not SCP-323 can spawn as scrap.");
+            configEnableSCP323 = Config.Bind("SCP-323", "Enable SCP-323", true, "Whether or not SCP-323 can spawn as scrap.");
             config323MinValue = Config.Bind("SCP-323", "Minimum value", 100, "The minimum value of SCP-323.");
             config323MaxValue = Config.Bind("SCP-323", "Maximum value", 150, "The maximum value of SCP-323.");
             config323LevelRarities = Config.Bind("SCP-323 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
@@ -188,7 +188,7 @@ namespace HeavyItemSCPs
             // SCP-323-1
             config3231LevelRarities = Config.Bind("SCP-323-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
             config3231CustomLevelRarities = Config.Bind("SCP-323-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:0", "Rarities for modded levels. Same formatting as level rarities.");
-            config3231SCPDungeonRarity = Config.Bind("SCP-323-1 Rarities", "SCP Dungeon Rarity", -1, "The rarity in the SCP Dungeon. Set to -1 to use level rarities.");*/
+            config3231SCPDungeonRarity = Config.Bind("SCP-323-1 Rarities", "SCP Dungeon Rarity", -1, "The rarity in the SCP Dungeon. Set to -1 to use level rarities.");
 
             // Loading Assets
             string sAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -202,7 +202,7 @@ namespace HeavyItemSCPs
             LoggerInstance.LogDebug($"Got AssetBundle at: {Path.Combine(sAssemblyLocation, "heavy_assets")}");
 
             // SCP-427
-            if (configEnableSCP427.Value)
+            /*if (configEnableSCP427.Value)
             {
                 SCPItems.Load("Assets/ModAssets/SCP427/SCP427Item.asset", ObjectClass.Safe, config427LevelRarities.Value, config427CustomLevelRarities.Value, config427SCPDungeonRarity.Value, config427MinValue.Value, config427MaxValue.Value, true, true, true);
                 SCPItems.LoadEnemy("Assets/ModAssets/SCP427/SCP4271Enemy.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset", config4271LevelRarities.Value, config4271CustomLevelRarities.Value, config4271SCPDungeonRarity.Value);
@@ -214,14 +214,14 @@ namespace HeavyItemSCPs
                 SCPItems.Load("Assets/ModAssets/SCP178/SCP178Item.asset", ObjectClass.Safe, config178LevelRarities.Value, config178CustomLevelRarities.Value, config178SCPDungeonRarity.Value, config178MinValue.Value, config178MaxValue.Value, true, true);
                 SCPItems.LoadEnemy("Assets/ModAssets/SCP178/SCP1781Enemy.asset", "Assets/ModAssets/SCP178/Bestiary/SCP1781TN.asset", "Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset", null, null, -1);
                 SCP1783DVision.Load();
-            }
+            }*/
 
             // SCP-323
-            /*if (configEnableSCP323.Value)
+            if (configEnableSCP323.Value)
             {
                 SCPItems.Load("Assets/ModAssets/SCP323/SCP323Item.asset", ObjectClass.Safe, config323LevelRarities.Value, config323CustomLevelRarities.Value, config323SCPDungeonRarity.Value, config323MinValue.Value, config323MaxValue.Value);
                 SCPItems.LoadEnemy("Assets/ModAssets/SCP323/SCP323_1Enemy.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset", config3231LevelRarities.Value, config3231CustomLevelRarities.Value, config3231SCPDungeonRarity.Value);
-            }*/
+            }
 
             // Finished
             Logger.LogInfo($"{PLUGIN_GUID} v{PLUGIN_VERSION} has loaded!");

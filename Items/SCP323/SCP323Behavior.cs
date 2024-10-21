@@ -25,15 +25,12 @@ namespace HeavyItemSCPs.Items.SCP323
         public static bool isTesting = false;
         public static AttachState testState = AttachState.None;
 
-        //readonly Vector3 posOffsetWearing = new Vector3(0.05f, -0.5f, -0.25f);
-        //readonly Vector3 posOffsetShoving = new Vector3(-0.28f, -0.75f, -0.08f);
-        //readonly Vector3 posOffsetHolding = new Vector3(0.05f, -0.55f, -0.15f); // new posOffsetHolding -0.23 0.05 -0.16
-        readonly Vector3 posOffsetWearing = new Vector3(-0.23f, 0.10f, -0.26f); // TODO: Find these in testing
-        readonly Vector3 posOffsetShoving = new Vector3(-0.56f, -0.15f, -0.09f); // TODO: Find these in testing
+        readonly Vector3 posOffsetWearing = new Vector3(-0.275f, -0.15f, -0.05f);
+        readonly Vector3 posOffsetShoving = new Vector3(-0.3f, 0.17f, -0.075f);
         readonly Vector3 posOffsetHolding = new Vector3(-0.23f, 0.05f, -0.16f);
 
-        readonly Vector3 rotOffsetWearing = new Vector3(-55f, -63f, 0f);
-        readonly Vector3 rotOffsetShoving = new Vector3(-90f, -63f, 0f);
+        readonly Vector3 rotOffsetWearing = new Vector3(-55f, -60f, 0f);
+        readonly Vector3 rotOffsetShoving = new Vector3(-90f, -60f, 0f);
         readonly Vector3 rotOffsetHolding = new Vector3(-60f, -90f, 0f);
 
         float timeSinceInsanityIncrease;
@@ -178,7 +175,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
             if (isTesting)
             {
-                ChangeAttachState(testState);
                 playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
                 skullOn = buttonDown;
                 playerHeldBy.activatingItem = buttonDown;
@@ -419,7 +415,7 @@ namespace HeavyItemSCPs.Items.SCP323
         }
 
         [ServerRpc(RequireOwnership = false)]
-        void ChangeAttachStateServerRpc(AttachState state)
+        public void ChangeAttachStateServerRpc(AttachState state)
         {
             if (IsServerOrHost)
             {
@@ -437,4 +433,3 @@ namespace HeavyItemSCPs.Items.SCP323
 
 // TODO:
 // When scp3231 dies, spawn scp323 on the head of the dead wendigo
-// Set up so that only one scp323 can be spawned at a time
