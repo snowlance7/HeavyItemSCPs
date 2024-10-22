@@ -14,13 +14,13 @@ namespace HeavyItemSCPs.Items.SCP323
     {
 
         // scale 0.31
-        // scaleonwendigo 0.175
+        // scaleonwendigo 0.12
 
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323Behavior? Instance { get; private set; }
 
 #pragma warning disable 0649
-
+        public GameObject MeshObj = null!;
 #pragma warning restore 0649
 
         public static bool isTesting = false;
@@ -34,8 +34,8 @@ namespace HeavyItemSCPs.Items.SCP323
         readonly Vector3 rotOffsetShoving = new Vector3(-90f, -60f, 0f);
         readonly Vector3 rotOffsetHolding = new Vector3(-60f, -90f, 0f);
 
-        Vector3 posOffsetWendigo = new Vector3(-0.175f, 0.88f, 1.12f);
-        Vector3 rotOffsetWendigo = new Vector3(122f, 11f, 3f);
+        Vector3 posOffsetWendigo = new Vector3(-0.125f, 0.075f, -0.18f);
+        Vector3 rotOffsetWendigo = new Vector3(125f, 10f, 3f);
 
         float timeSinceInsanityIncrease;
         bool attaching;
@@ -176,7 +176,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public override void LateUpdate()
         {
-            /*if (AttachedToWendigo != null)
+            if (AttachedToWendigo != null)
             {
                 transform.rotation = parentObject.rotation;
                 transform.Rotate(rotOffsetWendigo);
@@ -185,9 +185,25 @@ namespace HeavyItemSCPs.Items.SCP323
                 positionOffset = parentObject.rotation * positionOffset;
                 transform.position += positionOffset;
                 return;
-            }*/
+            }
 
             base.LateUpdate();
+        }
+
+        public override void GrabItem()
+        {
+            base.GrabItem();
+            if (AttachedToWendigo != null)
+            {
+                if (IsServerOrHost && AttachedToWendigo.NetworkObject.IsSpawned)
+                {
+                    AttachedToWendigo.NetworkObject.Despawn(true);
+                }
+
+                transform.localScale = new Vector3(0.31f, 0.31f, 0.31f);
+                AttachedToWendigo = null!;
+                MeshObj.SetActive(true);
+            }
         }
 
         public override void ItemActivate(bool used, bool buttonDown = true)
@@ -448,6 +464,21 @@ namespace HeavyItemSCPs.Items.SCP323
         void ChangeAttachStateClientRpc(AttachState state)
         {
             ChangeAttachState(state);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void ChangeSizeServerRpc(float size)
+        {
+            if (IsServerOrHost)
+            {
+                ChangeSizeClientRpc(size);
+            }
+        }
+
+        [ClientRpc]
+        public void ChangeSizeClientRpc(float size)
+        {
+            transform.localScale = new Vector3(size, size, size);
         }
     }
 }

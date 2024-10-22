@@ -235,21 +235,19 @@ namespace HeavyItemSCPs.Items.SCP323
             SpawnSkullOnHead();
         }
 
-        public void SpawnSkullOnHead()
+        public void SpawnSkullOnHead() // TODO: FIX THIS, IT ISNT LETTING YOU GRAB IT
         {
-            //Vector3 position = base.transform.position + Vector3.up * 0.6f;
-            //position += new Vector3(UnityEngine.Random.Range(-0.8f, 0.8f), 0f, UnityEngine.Random.Range(-0.8f, 0.8f));
             GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, SkullTransform);
-            skullObj.GetComponent<NetworkObject>().Spawn();
             skullObj.GetComponent<SCP323Behavior>().AttachedToWendigo = this;
-            skullObj.GetComponent<SCP323Behavior>().parentObject = this.transform;
+            skullObj.GetComponent<SCP323Behavior>().parentObject = SkullTransform;
+            skullObj.GetComponent<Transform>().localScale = new Vector3(0.12f, 0.12f, 0.12f);
+            skullObj.GetComponent<NetworkObject>().Spawn();
         }
 
-        public IEnumerator SpawnSkullOnHeadCoroutine()
+        IEnumerator WaitTillNetworkSpawn(GameObject skullObj)
         {
-            yield return new WaitUntil(() => NetworkObject.IsSpawned);
-            SCP323Behavior.Instance!.AttachedToWendigo = this;
-            SCP323Behavior.Instance.parentObject = this.transform;
+            yield return new WaitUntil(() => skullObj.GetComponent<NetworkObject>().IsSpawned);
+            skullObj.GetComponent<SCP323Behavior>().MeshObj.SetActive(false);
         }
 
         public override void HitEnemy(int force = 0, PlayerControllerB playerWhoHit = null!, bool playHitSFX = true, int hitID = -1)
