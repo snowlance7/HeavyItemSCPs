@@ -63,24 +63,22 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             None,
             Wearing,
-            Transforming,
-            AttachedToWendigo
+            Transforming
         }
 
         public override void Start()
         {
             base.Start();
 
-            // TEMP VALUES
-            distanceToIncreaseInstanity = 10f;
-            insanityNearby = 5;
-            insanityHolding = 10;
-            insanityWearing = 10;
-            forceSwitchChance = 0.25f;
-            forceTransformChance = 0.1f;
-            insanityToForceSwitch = 20;
-            insanityToForceTransform = 35;
-            insanityToTransform = 50;
+            distanceToIncreaseInstanity = config323DistanceToIncreaseInsanity.Value;
+            insanityNearby = config323InsanityNearby.Value;
+            insanityHolding = config323InsanityHolding.Value;
+            insanityWearing = config323InsanityWearing.Value;
+            forceSwitchChance = config323ForceSwitchChance.Value;
+            forceTransformChance = config323ForceTransformChance.Value;
+            insanityToForceSwitch = config323InsanityToForceSwitch.Value;
+            insanityToForceTransform = config323InsanityToForceTransform.Value;
+            insanityToTransform = config323InsanityToTransform.Value;
 
             StartCoroutine(DelayedStart());
         }
@@ -91,8 +89,11 @@ namespace HeavyItemSCPs.Items.SCP323
 
             if (Instance != null && NetworkObject.IsSpawned)
             {
-                logger.LogDebug("There is already a SCP-323 in the scene. Removing this one.");
-                NetworkObject.Despawn(true);
+                if (IsServerOrHost)
+                {
+                    logger.LogDebug("There is already a SCP-323 in the scene. Removing this one.");
+                    NetworkObject.Despawn(true);
+                }
             }
             else
             {

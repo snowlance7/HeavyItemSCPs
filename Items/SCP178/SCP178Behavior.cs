@@ -54,8 +54,11 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (Instance != null && NetworkObject.IsSpawned)
             {
-                logger.LogDebug("There is already a SCP-178 in the scene. Removing this one.");
-                NetworkObject.Despawn(true);
+                if (IsServerOrHost)
+                {
+                    logger.LogDebug("There is already a SCP-178 in the scene. Removing this one.");
+                    NetworkObject.Despawn(true);
+                }
             }
             else
             {

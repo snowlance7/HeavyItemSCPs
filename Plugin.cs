@@ -99,6 +99,16 @@ namespace HeavyItemSCPs
         public static ConfigEntry<string> config323CustomLevelRarities;
         public static ConfigEntry<int> config323SCPDungeonRarity;
 
+        public static ConfigEntry<float> config323DistanceToIncreaseInsanity;
+        public static ConfigEntry<int> config323InsanityNearby;
+        public static ConfigEntry<int> config323InsanityHolding;
+        public static ConfigEntry<int> config323InsanityWearing;
+        public static ConfigEntry<float> config323ForceSwitchChance;
+        public static ConfigEntry<float> config323ForceTransformChance;
+        public static ConfigEntry<int> config323InsanityToForceSwitch;
+        public static ConfigEntry<int> config323InsanityToForceTransform;
+        public static ConfigEntry<int> config323InsanityToTransform;
+
         // SCP-323-1
         public static ConfigEntry<string> config3231LevelRarities;
         public static ConfigEntry<string> config3231CustomLevelRarities;
@@ -184,6 +194,16 @@ namespace HeavyItemSCPs
             config323LevelRarities = Config.Bind("SCP-323 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
             config323CustomLevelRarities = Config.Bind("SCP-323 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
             config323SCPDungeonRarity = Config.Bind("SCP-323 Rarities", "SCP Dungeon Rarity", 100, "The rarity in the SCP Dungeon. Set to -1 to use level rarities.");
+
+            config323DistanceToIncreaseInsanity = Config.Bind("SCP-323", "Distance to increase insanity", 10f, "The distance you need to be from SCP-323 for it to start decreasing your insanity.");
+            config323InsanityNearby = Config.Bind("SCP-323", "Insanity nearby", 5, "The amount of insanity you will gain every 10 seconds of being near SCP-323.");
+            config323InsanityHolding = Config.Bind("SCP-323", "Insanity holding", 10, "The amount of insanity you will gain every 10 seconds when you are holding SCP-323.");
+            config323InsanityWearing = Config.Bind("SCP-323", "Insanity wearing", 10, "The amount of insanity you will gain every 10 seconds when you are wearing SCP-323.");
+            config323ForceSwitchChance = Config.Bind("SCP-323", "Force switch chance", 0.25f, "The chance every insanity increase that SCP-323 will switch to holding it.");
+            config323ForceTransformChance = Config.Bind("SCP-323", "Force transform chance", 0.1f, "The chance every insanity increase that SCP-323 will try to force transform the player. Can be stopped by using it quickly.");
+            config323InsanityToForceSwitch = Config.Bind("SCP-323", "Insanity to force switch", 20, "The force switch chance will only happen if above this insanity value.");
+            config323InsanityToForceTransform = Config.Bind("SCP-323", "Insanity to force transform", 35, "The force transform chance will only happen if above this insanity value.");
+            config323InsanityToTransform = Config.Bind("SCP-323", "Insanity to transform", 50, "You will be forced to transform when you reach this insanity value. It cannot be stopped.");
 
             // SCP-323-1
             config3231LevelRarities = Config.Bind("SCP-323-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
