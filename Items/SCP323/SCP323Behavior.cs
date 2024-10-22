@@ -14,6 +14,7 @@ namespace HeavyItemSCPs.Items.SCP323
     {
 
         // scale 0.31
+        // scaleonwendigo 0.175
 
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323Behavior? Instance { get; private set; }
@@ -32,6 +33,9 @@ namespace HeavyItemSCPs.Items.SCP323
         readonly Vector3 rotOffsetWearing = new Vector3(-55f, -60f, 0f);
         readonly Vector3 rotOffsetShoving = new Vector3(-90f, -60f, 0f);
         readonly Vector3 rotOffsetHolding = new Vector3(-60f, -90f, 0f);
+
+        Vector3 posOffsetWendigo = new Vector3(-0.175f, 0.88f, 1.12f);
+        Vector3 rotOffsetWendigo = new Vector3(122f, 11f, 3f);
 
         float timeSinceInsanityIncrease;
         bool attaching;
@@ -59,7 +63,8 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             None,
             Wearing,
-            Transforming
+            Transforming,
+            AttachedToWendigo
         }
 
         public override void Start()
@@ -167,6 +172,22 @@ namespace HeavyItemSCPs.Items.SCP323
                     }
                 }
             }
+        }
+
+        public override void LateUpdate()
+        {
+            /*if (AttachedToWendigo != null)
+            {
+                transform.rotation = parentObject.rotation;
+                transform.Rotate(rotOffsetWendigo);
+                transform.position = parentObject.position;
+                Vector3 positionOffset = posOffsetWendigo;
+                positionOffset = parentObject.rotation * positionOffset;
+                transform.position += positionOffset;
+                return;
+            }*/
+
+            base.LateUpdate();
         }
 
         public override void ItemActivate(bool used, bool buttonDown = true)

@@ -36,6 +36,7 @@ namespace HeavyItemSCPs.Items.SCP323
         EnemyAI lastEnemyAttackedMe = null!;
 
         float timeSinceDamagePlayer;
+        float timeSinceSpawningIn;
         
 
         public enum State
@@ -56,7 +57,7 @@ namespace HeavyItemSCPs.Items.SCP323
             //SetEnemyOutsideClientRpc(true);
             //debugEnemyAI = true;
 
-            currentBehaviourStateIndex = (int)State.Roaming;
+            currentBehaviourStateIndex = (int)State.Transforming;
             RoundManager.Instance.SpawnedEnemies.Add(this);
 
             // TODO: Do black smoke here
@@ -73,6 +74,7 @@ namespace HeavyItemSCPs.Items.SCP323
             };
 
             timeSinceDamagePlayer += Time.deltaTime;
+            timeSinceSpawningIn += Time.deltaTime;
         }
 
         public override void DoAIInterval()
@@ -91,7 +93,7 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 case (int)State.Transforming:
                     agent.speed = 0f;
-                    if (timeSinceSpawn > 5f)
+                    if (timeSinceSpawningIn > 5f)
                     {
                         SwitchToBehaviourClientRpc((int)State.Roaming);
 
@@ -240,6 +242,14 @@ namespace HeavyItemSCPs.Items.SCP323
             GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, SkullTransform);
             skullObj.GetComponent<NetworkObject>().Spawn();
             skullObj.GetComponent<SCP323Behavior>().AttachedToWendigo = this;
+            skullObj.GetComponent<SCP323Behavior>().parentObject = this.transform;
+        }
+
+        public IEnumerator SpawnSkullOnHeadCoroutine()
+        {
+            yield return new WaitUntil(() => NetworkObject.IsSpawned);
+            SCP323Behavior.Instance!.AttachedToWendigo = this;
+            SCP323Behavior.Instance.parentObject = this.transform;
         }
 
         public override void HitEnemy(int force = 0, PlayerControllerB playerWhoHit = null!, bool playHitSFX = true, int hitID = -1)

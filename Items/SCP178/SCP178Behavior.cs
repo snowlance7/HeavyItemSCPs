@@ -85,7 +85,7 @@ namespace HeavyItemSCPs.Items.SCP178
         public override void Wear()
         {
             base.Wear();
-            if (playerWornBy.drunkness < 0.2f) { playerWornBy.drunkness = 0.2f; }
+            if (playerWornBy!.drunkness < 0.2f) { playerWornBy.drunkness = 0.2f; }
 
             StartCoroutine(Enable1781MeshesCoroutine());
             WearServerRpc();

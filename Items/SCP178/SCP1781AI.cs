@@ -52,6 +52,7 @@ namespace HeavyItemSCPs.Items.SCP178
         bool playersNearby = false;
 
         float timeSincePlayersCheck;
+        bool angryIdle;
 
         public enum State
         {
@@ -108,6 +109,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 {
                     turnCompass.LookAt(lastObservingPlayer.gameplayCamera.transform.position);
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
+                    lastObservingPlayer.IncreaseFearLevelOverTime(2f); // TODO: Test
                 }
 
                 if (observingPlayer != null)
@@ -149,7 +151,6 @@ namespace HeavyItemSCPs.Items.SCP178
                         SwitchToBehaviourClientRpc((int)State.Observing);
                         StopCoroutine(wanderingRoutine);
                         wanderingRoutine = null!;
-                        networkAnimator.SetTrigger("angryIdle");
                         break;
                     }
                     if (wanderingRoutine == null)
@@ -165,6 +166,7 @@ namespace HeavyItemSCPs.Items.SCP178
                     if (!CheckForPlayersLookingAtMe() && postObservationTimer > stareTime)
                     {
                         logger.LogDebug("Switching to roaming");
+                        angryIdle = false;
                         SwitchToBehaviourClientRpc((int)State.Roaming);
                         return;
                     }
@@ -172,6 +174,12 @@ namespace HeavyItemSCPs.Items.SCP178
                     {
                         DoAngerCalculations();
                         timeSinceLastAngerCalc = 0f;
+
+                        if (!angryIdle)
+                        {
+                            angryIdle = true;
+                            networkAnimator.SetTrigger("angryIdle");
+                        }
                     }
                     break;
 

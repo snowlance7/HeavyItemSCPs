@@ -202,7 +202,7 @@ namespace HeavyItemSCPs
             LoggerInstance.LogDebug($"Got AssetBundle at: {Path.Combine(sAssemblyLocation, "heavy_assets")}");
 
             // SCP-427
-            /*if (configEnableSCP427.Value)
+            if (configEnableSCP427.Value)
             {
                 SCPItems.Load("Assets/ModAssets/SCP427/SCP427Item.asset", ObjectClass.Safe, config427LevelRarities.Value, config427CustomLevelRarities.Value, config427SCPDungeonRarity.Value, config427MinValue.Value, config427MaxValue.Value, true, true, true);
                 SCPItems.LoadEnemy("Assets/ModAssets/SCP427/SCP4271Enemy.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset", config4271LevelRarities.Value, config4271CustomLevelRarities.Value, config4271SCPDungeonRarity.Value);
@@ -214,7 +214,7 @@ namespace HeavyItemSCPs
                 SCPItems.Load("Assets/ModAssets/SCP178/SCP178Item.asset", ObjectClass.Safe, config178LevelRarities.Value, config178CustomLevelRarities.Value, config178SCPDungeonRarity.Value, config178MinValue.Value, config178MaxValue.Value, true, true);
                 SCPItems.LoadEnemy("Assets/ModAssets/SCP178/SCP1781Enemy.asset", "Assets/ModAssets/SCP178/Bestiary/SCP1781TN.asset", "Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset", null, null, -1);
                 SCP1783DVision.Load();
-            }*/
+            }
 
             // SCP-323
             if (configEnableSCP323.Value)
