@@ -229,25 +229,30 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public override void KillEnemy(bool destroy = false)
         {
+            logger.LogDebug("Killed SCP-323-1");
             CancelSpecialAnimationWithPlayer();
             StopAllCoroutines();
             base.KillEnemy(false);
             SpawnSkullOnHead();
         }
 
-        public void SpawnSkullOnHead() // TODO: FIX THIS, IT ISNT LETTING YOU GRAB IT
+        public void SpawnSkullOnHead()
         {
-            GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, SkullTransform);
-            skullObj.GetComponent<SCP323Behavior>().AttachedToWendigo = this;
-            skullObj.GetComponent<SCP323Behavior>().parentObject = SkullTransform;
-            skullObj.GetComponent<Transform>().localScale = new Vector3(0.12f, 0.12f, 0.12f);
-            skullObj.GetComponent<NetworkObject>().Spawn();
+            if (IsServerOrHost)
+            {
+                GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, RoundManager.Instance.spawnedScrapContainer);
+                skullObj.GetComponent<NetworkObject>().Spawn();
+            }
+            StartCoroutine(WaitTillNetworkSpawn());
         }
 
-        IEnumerator WaitTillNetworkSpawn(GameObject skullObj)
+        IEnumerator WaitTillNetworkSpawn()
         {
-            yield return new WaitUntil(() => skullObj.GetComponent<NetworkObject>().IsSpawned);
-            skullObj.GetComponent<SCP323Behavior>().MeshObj.SetActive(false);
+            yield return new WaitUntil(() => SCP323Behavior.Instance != null && SCP323Behavior.Instance.NetworkObject.IsSpawned);
+            SCP323Behavior.Instance!.AttachedToWendigo = this;
+            SCP323Behavior.Instance.parentObject = SkullTransform;
+            SCP323Behavior.Instance.transform.localScale = new Vector3(0.12f, 0.12f, 0.12f);
+            SCP323Behavior.Instance.MeshObj.SetActive(false);
         }
 
         public override void HitEnemy(int force = 0, PlayerControllerB playerWhoHit = null!, bool playHitSFX = true, int hitID = -1)

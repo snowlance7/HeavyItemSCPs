@@ -200,9 +200,9 @@ namespace HeavyItemSCPs.Items.SCP323
                     AttachedToWendigo.NetworkObject.Despawn(true);
                 }
 
+                MeshObj.SetActive(true);
                 transform.localScale = new Vector3(0.31f, 0.31f, 0.31f);
                 AttachedToWendigo = null!;
-                MeshObj.SetActive(true);
             }
         }
 
