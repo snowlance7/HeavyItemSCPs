@@ -756,10 +756,13 @@ namespace HeavyItemSCPs.Items.SCP427
             switch (dropMethod)
             {
                 case DropMethod.DropHeldItem:
-                    player.DiscardHeldObject();
+                    if (player.currentlyHeldObjectServer != null)
+                    {
+                        player.DiscardHeldObject();
+                    }
                     break;
                 case DropMethod.DropTwoHandedItem:
-                    if (player.twoHanded)
+                    if (player.currentlyHeldObjectServer != null && player.twoHanded)
                     {
                         player.DiscardHeldObject();
                     }
@@ -768,7 +771,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     player.DropAllHeldItemsAndSync();
                     break;
                 default:
-                    if (player.currentlyHeldObjectServer.itemProperties.name == "CaveDwellerBaby")
+                    if (player.currentlyHeldObjectServer != null && player.currentlyHeldObjectServer.itemProperties.name == "CaveDwellerBaby")
                     {
                         player.DiscardHeldObject();
                     }
