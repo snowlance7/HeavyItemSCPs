@@ -27,6 +27,7 @@ namespace HeavyItemSCPs.Items.SCP323
         public AudioClip[] walkingSFX = null!;
         public GameObject SCP323Prefab = null!;
         public Transform SkullTransform = null!;
+        public DoorCollisionDetect doorCollisionDetectScript = null!;
 #pragma warning restore 0649
 
         Vector3 forwardDirection;
@@ -62,7 +63,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public enum State
         {
-            Transforming,
             Roaming,
             BloodSearch,
             Hunting,
@@ -239,7 +239,9 @@ namespace HeavyItemSCPs.Items.SCP323
                             if (Vector3.Distance(targetPlayerCorpse.grabBodyObject.transform.position, transform.position) <= 3f)
                             {
                                 inSpecialAnimation = true;
+                                logger.LogDebug($"Eating player corpse of player {targetPlayerCorpse.playerScript.playerUsername} with client id {targetPlayerCorpse.playerScript.actualClientId}");
                                 EatPlayerBodyClientRpc(targetPlayerCorpse.playerScript.actualClientId);
+                                return;
                             }
 
                             SetDestinationToPosition(targetPlayerCorpse.grabBodyObject.transform.position);
@@ -255,6 +257,7 @@ namespace HeavyItemSCPs.Items.SCP323
                             {
                                 inSpecialAnimation = true;
                                 EatMaskedBodyClientRpc();
+                                return;
                             }
 
                             SetDestinationToPosition(targetEnemyCorpse.transform.position);
@@ -327,13 +330,14 @@ namespace HeavyItemSCPs.Items.SCP323
                     && player.deadBody != null
                     && player.deadBody.grabBodyObject != null
                     && !player.deadBody.grabBodyObject.isHeld
-                    && !player.deadBody.isInShip)
+                    && !player.deadBody.isInShip
+                    && !player.deadBody.deactivated)
                 {
                     if (Vector3.Distance(player.deadBody.grabBodyObject.transform.position, transform.position) <= 50f)
                     {
                         targetPlayerCorpse = player.deadBody;
-                        targetPlayer = null;
-                        targetEnemy = null;
+                        targetPlayer = null!;
+                        targetEnemy = null!;
                         SwitchToBehaviourClientRpc((int)State.Eating);
                         return;
                     }
@@ -560,7 +564,7 @@ namespace HeavyItemSCPs.Items.SCP323
             if (timeSinceDamagePlayer > 1f)
             {
                 PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
-                if (player != null && !inSpecialAnimation && !isEnemyDead)
+                if (player != null && !player.isPlayerDead && !inSpecialAnimation && !isEnemyDead)
                 {
                     timeSinceDamagePlayer = 0f;
                     int damageAmount = (int)(damage * decayMultiplier);
@@ -631,9 +635,16 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
+        public void BeginBashDoor(DoorLock door)
+        {
+
+        }
+
         public void BashDoor() // TODO: Set this up
         {
-            
+
+
+            doorCollisionDetectScript.triggering = false;
         }
 
         public IEnumerator EatPlayerBodyCoroutine()
@@ -644,22 +655,25 @@ namespace HeavyItemSCPs.Items.SCP323
             creatureVoice.time = randSoundTime;
             creatureVoice.Play();
 
+            logger.LogDebug("Waiting for 10 seconds...");
             yield return new WaitForSecondsRealtime(10f);
 
             creatureVoice.Stop();
             creatureAnimator.SetBool("eat", false);
             enemyHP = 20;
-            inSpecialAnimation = false;
+            
+            logger.LogDebug("Despawning player body...");
+            targetPlayerCorpse.DeactivateBody(setActive: false);
 
-            if (IsServerOrHost)
-            {
-                targetPlayerCorpse.DeactivateBody(setActive: false);
-                SwitchToBehaviourClientRpc((int)State.Roaming);
-                targetEnemy = null!;
-                targetPlayer = null!;
-            }
+            logger.LogDebug("Switching to roaming state...");
+            SwitchToBehaviourStateOnLocalClient((int)State.Roaming);
+            targetEnemy = null!;
+            targetPlayer = null!;
 
             targetPlayerCorpse = null!;
+            inSpecialAnimation = false;
+
+            logger.LogDebug("Finished eating player body.");
         }
 
         public IEnumerator EatMaskedBodyCoroutine()
@@ -675,7 +689,6 @@ namespace HeavyItemSCPs.Items.SCP323
             creatureVoice.Stop();
             creatureAnimator.SetBool("eat", false);
             enemyHP = 20;
-            inSpecialAnimation = false;
 
             if (IsServerOrHost)
             {
@@ -686,6 +699,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
 
             targetEnemyCorpse = null!;
+            inSpecialAnimation = false;
         }
 
         public void PlayerDamaged(PlayerControllerB player)
@@ -793,11 +807,13 @@ namespace HeavyItemSCPs.Items.SCP323
         [ClientRpc]
         public void EatPlayerBodyClientRpc(ulong clientId)
         {
+            logger.LogDebug("in eat player body clientrpc");
             inSpecialAnimation = true;
             targetPlayerCorpse = NetworkHandlerHeavy.PlayerFromId(clientId).deadBody;
             targetPlayerCorpse.canBeGrabbedBackByPlayers = false;
             targetPlayerCorpse.grabBodyObject.grabbable = false;
             targetPlayerCorpse.grabBodyObject.grabbableToEnemies = false;
+            logger.LogDebug("Eating player body coroutine...");
             StartCoroutine(EatPlayerBodyCoroutine());
         }
 
