@@ -28,6 +28,7 @@ namespace HeavyItemSCPs.Patches
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
+        public static BoxCollider collider = null!;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
@@ -37,115 +38,49 @@ namespace HeavyItemSCPs.Patches
 
         } // HoarderBug, BaboonHawk
 
-        /*public static void BashDoor()
-        {
-            var door = UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f && x.name.StartsWith("SteelDoor")).FirstOrDefault();
-            if (door != null)
-            {
-                Transform doorMeshTransform = door.transform.Find("DoorMesh");
-                if (doorMeshTransform != null)
-                {
-                    Vector3 worldPosition = doorMeshTransform.position;
-                    Vector3 worldRotation = doorMeshTransform.rotation.eulerAngles;
-                    doorMeshTransform.SetParent(null);
-                    doorMeshTransform.position = worldPosition;
-                    doorMeshTransform.rotation = Quaternion.Euler(worldRotation);
-                    GameObject doorMesh = doorMeshTransform.gameObject;
-
-                    Rigidbody rb = doorMesh.GetComponent<Rigidbody>() ?? doorMesh.AddComponent<Rigidbody>();
-
-                    rb.useGravity = true;
-                    rb.isKinematic = true;
-
-                    //BoxCollider bc = door.AddComponent<BoxCollider>();
-
-                    //DoorCollisionDetect doorCollision = door.AddComponent<DoorCollisionDetect>();
-
-                    Vector3 doorForward = door.transform.position + door.transform.right * 2f;
-                    Vector3 doorBackward = door.transform.position - door.transform.right * 2f;
-                    Vector3 direction;
-
-                    if (Vector3.Distance(doorForward, localPlayer.transform.position) < Vector3.Distance(doorBackward, localPlayer.transform.position))
-                    {
-                        // player is at front of door
-                        direction = (doorBackward - doorForward).normalized;
-                        //doorMesh.transform.position = doorMesh.transform.position - doorMesh.transform.right;
-                    }
-                    else
-                    {
-                        // player is at back of door
-                        direction = (doorForward - doorBackward).normalized;
-                        //doorMesh.transform.position = doorMesh.transform.position + doorMesh.transform.right;
-                    }
-
-                    //GameObject doorFrame = door.transform.Find("DoorFrame").gameObject;
-                    //UnityEngine.Object.Destroy(doorFrame);
-
-                    rb.isKinematic = false;
-                    rb.AddForce(direction * 50f, ForceMode.Impulse);
-                }
-            }
-        }*/
-
         public static void BashDoor()
         {
-            var door = UnityEngine.Object.FindObjectsOfType<GameObject>()
-                .Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f && x.name.StartsWith("SteelDoor"))
+            var doorLock = UnityEngine.Object.FindObjectsOfType<DoorLock>()
+                .Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f)
                 .FirstOrDefault();
 
-            if (door != null)
+            if (doorLock != null)
             {
-                Transform doorMeshTransform = door.transform.Find("DoorMesh");
-                if (doorMeshTransform != null)
+                var doorObj = doorLock.transform.parent.transform.parent.gameObject;
+                var door = doorObj.transform.Find("DoorMesh").gameObject;
+
+                // TODO: Add collider or use doorlock collider on trigger stay thats used in dnspy look at dnspy you doofus
+                return;
+
+                Rigidbody rb = door.GetComponent<Rigidbody>() ?? door.AddComponent<Rigidbody>();
+                rb.mass = 1f;
+                rb.useGravity = true;
+                rb.isKinematic = true;
+
+                // Determine which direction to apply the force
+                Vector3 doorForward = door.transform.position + door.transform.right * 2f;
+                Vector3 doorBackward = door.transform.position - door.transform.right * 2f;
+                Vector3 direction;
+
+                if (Vector3.Distance(doorForward, localPlayer.transform.position) < Vector3.Distance(doorBackward, localPlayer.transform.position))
                 {
-                    //doorMeshTransform
-                    // Store the world position before removing the parent
-                    Vector3 worldPosition = doorMeshTransform.position;
-                    Quaternion worldRotation = doorMeshTransform.rotation; // TODO: This is not keeping the correct rotation
-
-                    // Remove the parent
-                    doorMeshTransform.SetParent(null);
-
-                    // Set the world position after detaching
-                    doorMeshTransform.position = worldPosition;
-                    doorMeshTransform.rotation = worldRotation;
-
-                    // Create or get the Rigidbody
-                    GameObject doorMesh = doorMeshTransform.gameObject;
-                    Rigidbody rb = doorMesh.GetComponent<Rigidbody>() ?? doorMesh.AddComponent<Rigidbody>();
-
-                    rb.useGravity = true;
-                    rb.isKinematic = true;
-
-                    // Determine which direction to apply the force
-                    Vector3 doorForward = door.transform.position + door.transform.right * 2f;
-                    Vector3 doorBackward = door.transform.position - door.transform.right * 2f;
-                    Vector3 direction;
-
-                    if (Vector3.Distance(doorForward, localPlayer.transform.position) < Vector3.Distance(doorBackward, localPlayer.transform.position))
-                    {
-                        // Player is at front of door
-                        direction = (doorBackward - doorForward).normalized;
-                    }
-                    else
-                    {
-                        // Player is at back of door
-                        direction = (doorForward - doorBackward).normalized;
-                    }
-
-                    // Release the Rigidbody from kinematic state
-                    rb.isKinematic = false;
-
-                    // Add an impulse force to the door
-                    rb.AddForce(direction * 50f, ForceMode.Impulse);
+                    // Player is at front of door
+                    direction = (doorBackward - doorForward).normalized;
+                    door.transform.position = door.transform.position - door.transform.right;
                 }
+                else
+                {
+                    // Player is at back of door
+                    direction = (doorForward - doorBackward).normalized;
+                    door.transform.position = door.transform.position + door.transform.right;
+                }
+
+                // Release the Rigidbody from kinematic state
+                rb.isKinematic = false;
+
+                // Add an impulse force to the door
+                rb.AddForce(direction * 25f, ForceMode.Impulse);
             }
-        }
-
-
-        public static bool IsOnXAxis(Vector3 a, Vector3 b)
-        {
-            return a.x == b.x;
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
@@ -157,6 +92,9 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/size":
+                    collider.size = new Vector3(float.Parse(args[1]), float.Parse(args[2]), float.Parse(args[3]));
+                    break;
                 case "/destroy":
                     var obj = UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f).FirstOrDefault();
                     if (obj != null)

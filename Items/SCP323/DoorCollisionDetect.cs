@@ -26,6 +26,10 @@ namespace HeavyItemSCPs.Items.SCP323
                     mainScript.BeginBashDoor(doorLock);
                 }
             }
+            if (other.CompareTag("Player"))
+            {
+                logger.LogDebug("BASHED DOOR");
+            }
         }
     }
 }
