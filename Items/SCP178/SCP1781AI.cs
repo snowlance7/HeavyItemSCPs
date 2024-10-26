@@ -81,7 +81,7 @@ namespace HeavyItemSCPs.Items.SCP178
             logger.LogDebug("SCP-178-1 Spawned");
         }
 
-        public override void Update()
+        public override void Update() // TODO: They arent using angryidle when being stared at and animations are being weird
         {
             timeSincePlayersCheck += Time.deltaTime;
 

@@ -28,12 +28,13 @@ namespace HeavyItemSCPs.Patches
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
-        public static BoxCollider collider = null!;
+        public static float drunkness = 0;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
+            //localPlayer.drunkness = drunkness;
             //BashDoor();
 
         } // HoarderBug, BaboonHawk
@@ -109,8 +110,8 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
-                case "/size":
-                    collider.size = new Vector3(float.Parse(args[1]), float.Parse(args[2]), float.Parse(args[3]));
+                case "/drunk":
+                    drunkness = float.Parse(args[1]);
                     break;
                 case "/destroy":
                     var obj = UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f).FirstOrDefault();
@@ -145,6 +146,21 @@ namespace HeavyItemSCPs.Patches
                 case "/refresh":
                     RoundManager.Instance.RefreshEnemiesList();
                     HoarderBugAI.RefreshGrabbableObjectsInMapList();
+                    break;
+                case "/levels":
+                    foreach (var level in StartOfRound.Instance.levels)
+                    {
+                        logger.LogDebug(level.name);
+                    }
+                    break;
+                case "/dungeon":
+                    logger.LogDebug(RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name);
+                    break;
+                case "/dungeons":
+                    foreach (var dungeon in RoundManager.Instance.dungeonFlowTypes)
+                    {
+                        logger.LogDebug(dungeon.dungeonFlow.name);
+                    }
                     break;
                 default:
                     break;

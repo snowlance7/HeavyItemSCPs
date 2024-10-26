@@ -180,7 +180,7 @@ namespace HeavyItemSCPs.Items.SCP427
             CalculateAgentSpeed();
         }
 
-        public override void DoAIInterval()
+        public override void DoAIInterval() // TODO: Player gets stuck in their hand fix it
         {
             base.DoAIInterval();
             //logger.LogDebug("Doing AI Interval");

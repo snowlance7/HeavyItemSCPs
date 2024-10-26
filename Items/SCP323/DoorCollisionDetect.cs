@@ -13,17 +13,28 @@ namespace HeavyItemSCPs.Items.SCP323
         public SCP323_1AI mainScript = null!;
 
         public bool triggering;
+        float timeInTrigger = 0f;
 
-        void OnTriggerEnter(Collider other) // InteractTrigger
+        void OnTriggerStay(Collider other) // InteractTrigger
         {
-            //logger.LogDebug("OnTriggerEnter: " + other.tag);
-            if (!triggering && other.CompareTag("InteractTrigger"))
+            if (mainScript.currentBehaviourStateIndex == (int)SCP323_1AI.State.Hunting)
             {
-                var doorLock = other.gameObject.GetComponent<DoorLock>();
-                if (doorLock != null && !doorLock.isDoorOpened)
+                //logger.LogDebug("OnTriggerEnter: " + other.tag);
+                if (!triggering && other.CompareTag("InteractTrigger"))
                 {
-                    triggering = true;
-                    mainScript.BeginBashDoor(doorLock);
+                    DoorLock doorLock = other.gameObject.GetComponent<DoorLock>();
+                    if (doorLock != null && !doorLock.isDoorOpened)
+                    {
+                        timeInTrigger += Time.deltaTime;
+
+                        if (timeInTrigger > 2f)
+                        {
+                            triggering = true;
+                            timeInTrigger = 0f;
+                            other.tag = "Untagged";
+                            mainScript.BeginBashDoor(doorLock);
+                        }
+                    }
                 }
             }
         }

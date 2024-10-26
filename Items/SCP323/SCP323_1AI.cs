@@ -14,16 +14,19 @@ namespace HeavyItemSCPs.Items.SCP323
 {
     internal class SCP323_1AI : EnemyAI, IVisibleThreat
     {
+        // TODO: Make sure he works on the new version
+        // TODO: Increase his size
+        // TODO: Fix bug where you dont transform if outside?? or in ship??
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323_1AI? Instance { get; private set; }
 
 #pragma warning disable 0649
-        //public Transform turnCompass = null!;
         public NetworkAnimator networkAnimator = null!;
         public AudioClip doorWooshSFX = null!;
         public AudioClip metalDoorSmashSFX = null!;
         public AudioClip bashSFX = null!;
         public AudioClip roarSFX = null!;
+        public AudioClip slashSFX = null!;
         public AudioClip[] walkingSFX = null!;
         public GameObject SCP323Prefab = null!;
         public Transform SkullTransform = null!;
@@ -39,12 +42,12 @@ namespace HeavyItemSCPs.Items.SCP323
 
         float timeSinceDamagePlayer = 35f;
         float timeSinceSeenPlayer;
-        float timeSinceInLOS;
-        float timeSinceSpawned;
+        float timeSpawned;
 
         bool decayHealth = true;
         float decayMultiplier = 1f;
 
+        Vector3 targetPlayerLastSeenPos;
         DeadBodyInfo targetPlayerCorpse = null!;
         EnemyAI targetEnemyCorpse = null!;
         DoorLock doorLock = null!;
@@ -65,10 +68,11 @@ namespace HeavyItemSCPs.Items.SCP323
         int doorBashAOEDamage = 5;
         float doorBashAOERange = 5f;
         bool despawnDoorAfterBash = true;
-        float despawnDoorAfterBashTime = 5f;
+        float despawnDoorAfterBashTime = 3f;
 
         public enum State
         {
+            Transforming,
             Roaming,
             BloodSearch,
             Hunting,
@@ -79,7 +83,26 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.Start();
             logger.LogDebug("SCP-323-1 Spawned");
-            StartCoroutine(DelayedStart());
+
+            playerBloodSenseRange = config3231PlayerBloodSenseRange.Value;
+            maskedBloodSenseRange = config3231MaskedBloodSenseRange.Value;
+            doorBashForce = config3231DoorBashForce.Value;
+            doorBashDamage = config3231DoorBashDamage.Value;
+            doorBashAOEDamage = config3231DoorBashAOEDamage.Value;
+            doorBashAOERange = config3231DoorBashAOERange.Value;
+            despawnDoorAfterBash = config3231DespawnDoorAfterBash.Value;
+            despawnDoorAfterBashTime = config3231DespawnDoorAfterBashTime.Value;
+
+            RoundManager.Instance.SpawnedEnemies.Add(this);
+            SetOutsideOrInside();
+            //SetEnemyOutsideClientRpc(true);
+            //debugEnemyAI = true;
+
+            timeSinceSeenPlayer = 50f;
+
+            // TODO: Do black smoke here
+            logger.LogDebug("Finished spawning SCP-323-1");
+            if (IsServerOrHost) { StartCoroutine(DelayedStart()); }
         }
 
         IEnumerator DelayedStart()
@@ -88,36 +111,20 @@ namespace HeavyItemSCPs.Items.SCP323
 
             if (Instance != null && NetworkObject.IsSpawned)
             {
-                if (IsServerOrHost)
-                {
-                    logger.LogDebug("There is already a SCP-323-1 in the scene. Removing this one.");
-                    NetworkObject.Despawn(true);
-                }
+                logger.LogDebug("There is already a SCP-323-1 in the scene. Removing this one.");
+                NetworkObject.Despawn(true);
             }
             else
             {
                 Instance = this;
 
-                playerBloodSenseRange = config3231PlayerBloodSenseRange.Value;
-                maskedBloodSenseRange = config3231MaskedBloodSenseRange.Value;
-                doorBashForce = config3231DoorBashForce.Value;
-                doorBashDamage = config3231DoorBashDamage.Value;
-                doorBashAOEDamage = config3231DoorBashAOEDamage.Value;
-                doorBashAOERange = config3231DoorBashAOERange.Value;
-                despawnDoorAfterBash = config3231DespawnDoorAfterBash.Value;
-                despawnDoorAfterBashTime = config3231DespawnDoorAfterBashTime.Value;
+                yield return new WaitForSeconds(2f);
 
-                SetOutsideOrInside();
-                //SetEnemyOutsideClientRpc(true);
-                //debugEnemyAI = true;
-
-                currentBehaviourStateIndex = (int)State.Roaming;
-                RoundManager.Instance.SpawnedEnemies.Add(this);
-                StartSearch(transform.position);
                 StartCoroutine(DecayHealthCoroutine());
 
-                // TODO: Do black smoke here
-                logger.LogDebug("Finished spawning SCP-323-1");
+                SwitchToBehaviourClientRpc((int)State.Roaming);
+                networkAnimator.SetTrigger("start");
+                StartSearch(transform.position);
             }
         }
 
@@ -125,17 +132,22 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.Update();
 
-            CalculateAgentSpeed();
-
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
             {
                 return;
             };
 
-            timeSinceSpawned += Time.deltaTime;
+            CalculateAgentSpeed();
+
             timeSinceDamagePlayer += Time.deltaTime;
-            timeSinceInLOS += Time.deltaTime;
             timeSinceSeenPlayer += Time.deltaTime;
+            timeSpawned += Time.deltaTime;
+
+            if (localPlayer.HasLineOfSightToPosition(transform.position, 70f))
+            {
+                localPlayer.insanityLevel += Time.deltaTime;
+                localPlayer.IncreaseFearLevelOverTime();
+            }
         }
 
         public override void DoAIInterval()
@@ -143,12 +155,10 @@ namespace HeavyItemSCPs.Items.SCP323
             base.DoAIInterval();
             //logger.LogDebug("Doing AI Interval");
 
-            if (isEnemyDead || StartOfRound.Instance.allPlayersDead || timeSinceSpawned < 1f)
+            if (isEnemyDead || StartOfRound.Instance.allPlayersDead || stunNormalizedTimer > 0f)
             {
                 return;
             };
-
-            if (stunNormalizedTimer > 0f) { return; }
 
             if (currentBehaviourStateIndex != (int)State.Eating)
             {
@@ -157,15 +167,16 @@ namespace HeavyItemSCPs.Items.SCP323
 
             switch (currentBehaviourStateIndex)
             {
+                case (int)State.Transforming:
+                    agent.speed = 0f;
+                    break;
                 case (int)State.Roaming:
-                    if (currentSearch == null)
-                    {
-                        StartSearch(transform.position);
-                    }
+                    if (timeSpawned < 5f) { return; }
                     if (FoundClosestPlayerInRange(50f, 5f) || FoundClosestMaskedInRange(50f, 15f))
                     {
                         StopSearch(currentSearch);
                         SwitchToBehaviourClientRpc((int)State.Hunting);
+                        if (targetPlayer != null) { targetPlayerLastSeenPos = targetPlayer.transform.position; }
                         Roar();
                     }
 
@@ -173,18 +184,14 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 case (int)State.BloodSearch:
 
-                    if (currentSearch != null)
-                    {
-                        StopSearch(currentSearch);
-                        currentSearch = null;
-                    }
                     if (TargetPlayerInBloodSearch()) // TODO: Rework this
                     {
                         SetMovingTowardsTargetPlayer(targetPlayer);
                         if (CheckLineOfSightForPosition(targetPlayer.transform.position, 70f, 60, 10))
                         {
+                            StopSearch(currentSearch);
                             SwitchToBehaviourClientRpc((int)State.Hunting);
-                            timeSinceInLOS = 0f;
+                            timeSinceSeenPlayer = 0f;
                             Roar();
                         }
                         return;
@@ -194,36 +201,34 @@ namespace HeavyItemSCPs.Items.SCP323
                         SetDestinationToPosition(targetEnemy.transform.position);
                         if (CheckLineOfSightForPosition(targetEnemy.transform.position, 70f, 60, 10))
                         {
+                            StopSearch(currentSearch);
                             SwitchToBehaviourClientRpc((int)State.Hunting);
-                            timeSinceInLOS = 0f;
+                            timeSinceSeenPlayer = 0f;
                             Roar();
                         }
                         return;
                     }
 
+                    RestartSearch(transform.position);
                     SwitchToBehaviourClientRpc((int)State.Roaming);
 
                     break;
 
                 case (int)State.Hunting:
 
-                    if (currentSearch != null)
-                    {
-                        StopSearch(currentSearch);
-                        currentSearch = null;
-                    }
                     if (targetPlayer != null && !targetPlayer.isPlayerDead)
                     {
                         if (CheckLineOfSightForPosition(targetPlayer.transform.position, 45f, 50, 10f))
                         {
-                            timeSinceInLOS = 0f;
+                            timeSinceSeenPlayer = 0f;
+                            targetPlayerLastSeenPos = targetPlayer.transform.position;
                         }
-                        if (timeSinceInLOS < 15f || Vector3.Distance(targetPlayer.transform.position, transform.position) > huntingRange)
+                        if (timeSinceSeenPlayer < 5f || Vector3.Distance(targetPlayer.transform.position, transform.position) > huntingRange)
                         {
                             SetMovingTowardsTargetPlayer(targetPlayer);
                             return;
                         }
-
+                        RestartSearch(targetPlayerLastSeenPos);
                     }
                     if (targetEnemy != null && !targetEnemy.isEnemyDead)
                     {
@@ -232,6 +237,7 @@ namespace HeavyItemSCPs.Items.SCP323
                             SetDestinationToPosition(targetEnemy.transform.position);
                             return;
                         }
+                        RestartSearch(transform.position);
                     }
 
                     targetPlayer = null!;
@@ -242,11 +248,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 case (int)State.Eating:
 
-                    if (currentSearch != null)
-                    {
-                        StopSearch(currentSearch);
-                        currentSearch = null;
-                    }
                     if (targetPlayerCorpse != null && targetPlayerCorpse.grabBodyObject != null && !targetPlayerCorpse.grabBodyObject.isHeld && !targetPlayerCorpse.isInShip)
                     {
                         if (!inSpecialAnimation)
@@ -289,6 +290,15 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
+        void RestartSearch(Vector3 position)
+        {
+            if (currentSearch != null)
+            {
+                StopSearch(currentSearch, true);
+            }
+            StartSearch(position);
+        }
+
         void CalculateAgentSpeed()
         {
             decayMultiplier = enemyHP / 20f;
@@ -299,14 +309,16 @@ namespace HeavyItemSCPs.Items.SCP323
                 return;
             }
 
-            if (currentBehaviourStateIndex == (int)State.Roaming)
+            if ((currentBehaviourStateIndex == (int)State.Roaming && timeSinceSeenPlayer > 25f) || decayMultiplier < 0.5f)
             {
-                agent.speed = roamSpeed * decayMultiplier;
+                float newSpeed = roamSpeed * decayMultiplier;
+                agent.speed = Mathf.Clamp(newSpeed, 3f, roamSpeed);
                 creatureAnimator.SetBool("run", false);
             }
             else
             {
-                agent.speed = chaseSpeed * decayMultiplier;
+                float newSpeed = chaseSpeed * decayMultiplier;
+                agent.speed = Mathf.Clamp(newSpeed, roamSpeed, chaseSpeed);
                 creatureAnimator.SetBool("run", true);
             }
         }
@@ -353,6 +365,7 @@ namespace HeavyItemSCPs.Items.SCP323
                         targetPlayerCorpse = player.deadBody;
                         targetPlayer = null!;
                         targetEnemy = null!;
+                        StopSearch(currentSearch);
                         SwitchToBehaviourClientRpc((int)State.Eating);
                         return;
                     }
@@ -365,6 +378,7 @@ namespace HeavyItemSCPs.Items.SCP323
                     targetEnemyCorpse = masked;
                     targetEnemy = null!;
                     targetPlayer = null!;
+                    StopSearch(currentSearch);
                     SwitchToBehaviourClientRpc((int)State.Eating);
                     return;
                 }
@@ -500,7 +514,7 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 if (currentBehaviourStateIndex == (int)State.Roaming)
                 {
-                    StartSearch(noisePosition);
+                    RestartSearch(noisePosition);
                 }
             }
         }
@@ -612,7 +626,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         void Roar()
         {
-            if (timeSinceSeenPlayer > 30f)
+            if (timeSinceSeenPlayer > 15f)
             {
                 timeSinceSeenPlayer = 0f;
                 SetEnemyStunned(true);
@@ -626,9 +640,18 @@ namespace HeavyItemSCPs.Items.SCP323
         }
 
         // Animation stuff
+        public void DoSlashSFX()
+        {
+            creatureSFX.PlayOneShot(slashSFX, 1f);
+        }
+
         public void DoRoarSFX()
         {
             creatureVoice.PlayOneShot(roarSFX, 1f);
+            if (Vector3.Distance(transform.position, localPlayer.transform.position) < 10f)
+            {
+                localPlayer.JumpToFearLevel(0.7f);
+            }
         }
 
         public void DoRandomWalkSFX()
@@ -652,12 +675,13 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public void BeginBashDoor(DoorLock _doorLock)
         {
+            logger.LogDebug("BeginBashDoor called");
             inSpecialAnimation = true;
             doorLock = _doorLock;
-            BeginBashDoorClientRpc(_doorLock.NetworkObject);
+            creatureAnimator.SetTrigger("punch");
         }
 
-        public void BashDoor() // TODO: Set this up
+        public void BashDoor()
         {
             DoDamageToNearbyPlayers();
 
@@ -670,6 +694,12 @@ namespace HeavyItemSCPs.Items.SCP323
             tempCollider.size = new Vector3(1f, 1.5f, 3f);
 
             flyingDoorPrefab.AddComponent<DoorPlayerCollisionDetect>();
+
+            AudioSource tempAS = flyingDoorPrefab.AddComponent<AudioSource>();
+            tempAS.spatialBlend = 1;
+            tempAS.maxDistance = 60;
+            tempAS.rolloffMode = AudioRolloffMode.Linear;
+            tempAS.volume = 1f;
 
             var flyingDoor = UnityEngine.Object.Instantiate(flyingDoorPrefab, doorLock.transform.position, doorLock.transform.rotation);
             doorMesh.transform.SetParent(flyingDoor.transform);
@@ -707,22 +737,16 @@ namespace HeavyItemSCPs.Items.SCP323
             // Add an impulse force to the door
             rb.AddForce(direction * doorBashForce, ForceMode.Impulse);
 
+            AudioSource doorAudio = flyingDoor.GetComponent<AudioSource>();
+            doorAudio.PlayOneShot(bashSFX, 1f);
 
-            doorCollisionDetectScript.triggering = false;
-            doorLock = null!;
-            inSpecialAnimation = false;
-
-            if (despawnDoorAfterBash)
+            string flowType = RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name;
+            if (flowType == "Level1Flow" || flowType == "Level1FlowExtraLarge" || flowType == "Level1Flow3Exits" || flowType == "Level3Flow")
             {
-                Destroy(flyingDoor, despawnDoorAfterBashTime);
+                doorAudio.PlayOneShot(metalDoorSmashSFX, 0.8f);
             }
 
-            //StartCoroutine(FinishBashDoorCoroutine(flyingDoor));
-        }
-
-        public IEnumerator FinishBashDoorCoroutine(GameObject flyingDoor)
-        {
-            yield return new WaitForSeconds(2f);
+            doorAudio.PlayOneShot(doorWooshSFX, 1f); // TODO: Test this
 
             doorCollisionDetectScript.triggering = false;
             doorLock = null!;
@@ -733,6 +757,12 @@ namespace HeavyItemSCPs.Items.SCP323
                 Destroy(flyingDoor, despawnDoorAfterBashTime);
             }
         }
+
+        /*[Debug  :HeavyItemSCPs] Level1Flow
+        [Debug  :HeavyItemSCPs] Level2Flow
+        [Debug  :HeavyItemSCPs] Level1FlowExtraLarge
+        [Debug  :HeavyItemSCPs] Level1Flow3Exits
+        [Debug  :HeavyItemSCPs] Level3Flow*/
 
         void DoDamageToNearbyPlayers()
         {
@@ -764,6 +794,8 @@ namespace HeavyItemSCPs.Items.SCP323
             targetPlayerCorpse.DeactivateBody(setActive: false);
 
             logger.LogDebug("Switching to roaming state...");
+
+            if (IsServerOrHost) { RestartSearch(transform.position); }
             SwitchToBehaviourStateOnLocalClient((int)State.Roaming);
             targetEnemy = null!;
             targetPlayer = null!;
@@ -791,6 +823,7 @@ namespace HeavyItemSCPs.Items.SCP323
             if (IsServerOrHost)
             {
                 RoundManager.Instance.DespawnEnemyOnServer(targetEnemyCorpse.NetworkObject);
+                RestartSearch(transform.position);
                 SwitchToBehaviourClientRpc((int)State.Roaming);
                 targetEnemy = null!;
                 targetEnemy = null!;
@@ -808,6 +841,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 if (Vector3.Distance(player.transform.position, transform.position) <= playerBloodSenseRange && !inSpecialAnimation)
                 {
                     targetPlayer = player;
+                    StopSearch(currentSearch);
                     SwitchToBehaviourClientRpc((int)State.BloodSearch);
                 }
             }
@@ -825,6 +859,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 if (Vector3.Distance(masked.transform.position, transform.position) <= maskedBloodSenseRange && !inSpecialAnimation)
                 {
                     targetEnemy = masked;
+                    StopSearch(currentSearch);
                     SwitchToBehaviourClientRpc((int)State.BloodSearch);
                 }
             }
@@ -836,9 +871,9 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             return 0;
         }
-        int IVisibleThreat.GetThreatLevel(Vector3 seenByPosition)
+        int IVisibleThreat.GetThreatLevel(Vector3 seenByPosition) // TODO: Figure out how this works and fix it
         {
-            return 1000;
+            return 999999999;
         }
         int IVisibleThreat.GetInterestLevel()
         {
@@ -870,6 +905,15 @@ namespace HeavyItemSCPs.Items.SCP323
         }
 
         // RPC's
+
+        [ClientRpc]
+        void IncreaseFearOfNearbyPlayersClientRpc(float value, float distance)
+        {
+            if (Vector3.Distance(transform.position, localPlayer.transform.position) < distance)
+            {
+                localPlayer.JumpToFearLevel(value);
+            }
+        }
 
         [ClientRpc]
         private void SetEnemyOutsideClientRpc(bool value)
@@ -920,31 +964,6 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             inSpecialAnimation = true;
             StartCoroutine(EatMaskedBodyCoroutine());
-        }
-
-        [ClientRpc]
-        public void BeginBashDoorClientRpc(NetworkObjectReference netObjRef)
-        {
-            inSpecialAnimation = true;
-            if (netObjRef.TryGet(out NetworkObject netObj))
-            {
-                doorLock = netObj.gameObject.GetComponent<DoorLock>();
-            }
-            else
-            {
-                // Other method
-                logger.LogWarning("BeginBashDoorClientRpc failed to get door lock, trying other method...");
-                doorLock = UnityEngine.Object.FindObjectsOfType<DoorLock>()
-                .Where(x => Vector3.Distance(x.transform.position, transform.position) < 5f)
-                .FirstOrDefault();
-
-                if (doorLock == null)
-                {
-                    logger.LogError("BeginBashDoorClientRpc failed to find door lock!");
-                }
-            }
-
-            creatureAnimator.SetTrigger("punch");
         }
     }
 

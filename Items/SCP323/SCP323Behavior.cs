@@ -41,7 +41,7 @@ namespace HeavyItemSCPs.Items.SCP323
         bool attaching;
         bool skullOn;
         PlayerControllerB? lastPlayerHeldBy;
-        bool forceTransforming;
+        bool forceTransforming = false;
         Coroutine? transformingCoroutine;
 
         public SCP323_1AI AttachedToWendigo = null!;
@@ -56,6 +56,8 @@ namespace HeavyItemSCPs.Items.SCP323
         int insanityToForceSwitch; // default 20
         int insanityToForceTransform; // default 35
         int insanityToTransform; // default 50
+        bool showInsanity; // default false
+        bool blurVisionWhenAddingInsanity; // default true
 
         public ThreatType type => ThreatType.Player;
 
@@ -79,6 +81,8 @@ namespace HeavyItemSCPs.Items.SCP323
             insanityToForceSwitch = config323InsanityToForceSwitch.Value;
             insanityToForceTransform = config323InsanityToForceTransform.Value;
             insanityToTransform = config323InsanityToTransform.Value;
+            showInsanity = config323ShowInsanity.Value;
+            blurVisionWhenAddingInsanity = config323BlurVisionWhenAddingInsanity.Value;
 
             StartCoroutine(DelayedStart());
         }
@@ -122,6 +126,15 @@ namespace HeavyItemSCPs.Items.SCP323
 
             if (PlayerIsTargetable(localPlayer) && Vector3.Distance(transform.position, localPlayer.transform.position) < distanceToIncreaseInstanity)
             {
+                if (showInsanity) // TODO: Test this
+                {
+                    float targetDrunkness = 0.001f * localPlayer.insanityLevel;
+                    if (localPlayer.drunkness <= targetDrunkness)
+                    {
+                        localPlayer.drunkness = 0.001f * localPlayer.insanityLevel;
+                    }
+                }
+
                 timeSinceInsanityIncrease += Time.unscaledDeltaTime;
 
                 if (timeSinceInsanityIncrease > 10f)
@@ -148,7 +161,7 @@ namespace HeavyItemSCPs.Items.SCP323
                                 return;
                             }
 
-                            if (playerHeldBy.insanityLevel >= insanityToForceTransform) // TODO: Test this
+                            /*if (playerHeldBy.insanityLevel >= insanityToForceTransform) // TODO: Test this
                             {
                                 if (UnityEngine.Random.Range(0f, 1f) > forceTransformChance)
                                 {
@@ -164,11 +177,15 @@ namespace HeavyItemSCPs.Items.SCP323
                                     playerHeldBy.SwitchToItemSlot(1, this); // TODO: Fix this
                                     return;
                                 }
-                            }
+                            }*/
                         }
                     }
                     else
                     {
+                        if (blurVisionWhenAddingInsanity && localPlayer.drunkness < 0.05f) // TODO: Test this
+                        {
+                            localPlayer.drunkness = 0.05f;
+                        }
                         localPlayer.insanityLevel += insanityNearby;
                     }
                 }
@@ -404,9 +421,9 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             if (skullOn)
             {
-                return 100;
+                return 999999999;
             }
-            return 1;
+            return 999999999;
         }
 
         Transform IVisibleThreat.GetThreatLookTransform()

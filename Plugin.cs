@@ -108,6 +108,8 @@ namespace HeavyItemSCPs
         public static ConfigEntry<int> config323InsanityToForceSwitch;
         public static ConfigEntry<int> config323InsanityToForceTransform;
         public static ConfigEntry<int> config323InsanityToTransform;
+        public static ConfigEntry<bool> config323ShowInsanity;
+        public static ConfigEntry<bool> config323BlurVisionWhenAddingInsanity;
 
         // SCP-323-1
         public static ConfigEntry<string> config3231LevelRarities;
@@ -213,6 +215,8 @@ namespace HeavyItemSCPs
             config323InsanityToForceSwitch = Config.Bind("SCP-323", "Insanity to force switch", 20, "The force switch chance will only happen if above this insanity value.");
             config323InsanityToForceTransform = Config.Bind("SCP-323", "Insanity to force transform", 35, "The force transform chance will only happen if above this insanity value.");
             config323InsanityToTransform = Config.Bind("SCP-323", "Insanity to transform", 50, "You will be forced to transform when you reach this insanity value. It cannot be stopped.");
+            config323ShowInsanity = Config.Bind("SCP-323", "Show insanity", false, "Blur the players vision when they are near SCP-323 based on their insanity.");
+            config323BlurVisionWhenAddingInsanity = Config.Bind("SCP-323", "Blur vision when adding insanity", true, "When adding sanity, the players vision will blur.");
 
             // SCP-323-1
             config3231LevelRarities = Config.Bind("SCP-323-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
