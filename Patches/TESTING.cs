@@ -34,7 +34,7 @@ namespace HeavyItemSCPs.Patches
         public static void PingScan_performedPostFix()
         {
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
-            BashDoor();
+            //BashDoor();
 
         } // HoarderBug, BaboonHawk
 
@@ -46,33 +46,50 @@ namespace HeavyItemSCPs.Patches
 
             if (doorLock != null)
             {
-                var doorObj = doorLock.transform.parent.transform.parent.gameObject;
-                var door = doorObj.transform.Find("DoorMesh").gameObject;
+                var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
+                var doorMesh = steelDoorObj.transform.Find("DoorMesh").gameObject;
 
+                GameObject flyingDoorPrefab = new GameObject("FlyingDoor");
+                BoxCollider tempCollider = flyingDoorPrefab.AddComponent<BoxCollider>();
+                tempCollider.isTrigger = true;
+                tempCollider.size = new Vector3(1f, 1.5f, 3f);
+
+                flyingDoorPrefab.AddComponent<DoorPlayerCollisionDetect>();
+
+                /*GameObject colliderVisualizer = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                colliderVisualizer.transform.SetParent(flyingDoorPrefab.transform);
+                colliderVisualizer.transform.position = tempCollider.center;
+                colliderVisualizer.transform.localScale = tempCollider.size;
+                GameObject.Destroy(colliderVisualizer.GetComponent<Collider>());
+                colliderVisualizer.GetComponent<MeshRenderer>().material = NetworkHandlerHeavy.Instance.OverlayMaterial;*/
+
+                var flyingDoor = UnityEngine.Object.Instantiate(flyingDoorPrefab, doorLock.transform.position, doorLock.transform.rotation);
+                doorMesh.transform.SetParent(flyingDoor.transform);
+                
                 // TODO: Add collider or use doorlock collider on trigger stay thats used in dnspy look at dnspy you doofus
                 return;
 
-                Rigidbody rb = door.GetComponent<Rigidbody>() ?? door.AddComponent<Rigidbody>();
+                Rigidbody rb = flyingDoor.GetComponent<Rigidbody>() ?? flyingDoor.AddComponent<Rigidbody>();
                 rb.mass = 1f;
                 rb.useGravity = true;
                 rb.isKinematic = true;
 
                 // Determine which direction to apply the force
-                Vector3 doorForward = door.transform.position + door.transform.right * 2f;
-                Vector3 doorBackward = door.transform.position - door.transform.right * 2f;
+                Vector3 doorForward = flyingDoor.transform.position + flyingDoor.transform.right * 2f;
+                Vector3 doorBackward = flyingDoor.transform.position - flyingDoor.transform.right * 2f;
                 Vector3 direction;
 
                 if (Vector3.Distance(doorForward, localPlayer.transform.position) < Vector3.Distance(doorBackward, localPlayer.transform.position))
                 {
                     // Player is at front of door
                     direction = (doorBackward - doorForward).normalized;
-                    door.transform.position = door.transform.position - door.transform.right;
+                    flyingDoor.transform.position = flyingDoor.transform.position - flyingDoor.transform.right;
                 }
                 else
                 {
                     // Player is at back of door
                     direction = (doorForward - doorBackward).normalized;
-                    door.transform.position = door.transform.position + door.transform.right;
+                    flyingDoor.transform.position = flyingDoor.transform.position + flyingDoor.transform.right;
                 }
 
                 // Release the Rigidbody from kinematic state

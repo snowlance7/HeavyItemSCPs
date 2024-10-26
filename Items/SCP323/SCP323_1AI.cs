@@ -47,6 +47,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         DeadBodyInfo targetPlayerCorpse = null!;
         EnemyAI targetEnemyCorpse = null!;
+        DoorLock doorLock = null!;
 
         // Constants
         const string maskedName = "MaskedPlayerEnemy";
@@ -59,7 +60,12 @@ namespace HeavyItemSCPs.Items.SCP323
         // Config Values
         float playerBloodSenseRange = 50f;
         float maskedBloodSenseRange = 50f;
-        
+        float doorBashForce = 25f;
+        int doorBashDamage = 30;
+        int doorBashAOEDamage = 5;
+        float doorBashAOERange = 5f;
+        bool despawnDoorAfterBash = true;
+        float despawnDoorAfterBashTime = 5f;
 
         public enum State
         {
@@ -91,6 +97,15 @@ namespace HeavyItemSCPs.Items.SCP323
             else
             {
                 Instance = this;
+
+                playerBloodSenseRange = config3231PlayerBloodSenseRange.Value;
+                maskedBloodSenseRange = config3231MaskedBloodSenseRange.Value;
+                doorBashForce = config3231DoorBashForce.Value;
+                doorBashDamage = config3231DoorBashDamage.Value;
+                doorBashAOEDamage = config3231DoorBashAOEDamage.Value;
+                doorBashAOERange = config3231DoorBashAOERange.Value;
+                despawnDoorAfterBash = config3231DespawnDoorAfterBash.Value;
+                despawnDoorAfterBashTime = config3231DespawnDoorAfterBashTime.Value;
 
                 SetOutsideOrInside();
                 //SetEnemyOutsideClientRpc(true);
@@ -635,16 +650,99 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        public void BeginBashDoor(DoorLock door)
+        public void BeginBashDoor(DoorLock _doorLock)
         {
-
+            inSpecialAnimation = true;
+            doorLock = _doorLock;
+            BeginBashDoorClientRpc(_doorLock.NetworkObject);
         }
 
         public void BashDoor() // TODO: Set this up
         {
+            DoDamageToNearbyPlayers();
+
+            var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
+            var doorMesh = steelDoorObj.transform.Find("DoorMesh").gameObject;
+
+            GameObject flyingDoorPrefab = new GameObject("FlyingDoor");
+            BoxCollider tempCollider = flyingDoorPrefab.AddComponent<BoxCollider>();
+            tempCollider.isTrigger = true;
+            tempCollider.size = new Vector3(1f, 1.5f, 3f);
+
+            flyingDoorPrefab.AddComponent<DoorPlayerCollisionDetect>();
+
+            var flyingDoor = UnityEngine.Object.Instantiate(flyingDoorPrefab, doorLock.transform.position, doorLock.transform.rotation);
+            doorMesh.transform.SetParent(flyingDoor.transform);
+
+            GameObject.Destroy(flyingDoorPrefab);
+
+            Rigidbody rb = flyingDoor.GetComponent<Rigidbody>() ?? flyingDoor.AddComponent<Rigidbody>();
+            rb.mass = 1f;
+            rb.useGravity = true;
+            rb.isKinematic = true;
+
+            // Determine which direction to apply the force
+            Vector3 doorForward = flyingDoor.transform.position + flyingDoor.transform.right * 2f;
+            Vector3 doorBackward = flyingDoor.transform.position - flyingDoor.transform.right * 2f;
+            Vector3 direction;
+
+            if (Vector3.Distance(doorForward, transform.position) < Vector3.Distance(doorBackward, transform.position))
+            {
+                // Wendigo is at front of door
+                direction = (doorBackward - doorForward).normalized;
+                flyingDoor.transform.position = flyingDoor.transform.position - flyingDoor.transform.right;
+            }
+            else
+            {
+                // Wendigo is at back of door
+                direction = (doorForward - doorBackward).normalized;
+                flyingDoor.transform.position = flyingDoor.transform.position + flyingDoor.transform.right;
+            }
+
+            flyingDoor.GetComponent<DoorPlayerCollisionDetect>().force = direction * doorBashForce * 2f;
+
+            // Release the Rigidbody from kinematic state
+            rb.isKinematic = false;
+
+            // Add an impulse force to the door
+            rb.AddForce(direction * doorBashForce, ForceMode.Impulse);
 
 
             doorCollisionDetectScript.triggering = false;
+            doorLock = null!;
+            inSpecialAnimation = false;
+
+            if (despawnDoorAfterBash)
+            {
+                Destroy(flyingDoor, despawnDoorAfterBashTime);
+            }
+
+            //StartCoroutine(FinishBashDoorCoroutine(flyingDoor));
+        }
+
+        public IEnumerator FinishBashDoorCoroutine(GameObject flyingDoor)
+        {
+            yield return new WaitForSeconds(2f);
+
+            doorCollisionDetectScript.triggering = false;
+            doorLock = null!;
+            inSpecialAnimation = false;
+
+            if (despawnDoorAfterBash)
+            {
+                Destroy(flyingDoor, despawnDoorAfterBashTime);
+            }
+        }
+
+        void DoDamageToNearbyPlayers()
+        {
+            foreach(var player in StartOfRound.Instance.allPlayerScripts)
+            {
+                if (Vector3.Distance(player.transform.position, transform.position) <= doorBashAOERange)
+                {
+                    player.DamagePlayer(doorBashAOEDamage, true, true, CauseOfDeath.Blast, 8);
+                }
+            }
         }
 
         public IEnumerator EatPlayerBodyCoroutine()
@@ -822,6 +920,31 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             inSpecialAnimation = true;
             StartCoroutine(EatMaskedBodyCoroutine());
+        }
+
+        [ClientRpc]
+        public void BeginBashDoorClientRpc(NetworkObjectReference netObjRef)
+        {
+            inSpecialAnimation = true;
+            if (netObjRef.TryGet(out NetworkObject netObj))
+            {
+                doorLock = netObj.gameObject.GetComponent<DoorLock>();
+            }
+            else
+            {
+                // Other method
+                logger.LogWarning("BeginBashDoorClientRpc failed to get door lock, trying other method...");
+                doorLock = UnityEngine.Object.FindObjectsOfType<DoorLock>()
+                .Where(x => Vector3.Distance(x.transform.position, transform.position) < 5f)
+                .FirstOrDefault();
+
+                if (doorLock == null)
+                {
+                    logger.LogError("BeginBashDoorClientRpc failed to find door lock!");
+                }
+            }
+
+            creatureAnimator.SetTrigger("punch");
         }
     }
 

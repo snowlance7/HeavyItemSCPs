@@ -152,7 +152,7 @@ namespace HeavyItemSCPs.Items.SCP323
                             {
                                 if (UnityEngine.Random.Range(0f, 1f) > forceTransformChance)
                                 {
-                                    AttemptTransformLocalPlayer(forced: true);
+                                    AttemptTransformLocalPlayer(forced: true); // TODO: Fix this
                                     return;
                                 }
                             }
@@ -161,7 +161,7 @@ namespace HeavyItemSCPs.Items.SCP323
                             {
                                 if (UnityEngine.Random.Range(0f, 1f) > forceSwitchChance)
                                 {
-                                    playerHeldBy.SwitchToItemSlot(1, this);
+                                    playerHeldBy.SwitchToItemSlot(1, this); // TODO: Fix this
                                     return;
                                 }
                             }
