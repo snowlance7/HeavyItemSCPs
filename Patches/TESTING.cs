@@ -24,7 +24,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Patches
 {
-    [HarmonyPatch]
+    //[HarmonyPatch]
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
@@ -39,68 +39,6 @@ namespace HeavyItemSCPs.Patches
 
         } // HoarderBug, BaboonHawk
 
-        public static void BashDoor()
-        {
-            var doorLock = UnityEngine.Object.FindObjectsOfType<DoorLock>()
-                .Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f)
-                .FirstOrDefault();
-
-            if (doorLock != null)
-            {
-                var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
-                var doorMesh = steelDoorObj.transform.Find("DoorMesh").gameObject;
-
-                GameObject flyingDoorPrefab = new GameObject("FlyingDoor");
-                BoxCollider tempCollider = flyingDoorPrefab.AddComponent<BoxCollider>();
-                tempCollider.isTrigger = true;
-                tempCollider.size = new Vector3(1f, 1.5f, 3f);
-
-                flyingDoorPrefab.AddComponent<DoorPlayerCollisionDetect>();
-
-                /*GameObject colliderVisualizer = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                colliderVisualizer.transform.SetParent(flyingDoorPrefab.transform);
-                colliderVisualizer.transform.position = tempCollider.center;
-                colliderVisualizer.transform.localScale = tempCollider.size;
-                GameObject.Destroy(colliderVisualizer.GetComponent<Collider>());
-                colliderVisualizer.GetComponent<MeshRenderer>().material = NetworkHandlerHeavy.Instance.OverlayMaterial;*/
-
-                var flyingDoor = UnityEngine.Object.Instantiate(flyingDoorPrefab, doorLock.transform.position, doorLock.transform.rotation);
-                doorMesh.transform.SetParent(flyingDoor.transform);
-                
-                // TODO: Add collider or use doorlock collider on trigger stay thats used in dnspy look at dnspy you doofus
-                return;
-
-                Rigidbody rb = flyingDoor.GetComponent<Rigidbody>() ?? flyingDoor.AddComponent<Rigidbody>();
-                rb.mass = 1f;
-                rb.useGravity = true;
-                rb.isKinematic = true;
-
-                // Determine which direction to apply the force
-                Vector3 doorForward = flyingDoor.transform.position + flyingDoor.transform.right * 2f;
-                Vector3 doorBackward = flyingDoor.transform.position - flyingDoor.transform.right * 2f;
-                Vector3 direction;
-
-                if (Vector3.Distance(doorForward, localPlayer.transform.position) < Vector3.Distance(doorBackward, localPlayer.transform.position))
-                {
-                    // Player is at front of door
-                    direction = (doorBackward - doorForward).normalized;
-                    flyingDoor.transform.position = flyingDoor.transform.position - flyingDoor.transform.right;
-                }
-                else
-                {
-                    // Player is at back of door
-                    direction = (doorForward - doorBackward).normalized;
-                    flyingDoor.transform.position = flyingDoor.transform.position + flyingDoor.transform.right;
-                }
-
-                // Release the Rigidbody from kinematic state
-                rb.isKinematic = false;
-
-                // Add an impulse force to the door
-                rb.AddForce(direction * 25f, ForceMode.Impulse);
-            }
-        }
-
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
         {
@@ -110,6 +48,9 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/door":
+                    SCP323_1AI.Instance.openDoorSpeedMultiplier = float.Parse(args[1]);
+                    break;
                 case "/drunk":
                     drunkness = float.Parse(args[1]);
                     break;

@@ -247,7 +247,7 @@ namespace HeavyItemSCPs.Items.SCP178
             float distance = -1f;
             foreach (var player in StartOfRound.Instance.allPlayerScripts.Where(x => x.isPlayerControlled))
             {
-                if (player.HasLineOfSightToPosition(transform.position, 15f, (int)wanderingRadius * 2)) // TODO: Test this
+                if (player.HasLineOfSightToPosition(transform.position, 20f, (int)wanderingRadius * 2)) // TODO: Test this
                 {
                     if (distance == -1f || distance > Vector3.Distance(transform.position, player.transform.position))
                     {

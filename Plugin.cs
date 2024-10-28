@@ -103,10 +103,6 @@ namespace HeavyItemSCPs
         public static ConfigEntry<int> config323InsanityNearby;
         public static ConfigEntry<int> config323InsanityHolding;
         public static ConfigEntry<int> config323InsanityWearing;
-        public static ConfigEntry<float> config323ForceSwitchChance;
-        public static ConfigEntry<float> config323ForceTransformChance;
-        public static ConfigEntry<int> config323InsanityToForceSwitch;
-        public static ConfigEntry<int> config323InsanityToForceTransform;
         public static ConfigEntry<int> config323InsanityToTransform;
         public static ConfigEntry<bool> config323ShowInsanity;
         public static ConfigEntry<bool> config323BlurVisionWhenAddingInsanity;
@@ -210,10 +206,6 @@ namespace HeavyItemSCPs
             config323InsanityNearby = Config.Bind("SCP-323", "Insanity nearby", 5, "The amount of insanity you will gain every 10 seconds of being near SCP-323.");
             config323InsanityHolding = Config.Bind("SCP-323", "Insanity holding", 10, "The amount of insanity you will gain every 10 seconds when you are holding SCP-323.");
             config323InsanityWearing = Config.Bind("SCP-323", "Insanity wearing", 10, "The amount of insanity you will gain every 10 seconds when you are wearing SCP-323.");
-            config323ForceSwitchChance = Config.Bind("SCP-323", "Force switch chance", 0.25f, "The chance every insanity increase that SCP-323 will switch to holding it.");
-            config323ForceTransformChance = Config.Bind("SCP-323", "Force transform chance", 0.1f, "The chance every insanity increase that SCP-323 will try to force transform the player. Can be stopped by using it quickly.");
-            config323InsanityToForceSwitch = Config.Bind("SCP-323", "Insanity to force switch", 20, "The force switch chance will only happen if above this insanity value.");
-            config323InsanityToForceTransform = Config.Bind("SCP-323", "Insanity to force transform", 35, "The force transform chance will only happen if above this insanity value.");
             config323InsanityToTransform = Config.Bind("SCP-323", "Insanity to transform", 50, "You will be forced to transform when you reach this insanity value. It cannot be stopped.");
             config323ShowInsanity = Config.Bind("SCP-323", "Show insanity", false, "Blur the players vision when they are near SCP-323 based on their insanity.");
             config323BlurVisionWhenAddingInsanity = Config.Bind("SCP-323", "Blur vision when adding insanity", true, "When adding sanity, the players vision will blur.");
