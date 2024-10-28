@@ -24,7 +24,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Patches
 {
-    //[HarmonyPatch]
+    [HarmonyPatch]
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
@@ -49,7 +49,7 @@ namespace HeavyItemSCPs.Patches
             switch (args[0])
             {
                 case "/door":
-                    SCP323_1AI.Instance.openDoorSpeedMultiplier = float.Parse(args[1]);
+                    SCP323_1AI.Instance.openDoorSpeedMultiplier = float.Parse(args[1]); // TODO: Get this in testing
                     break;
                 case "/drunk":
                     drunkness = float.Parse(args[1]);

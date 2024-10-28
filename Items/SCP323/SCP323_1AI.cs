@@ -34,6 +34,7 @@ namespace HeavyItemSCPs.Items.SCP323
         public AudioClip[] walkingSFX = null!;
         public AudioClip[] growlSFX = null!;
         public AudioClip roamingNoisesSFX = null!; // TODO: Set up
+        public AudioClip eatingCorpseSFX = null!;
         public GameObject SCP323Prefab = null!;
         public Transform SkullTransform = null!;
         public DoorCollisionDetect doorCollisionDetectScript = null!;
@@ -60,19 +61,18 @@ namespace HeavyItemSCPs.Items.SCP323
         const string maskedName = "MaskedPlayerEnemy";
         const float roamSpeed = 5f;
         const float chaseSpeed = 10f;
-        const float bloodHuntRange = 50f;
-        const float huntingRange = 25f;
+        const float huntingRange = 50f;
         const float damage = 35f;
 
         // Config Values
-        float playerBloodSenseRange = 50f;
-        float maskedBloodSenseRange = 50f;
-        float doorBashForce = 25f;
-        int doorBashDamage = 30;
-        int doorBashAOEDamage = 5;
-        float doorBashAOERange = 5f;
-        bool despawnDoorAfterBash = true;
-        float despawnDoorAfterBashTime = 3f;
+        float playerBloodSenseRange;
+        float maskedBloodSenseRange;
+        float doorBashForce;
+        int doorBashDamage;
+        int doorBashAOEDamage;
+        float doorBashAOERange;
+        bool despawnDoorAfterBash;
+        float despawnDoorAfterBashTime;
 
         public enum State
         {
@@ -85,13 +85,15 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public void SwitchToBehaviourStateCustom(int stateIndex)
         {
+            logger.LogDebug("Switching to state: " + stateIndex);
             switch (stateIndex)
             {
                 case (int)State.Transforming:
-                    
+                    logger.LogDebug("Switched to transforming state");
                     break;
 
                 case (int)State.Roaming:
+                    logger.LogDebug("Switched to roaming state");
                     creatureSFX.Play();
                     targetEnemy = null!;
                     targetPlayer = null!;
@@ -100,18 +102,21 @@ namespace HeavyItemSCPs.Items.SCP323
                     break;
 
                 case (int)State.BloodSearch:
+                    logger.LogDebug("Switched to blood search state");
                     creatureSFX.Stop();
                     StopRoaming();
 
                     break;
 
                 case (int)State.Hunting:
+                    logger.LogDebug("Switched to hunting state");
                     creatureSFX.Stop();
                     StopRoaming();
 
                     break;
 
                 case (int)State.Eating:
+                    logger.LogDebug("Switched to eating state");
                     creatureSFX.Stop();
                     targetEnemy = null!;
                     targetPlayer = null!;
@@ -399,8 +404,11 @@ namespace HeavyItemSCPs.Items.SCP323
             if (IsServerOrHost)
             {
                 StopSearch(currentSearch);
-                StopCoroutine(roamCoroutine);
-                roamCoroutine = null;
+                if (roamCoroutine != null)
+                {
+                    StopCoroutine(roamCoroutine);
+                    roamCoroutine = null;
+                }
                 agent.ResetPath();
             }
             else
@@ -430,25 +438,29 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public IEnumerator RoamCoroutine()
         {
+            yield return null;
             if (allAINodes == null || allAINodes.Length == 0)
             {
                 logger.LogError("allAINodes is null or empty");
                 yield break;
             }
 
+            logger.LogDebug("Starting roam coroutine...");
             while (roamCoroutine != null)
             {
+                movingTowardsTargetPlayer = false;
                 TargetRandomNode();
                 if (SetDestinationToPosition(targetNode.position, true))
                 {
                     yield return new WaitUntil(() => Vector3.Distance(transform.position, targetNode.position) <= 1f);
-                    logger.LogDebug("Arrived at targetNode, choosing new targetNode...");
+                    logger.LogDebug("Arrived at targetNode");
                 }
             }
         }
 
         void TargetRandomNode()
         {
+            logger.LogDebug("Choosing new target node...");
             int randIndex = UnityEngine.Random.Range(0, allAINodes.Length);
             targetNode = allAINodes[randIndex].transform;
         }
@@ -464,7 +476,7 @@ namespace HeavyItemSCPs.Items.SCP323
                     && !player.deadBody.isInShip
                     && !player.deadBody.deactivated)
                 {
-                    if (Vector3.Distance(player.deadBody.grabBodyObject.transform.position, transform.position) <= bloodHuntRange)
+                    if (Vector3.Distance(player.deadBody.grabBodyObject.transform.position, transform.position) <= playerBloodSenseRange * 2f)
                     {
                         targetPlayerCorpse = player.deadBody;
                         SwitchToBehaviourStateCustom((int)State.Eating);
@@ -474,7 +486,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
             foreach (var masked in UnityEngine.Object.FindObjectsOfType<MaskedPlayerEnemy>())
             {
-                if (masked.isEnemyDead && Vector3.Distance(masked.transform.position, transform.position) <= bloodHuntRange)
+                if (masked.isEnemyDead && Vector3.Distance(masked.transform.position, transform.position) <= maskedBloodSenseRange * 2f)
                 {
                     targetEnemyCorpse = masked;
                     SwitchToBehaviourStateCustom((int)State.Eating);
@@ -632,6 +644,8 @@ namespace HeavyItemSCPs.Items.SCP323
                 CancelSpecialAnimationWithPlayer();
                 StopAllCoroutines();
                 base.KillEnemy(false);
+                creatureVoice.Stop();
+                creatureSFX.Stop();
                 SpawnSkullOnHead();
             }
         }
@@ -884,13 +898,14 @@ namespace HeavyItemSCPs.Items.SCP323
             logger.LogDebug("Eating player body...");
             creatureAnimator.SetBool("eat", true);
             float randSoundTime = UnityEngine.Random.Range(0f, 19f);
-            creatureVoice.time = randSoundTime;
-            creatureVoice.Play();
+            creatureSFX.clip = eatingCorpseSFX;
+            creatureSFX.time = randSoundTime;
+            creatureSFX.Play();
 
             logger.LogDebug("Waiting for 10 seconds...");
             yield return new WaitForSecondsRealtime(10f);
 
-            creatureVoice.Stop();
+            creatureSFX.Stop();
             creatureAnimator.SetBool("eat", false);
             enemyHP = 20;
             
@@ -915,12 +930,13 @@ namespace HeavyItemSCPs.Items.SCP323
             logger.LogDebug("Eating masked body...");
             creatureAnimator.SetBool("eat", true);
             float randSoundTime = UnityEngine.Random.Range(0f, 19f);
-            creatureVoice.time = randSoundTime;
-            creatureVoice.Play();
+            creatureSFX.clip = eatingCorpseSFX;
+            creatureSFX.time = randSoundTime;
+            creatureSFX.Play();
 
             yield return new WaitForSecondsRealtime(10f);
 
-            creatureVoice.Stop();
+            creatureSFX.Stop();
             creatureAnimator.SetBool("eat", false);
             enemyHP = 20;
 
@@ -1073,7 +1089,7 @@ namespace HeavyItemSCPs.Items.SCP323
         [ClientRpc]
         public void PlayGrowlSFXClientRpc(int index)
         {
-            creatureVoice.PlayOneShot(growlSFX[index], 1f);
+            creatureSFX.PlayOneShot(growlSFX[index], 1f);
         }
     }
 

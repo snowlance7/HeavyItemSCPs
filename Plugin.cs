@@ -215,14 +215,14 @@ namespace HeavyItemSCPs
             config3231CustomLevelRarities = Config.Bind("SCP-323-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:0", "Rarities for modded levels. Same formatting as level rarities.");
             config3231SCPDungeonRarity = Config.Bind("SCP-323-1 Rarities", "SCP Dungeon Rarity", -1, "The rarity in the SCP Dungeon. Set to -1 to use level rarities.");
 
-            config3231PlayerBloodSenseRange = Config.Bind("SCP-323-1", "Player blood sense range", 50f, "When the player takes damage, SCP-323-1 will enter BloodSearch phase if the player is in this range.");
-            config3231MaskedBloodSenseRange = Config.Bind("SCP-323-1", "Masked blood sense range", 50f, "When a masked enemy takes damage, SCP-323-1 will enter BloodSearch phase if a masked is in this range.");
-            config3231DoorBashForce = Config.Bind("SCP-323-1", "Door bash force", 30f, "The amount of force to apply to the door when SCP-323-1 bashes it.");
+            config3231PlayerBloodSenseRange = Config.Bind("SCP-323-1", "Player blood sense range", 75f, "When the player takes damage, SCP-323-1 will enter BloodSearch phase if the player is in this range.");
+            config3231MaskedBloodSenseRange = Config.Bind("SCP-323-1", "Masked blood sense range", 75f, "When a masked enemy takes damage, SCP-323-1 will enter BloodSearch phase if a masked is in this range.");
+            config3231DoorBashForce = Config.Bind("SCP-323-1", "Door bash force", 35f, "The amount of force to apply to the door when SCP-323-1 bashes it.");
             config3231DoorBashDamage = Config.Bind("SCP-323-1", "Door bash damage", 30, "The amount of damage the player will take if the door hits them.");
             config3231DoorBashAOEDamage = Config.Bind("SCP-323-1", "Door bash AoE damage", 10, "The amount of damage the player will take if they are within range of the door when it is being bashed.");
             config3231DoorBashAOERange = Config.Bind("SCP-323-1", "Door bash AoE range", 5f, "The range of the AoE damage.");
             config3231DespawnDoorAfterBash = Config.Bind("SCP-323-1", "Despawn door after bash", true, "Whether the door should despawn after its been bashed.");
-            config3231DespawnDoorAfterBashTime = Config.Bind("SCP-323-1", "Despawn door after bash time", 5f, "The time it takes for the door to despawn after being bashed.");
+            config3231DespawnDoorAfterBashTime = Config.Bind("SCP-323-1", "Despawn door after bash time", 3f, "The time it takes for the door to despawn after being bashed.");
 
 
             // Loading Assets
