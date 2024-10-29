@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HandyCollections.Heap;
 using HarmonyLib;
 using System;
 using System.Collections;
@@ -48,7 +49,7 @@ namespace HeavyItemSCPs.Items.SCP323
         float timeSpawned;
 
         bool decayHealth = true;
-        float decayMultiplier = 1f;
+        public float decayMultiplier = 1f;
         bool growlPlayed = false;
 
         Vector3 targetPlayerLastSeenPos;
@@ -59,10 +60,8 @@ namespace HeavyItemSCPs.Items.SCP323
 
         // Constants
         const string maskedName = "MaskedPlayerEnemy";
-        const float roamSpeed = 5f;
-        const float chaseSpeed = 10f;
         const float huntingRange = 50f;
-        const float damage = 35f;
+        const int minHPToDoMaxDamage = 5;
 
         // Config Values
         float playerBloodSenseRange;
@@ -73,6 +72,17 @@ namespace HeavyItemSCPs.Items.SCP323
         float doorBashAOERange;
         bool despawnDoorAfterBash;
         float despawnDoorAfterBashTime;
+
+        int maxHP = 20;
+        int maxDamage = 50;
+        int minDamage = 10;
+        bool reverseDamage = true;
+        float chaseMaxSpeed = 9f;
+        float roamMaxSpeed = 5f;
+        float roamMinSpeed = 3f;
+        float timeToLosePlayer = 7f;
+        float searchAfterLosePlayerTime = 20f;
+
 
         public enum State
         {
@@ -145,6 +155,15 @@ namespace HeavyItemSCPs.Items.SCP323
             doorBashAOERange = config3231DoorBashAOERange.Value;
             despawnDoorAfterBash = config3231DespawnDoorAfterBash.Value;
             despawnDoorAfterBashTime = config3231DespawnDoorAfterBashTime.Value;
+            maxHP = config3231MaxHP.Value;
+            maxDamage = config3231MaxDamage.Value;
+            minDamage = config3231MinDamage.Value;
+            reverseDamage = config3231ReverseDamage.Value;
+            chaseMaxSpeed = config3231ChaseMaxSpeed.Value;
+            roamMaxSpeed = config3231RoamMaxSpeed.Value;
+            roamMinSpeed = config3231RoamMinSpeed.Value;
+            timeToLosePlayer = config3231TimeToLosePlayer.Value;
+            searchAfterLosePlayerTime = config3231SearchAfterLosePlayerTime.Value;
 
             RoundManager.Instance.SpawnedEnemies.Add(this);
             SetOutsideOrInside();
@@ -153,7 +172,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
             timeSinceSeenPlayer = Mathf.Infinity;
 
-            // TODO: Do black smoke here
             if (IsServerOrHost) { StartCoroutine(DelayedStart()); }
         }
 
@@ -268,13 +286,10 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     if (targetPlayer != null && !targetPlayer.isPlayerDead)
                     {
-                        if (CheckLineOfSightForPosition(targetPlayer.transform.position))
+                        if (CheckLineOfSightForPosition(targetPlayer.transform.position, 70f, 60, 10))
                         {
-                            if (currentSearch != null)
-                            {
-                                StopSearch(currentSearch);
-                                currentSearch = null;
-                            }
+                            StopSearch(currentSearch);
+
                             if (timeSinceSeenPlayer > 1.5f)
                             {
                                 int randNum = UnityEngine.Random.Range(0, 2);
@@ -284,7 +299,7 @@ namespace HeavyItemSCPs.Items.SCP323
                             timeSinceSeenPlayer = 0f;
                             targetPlayerLastSeenPos = targetPlayer.transform.position;
                         }
-                        if (timeSinceSeenPlayer < 5f || Vector3.Distance(targetPlayer.transform.position, transform.position) > huntingRange)
+                        if (timeSinceSeenPlayer < timeToLosePlayer || Vector3.Distance(targetPlayer.transform.position, transform.position) > huntingRange)
                         {
                             SetMovingTowardsTargetPlayer(targetPlayer);
                             return;
@@ -292,7 +307,7 @@ namespace HeavyItemSCPs.Items.SCP323
                         else
                         {
                             if (currentSearch == null) { StartSearch(targetPlayerLastSeenPos); }
-                            if (timeSinceSeenPlayer < 25f)
+                            if (timeSinceSeenPlayer < searchAfterLosePlayerTime)
                             {
                                 return;
                             }
@@ -315,7 +330,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     if (targetPlayerCorpse != null && targetPlayerCorpse.grabBodyObject != null && !targetPlayerCorpse.grabBodyObject.isHeld && !targetPlayerCorpse.isInShip)
                     {
-                        if (!inSpecialAnimation && Vector3.Distance(targetPlayerCorpse.grabBodyObject.transform.position, transform.position) <= 3f)
+                        if (!inSpecialAnimation && Vector3.Distance(targetPlayerCorpse.grabBodyObject.transform.position, transform.position) <= 1f)
                         {
                             inSpecialAnimation = true;
                             logger.LogDebug($"Eating player corpse of player {targetPlayerCorpse.playerScript.playerUsername} with client id {targetPlayerCorpse.playerScript.actualClientId}");
@@ -329,7 +344,7 @@ namespace HeavyItemSCPs.Items.SCP323
                     }
                     else if (targetEnemyCorpse != null && targetEnemyCorpse.isEnemyDead)
                     {
-                        if (!inSpecialAnimation && Vector3.Distance(targetEnemyCorpse.transform.position, transform.position) <= 3f)
+                        if (!inSpecialAnimation && Vector3.Distance(targetEnemyCorpse.transform.position, transform.position) <= 1f)
                         {
                             inSpecialAnimation = true;
                             EatMaskedBodyClientRpc();
@@ -351,7 +366,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         void CalculateAgentSpeed()
         {
-            decayMultiplier = enemyHP / 20f;
+            decayMultiplier = (float)enemyHP / (float)maxHP;
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead || stunNormalizedTimer > 0f || inSpecialAnimation || inSpecialAnimationWithPlayer != null)
             {
@@ -359,16 +374,16 @@ namespace HeavyItemSCPs.Items.SCP323
                 return;
             }
 
-            if ((currentBehaviourStateIndex == (int)State.Roaming) || decayMultiplier < 0.6f)
+            if (currentBehaviourStateIndex == (int)State.Roaming || decayMultiplier < 0.5f)
             {
-                float newSpeed = roamSpeed * decayMultiplier;
-                agent.speed = Mathf.Clamp(newSpeed, 3f, roamSpeed);
+                float newSpeed = roamMaxSpeed * decayMultiplier;
+                agent.speed = Mathf.Clamp(newSpeed, roamMinSpeed, roamMaxSpeed);
                 creatureAnimator.SetBool("run", false);
             }
             else
             {
-                float newSpeed = chaseSpeed * decayMultiplier;
-                agent.speed = Mathf.Clamp(newSpeed, roamSpeed, chaseSpeed);
+                float newSpeed = chaseMaxSpeed * decayMultiplier;
+                agent.speed = Mathf.Clamp(newSpeed, roamMaxSpeed, chaseMaxSpeed);
                 creatureAnimator.SetBool("run", true);
             }
         }
@@ -643,9 +658,9 @@ namespace HeavyItemSCPs.Items.SCP323
                 logger.LogDebug("Killed SCP-323-1");
                 CancelSpecialAnimationWithPlayer();
                 StopAllCoroutines();
-                base.KillEnemy(false);
                 creatureVoice.Stop();
                 creatureSFX.Stop();
+                base.KillEnemy(false);
                 SpawnSkullOnHead();
             }
         }
@@ -705,6 +720,26 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
+        public double MapValue(double a0, double a1, double b0, double b1, double a)
+        {
+            return b0 + (b1 - b0) * ((a - a0) / (a1 - a0));
+        }
+
+        int GetPlayerDamage()
+        {
+            if (reverseDamage)
+            {
+                // Calculate damage based on linear interpolation between max and min points
+                //float damage = ((maxDamage - minDamage) / (minHPToDoMaxDamage - maxHP)) * (enemyHP - maxHP) + minDamage; // TODO: Figure this out, isnt doing 50 damage at 5 hp
+                //Vector2.Lerp(minDamage, maxDamage, MapValue(0, maxHP, 0, 1));
+                return (int)Mathf.Clamp(damage, minDamage, maxDamage);  // Ensure damage is within bounds
+            }
+            else
+            {
+                return (int)Mathf.Clamp(maxDamage * decayMultiplier, minDamage, maxDamage);
+            }
+        }
+
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
         {
             base.OnCollideWithPlayer(other);
@@ -714,7 +749,8 @@ namespace HeavyItemSCPs.Items.SCP323
                 if (player != null && !player.isPlayerDead && !inSpecialAnimation && !isEnemyDead)
                 {
                     timeSinceDamage = 0f;
-                    int damageAmount = (int)(damage * decayMultiplier);
+                    int damageAmount = GetPlayerDamage();
+                    logger.LogDebug("Doing " + damageAmount + " damage to player");
                     DoAnimationServerRpc("claw");
                     player.DamagePlayer(damageAmount, true, true, CauseOfDeath.Mauling);
                 }
@@ -824,7 +860,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
             GameObject.Destroy(flyingDoorPrefab);
 
-            Rigidbody rb = flyingDoor.GetComponent<Rigidbody>() ?? flyingDoor.AddComponent<Rigidbody>();
+            Rigidbody rb = flyingDoor.AddComponent<Rigidbody>();
             rb.mass = 1f;
             rb.useGravity = true;
             rb.isKinematic = true;
@@ -847,7 +883,9 @@ namespace HeavyItemSCPs.Items.SCP323
                 flyingDoor.transform.position = flyingDoor.transform.position + flyingDoor.transform.right;
             }
 
-            flyingDoor.GetComponent<DoorPlayerCollisionDetect>().force = direction * doorBashForce * 2f;
+            Vector3 upDirection = transform.TransformDirection(Vector3.up).normalized * 0.1f;
+            Vector3 playerHitDirection = (direction + upDirection).normalized;
+            flyingDoor.GetComponent<DoorPlayerCollisionDetect>().force = playerHitDirection * doorBashForce;
 
             // Release the Rigidbody from kinematic state
             rb.isKinematic = false;
@@ -874,7 +912,7 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 Destroy(flyingDoor, despawnDoorAfterBashTime);
             }
-        }
+        } // TODO: Add explosion damage
 
         /*[Debug  :HeavyItemSCPs] Level1Flow
         [Debug  :HeavyItemSCPs] Level2Flow
@@ -907,7 +945,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
             creatureSFX.Stop();
             creatureAnimator.SetBool("eat", false);
-            enemyHP = 20;
+            enemyHP = maxHP;
             
             logger.LogDebug("Despawning player body...");
             targetPlayerCorpse.DeactivateBody(setActive: false);
@@ -938,7 +976,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
             creatureSFX.Stop();
             creatureAnimator.SetBool("eat", false);
-            enemyHP = 20;
+            enemyHP = maxHP;
 
             if (IsServerOrHost)
             {

@@ -120,6 +120,15 @@ namespace HeavyItemSCPs
         public static ConfigEntry<float> config3231DoorBashAOERange;
         public static ConfigEntry<bool> config3231DespawnDoorAfterBash;
         public static ConfigEntry<float> config3231DespawnDoorAfterBashTime;
+        public static ConfigEntry<int> config3231MaxHP;
+        public static ConfigEntry<int> config3231MaxDamage;
+        public static ConfigEntry<int> config3231MinDamage;
+        public static ConfigEntry<bool> config3231ReverseDamage;
+        public static ConfigEntry<float> config3231ChaseMaxSpeed;
+        public static ConfigEntry<float> config3231RoamMaxSpeed;
+        public static ConfigEntry<float> config3231RoamMinSpeed;
+        public static ConfigEntry<float> config3231TimeToLosePlayer;
+        public static ConfigEntry<float> config3231SearchAfterLosePlayerTime;
 
         public enum DropMethod
         {
@@ -224,6 +233,15 @@ namespace HeavyItemSCPs
             config3231DespawnDoorAfterBash = Config.Bind("SCP-323-1", "Despawn door after bash", true, "Whether the door should despawn after its been bashed.");
             config3231DespawnDoorAfterBashTime = Config.Bind("SCP-323-1", "Despawn door after bash time", 3f, "The time it takes for the door to despawn after being bashed.");
 
+            config3231MaxHP = Config.Bind("SCP-323-1", "Max HP", 20, "The maximum amount of health SCP-323-1 can have.");
+            config3231MaxDamage = Config.Bind("SCP-323-1", "Max damage", 50, "The maximum amount of damage SCP-323-1 can deal.");
+            config3231MinDamage = Config.Bind("SCP-323-1", "Min damage", 10, "The minimum amount of damage SCP-323-1 can deal.");
+            config3231ReverseDamage = Config.Bind("SCP-323-1", "Reverse damage", true, "When false, SCP-323-1 will do more damage the more health it has. When true, it will do more damage the less health it has.");
+            config3231ChaseMaxSpeed = Config.Bind("SCP-323-1", "Chase max speed", 9f, "The maximum speed at which SCP-323-1 will chase the player based on health.");
+            config3231RoamMaxSpeed = Config.Bind("SCP-323-1", "Roam max speed", 5f, "The maximum speed at which SCP-323-1 will roam based on health. This is also the min speed SCP-323-1 will roam at.");
+            config3231RoamMinSpeed = Config.Bind("SCP-323-1", "Roam min speed", 3f, "The minimum speed at which SCP-323-1 will roam based on health.");
+            config3231TimeToLosePlayer = Config.Bind("SCP-323-1", "Time to lose player", 5f, "The time the player needs to be out of LOS to lose SCP-323-1.");
+            config3231SearchAfterLosePlayerTime = Config.Bind("SCP-323-1", "Search after lose player time", 25f, "The time it takes for SCP-323-1 to search after losing the player.");
 
             // Loading Assets
             string sAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);

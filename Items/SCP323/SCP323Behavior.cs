@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HarmonyLib;
 using LethalLib.Modules;
 using System;
 using System.Collections;
@@ -383,7 +384,6 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             get
             {
-                if (playerHeldBy != null) { return ThreatType.Player; }
                 return ThreatType.Item;
             }
         }
@@ -395,7 +395,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         int IVisibleThreat.GetInterestLevel()
         {
-            return 0;
+            return 1;
         }
 
         int IVisibleThreat.GetThreatLevel(Vector3 seenByPosition)
@@ -492,7 +492,56 @@ namespace HeavyItemSCPs.Items.SCP323
             transform.localScale = new Vector3(size, size, size);
         }
     }
-}
 
-// TODO:
-// When scp3231 dies, spawn scp323 on the head of the dead wendigo
+    [HarmonyPatch]
+    internal class SCP323Patches
+    {
+        private static ManualLogSource logger = LoggerInstance;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(BaboonBirdAI), nameof(BaboonBirdAI.SetAggressiveMode))]
+        public static void SetAggressiveModePrefix(BaboonBirdAI __instance, ref int mode)
+        {
+            try
+            {
+                if (SCP323Behavior.Instance != null && SCP323Behavior.Instance.playerHeldBy != null && __instance.focusedThreat != null)
+                {
+                    if (__instance.focusedThreat.type == ThreatType.Player)
+                    {
+                        if (__instance.focusedThreat.threatScript == null) { return; }
+                        if (__instance.focusedThreat.threatScript.GetThreatTransform() == null) { return; }
+                        if (__instance.focusedThreat.threatScript.GetThreatTransform() == SCP323Behavior.Instance.playerHeldBy.transform)
+                        {
+                            mode = 1;
+                        }
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e);
+                return;
+            }
+        }
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(EnemyAI), nameof(EnemyAI.SetMovingTowardsTargetPlayer))]
+        public static bool SetMovingTowardsTargetPlayerPrefix(EnemyAI __instance, PlayerControllerB playerScript)
+        {
+            try
+            {
+                if (__instance is not MaskedPlayerEnemy) { return true; }
+                if (SCP323Behavior.Instance != null && SCP323Behavior.Instance.playerHeldBy != null && playerScript == SCP323Behavior.Instance.playerHeldBy)
+                {
+                    return false;
+                }
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e);
+                return true;
+            }
+            return true;
+        }
+    }
+}

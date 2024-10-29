@@ -33,8 +33,22 @@ namespace HeavyItemSCPs.Items.SCP323
                 PlayerControllerB player = other.GetComponent<PlayerControllerB>();
                 logger.LogDebug("Door hit player " + player.playerUsername);
                 player.DamagePlayer(damage, true, true, CauseOfDeath.Inertia, 0, false, force);
+                StartCoroutine(AddForceToPlayer(player));
                 hitPlayer = true;
             }
+        }
+
+        IEnumerator AddForceToPlayer(PlayerControllerB player)
+        {
+            Rigidbody rb = player.playerRigidbody;
+            rb.isKinematic = false;
+            rb.velocity = Vector3.zero;
+            player.externalForceAutoFade += force;
+
+            yield return new WaitForSeconds(0.5f);
+            yield return new WaitUntil(() => player.thisController.isGrounded || player.isInHangarShipRoom);
+
+            rb.isKinematic = true;
         }
 
         private IEnumerator DisableAfterDelay()

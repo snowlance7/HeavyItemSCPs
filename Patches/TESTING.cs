@@ -34,6 +34,12 @@ namespace HeavyItemSCPs.Patches
         public static void PingScan_performedPostFix()
         {
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
+            if (SCP323_1AI.Instance != null)
+            {
+                logger.LogDebug("Speed: " + SCP323_1AI.Instance.agent.speed);
+                logger.LogDebug("HP: " + SCP323_1AI.Instance.enemyHP);
+                logger.LogDebug("Decay: " + SCP323_1AI.Instance.decayMultiplier);
+            }
             //localPlayer.drunkness = drunkness;
             //BashDoor();
 
