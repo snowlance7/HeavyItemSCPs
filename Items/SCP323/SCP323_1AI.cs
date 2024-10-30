@@ -731,7 +731,7 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 // Calculate damage based on linear interpolation between max and min points
                 //float damage = ((maxDamage - minDamage) / (minHPToDoMaxDamage - maxHP)) * (enemyHP - maxHP) + minDamage; // TODO: Figure this out, isnt doing 50 damage at 5 hp
-                //Vector2.Lerp(minDamage, maxDamage, MapValue(0, maxHP, 0, 1));
+                float damage = (float)MapValue(minHPToDoMaxDamage, maxHP, maxDamage, minDamage, enemyHP);
                 return (int)Mathf.Clamp(damage, minDamage, maxDamage);  // Ensure damage is within bounds
             }
             else

@@ -83,6 +83,8 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public override void Update() // TODO: They arent using angryidle when being stared at and animations are being weird
         {
+            base.Update();
+
             timeSincePlayersCheck += Time.deltaTime;
 
             if (timeSincePlayersCheck > 1f)
@@ -94,8 +96,6 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 return;
             };
-
-            base.Update();
 
             timeSinceDamagePlayer += Time.deltaTime;
             timeSinceEmoteUsed += Time.deltaTime;
@@ -109,11 +109,11 @@ namespace HeavyItemSCPs.Items.SCP178
                 {
                     turnCompass.LookAt(lastObservingPlayer.gameplayCamera.transform.position);
                     transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
-                    lastObservingPlayer.IncreaseFearLevelOverTime(2f); // TODO: Test
                 }
 
                 if (observingPlayer != null)
                 {
+                    observingPlayer.IncreaseFearLevelOverTime(0.01f);
                     observationTimer += Time.deltaTime;
                     postObservationTimer = 0f;
                 }
@@ -148,9 +148,11 @@ namespace HeavyItemSCPs.Items.SCP178
 
                     if (CheckForPlayersLookingAtMe())
                     {
+                        logger.LogDebug("Switching to observing");
                         SwitchToBehaviourClientRpc((int)State.Observing);
                         StopCoroutine(wanderingRoutine);
                         wanderingRoutine = null!;
+                        networkAnimator.SetTrigger("passiveIdle");
                         break;
                     }
                     if (wanderingRoutine == null)
@@ -209,6 +211,7 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             foreach (var player in StartOfRound.Instance.allPlayerScripts)
             {
+                if (player.isPlayerDead || !player.isPlayerControlled) { continue; }
                 if (Vector3.Distance(transform.position, player.transform.position) < distance) { return true; }
             }
 
@@ -241,34 +244,64 @@ namespace HeavyItemSCPs.Items.SCP178
             return targetPlayer != null;
         }
 
+        bool PlayerHasLineOfSightToMe(PlayerControllerB player)
+        {
+            //logger.LogDebug("Checking los");
+            if (Physics.Raycast(player.playerEye.transform.position, player.playerEye.transform.forward, out RaycastHit hit, distanceToAddAnger, LayerMask.GetMask("Enemies")))
+            {
+                //logger.LogDebug(hit.collider.gameObject.transform.parent.gameObject.name);
+                if (hit.collider.gameObject.transform.parent.gameObject == gameObject)
+                {
+                    Debug.DrawRay(player.playerEye.transform.position, spawnPosition - player.playerEye.transform.position, Color.red, 1f);
+                    //logger.LogDebug("Player has line of sight to me");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public bool CheckForPlayersLookingAtMe()
         {
-            observingPlayer = null!;
+            PlayerControllerB? _observingPlayer = null;
             float distance = -1f;
-            foreach (var player in StartOfRound.Instance.allPlayerScripts.Where(x => x.isPlayerControlled))
+            foreach (var player in StartOfRound.Instance.allPlayerScripts)
             {
-                if (player.HasLineOfSightToPosition(transform.position, 20f, (int)wanderingRadius * 2)) // TODO: Test this
+                if (!PlayerIsTargetable(player, false, true)) { continue; }
+                float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
+                if (distanceToPlayer <= distanceToAddAnger)
                 {
                     if (distance == -1f || distance > Vector3.Distance(transform.position, player.transform.position))
                     {
-                        distance = Vector3.Distance(transform.position, player.transform.position);
-                        observingPlayer = player;
-                        lastObservingPlayer = player;
+                        if (PlayerHasLineOfSightToMe(player)) // TODO: Test this
+                        {
+                            distance = Vector3.Distance(transform.position, player.transform.position);
+                            _observingPlayer = player;
+                        }
                     }
                 }
             }
+
+            if (_observingPlayer != null)
+            {
+                lastObservingPlayer = _observingPlayer;
+                //logger.LogDebug(_observingPlayer + " is the observing player");
+            }
+
+            observingPlayer = _observingPlayer!;
             return observingPlayer != null;
         }
 
         public IEnumerator WanderingCoroutine() // TODO: Test this
         {
-            while (true)
+            yield return null;
+            while (wanderingRoutine != null)
             {
                 networkAnimator.SetTrigger("walk");
-                destination = RoundManager.Instance.GetRandomNavMeshPositionInRadius(spawnPosition, wanderingRadius);
+                destination = RoundManager.Instance.GetRandomNavMeshPositionInRadius(spawnPosition, wanderingRadius, RoundManager.Instance.navHit);
                 SetDestinationToPosition(destination);
                 yield return new WaitForSecondsRealtime(1f);
-                yield return new WaitUntil(() => agent.remainingDistance <= agent.stoppingDistance + 0.1f && agent.velocity.sqrMagnitude < 0.01f);
+                yield return new WaitUntil(() => Vector3.Distance(transform.position, destination) < 1f);
                 networkAnimator.SetTrigger("passiveIdle");
 
                 yield return new WaitForSecondsRealtime(wanderWaitTime / 2f);
@@ -320,7 +353,9 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public bool IsNearbySCP178(PlayerControllerB player)
         {
-            return FindObjectsOfType<SCP178Behavior>().Any(x => Vector3.Distance(player.transform.position, x.transform.position) < distanceToAddAnger);
+            //return FindObjectsOfType<SCP178Behavior>().Any(x => Vector3.Distance(player.transform.position, x.transform.position) < distanceToAddAnger);
+            if (SCP178Behavior.Instance == null) { return false; }
+            return Vector3.Distance(player.transform.position, SCP178Behavior.Instance.transform.position) < distanceToAddAnger;
         }
 
         public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet)

@@ -24,7 +24,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Patches
 {
-    [HarmonyPatch]
+    //[HarmonyPatch]
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;

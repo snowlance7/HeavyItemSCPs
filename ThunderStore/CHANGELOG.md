@@ -1,6 +1,8 @@
 ## 1.3.0
 - Added SCP-323
 - Added fear for SCP-178 while staring at SCP-178-1 instances
+- Fixed spawning issues with SCP-178-1
+- Better line of sight detection for SCP-178-1
 
 ## 1.2.1
 - Players now drop all held items they were carrying when being picked up by SCP-427-1 (including the Cave Dweller baby) (configurable)

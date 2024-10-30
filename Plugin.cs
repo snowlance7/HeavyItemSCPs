@@ -193,15 +193,15 @@ namespace HeavyItemSCPs
             config178ColorTint = Config.Bind("SCP-178 3D Effects", "Color Tint", "500,0,500", "Changes the RGB color tint effect of the 3D glasses.");
 
             // SCP-1781
-            config1781MaxCountOutside = Config.Bind("SCP-1781", "Max count outside", 25, "The maximum number of SCP-178-1 instances that can be spawned outside. -1 spawns on all ai nodes.");
-            config1781MaxCountInside = Config.Bind("SCP-1781", "Max count inside", 25, "The maximum number of SCP-178-1 instances that can be spawned inside. -1 spawns on all ai nodes.");
+            config1781MaxCountOutside = Config.Bind("SCP-1781", "Max count outside", 50, "The maximum number of SCP-178-1 instances that can be spawned outside. -1 spawns on all ai nodes.");
+            config1781MaxCountInside = Config.Bind("SCP-1781", "Max count inside", 50, "The maximum number of SCP-178-1 instances that can be spawned inside. -1 spawns on all ai nodes.");
             config1781RenderDistance = Config.Bind("SCP-1781", "Render distance", 30f, "The distance at which SCP-178-1 instances will run their AI. Any instances outside this distance will be disabled, still showing the model but not moving around. Lower values can help with performance. -1 disables this feature.");
             config1781DespawnTime = Config.Bind("SCP-1781", "Despawn time", 30f, "The time it takes for SCP-178-1 instances to despawn when not wearing the glasses.");
-            config1781PostObservationTime = Config.Bind("SCP-1781", "Post observation time", 3f, "The time it takes for SCP-178-1 instances to return to their roaming phase after being stared at.");
-            config1781WanderingRadius = Config.Bind("SCP-1781", "Wandering radius", 10f, "The radius around SCP-178-1 spawn position that they will roam around in.");
+            config1781PostObservationTime = Config.Bind("SCP-1781", "Post observation time", 5f, "The time it takes for SCP-178-1 instances to return to their roaming phase after being stared at.");
+            config1781WanderingRadius = Config.Bind("SCP-1781", "Wandering radius", 5f, "The radius around SCP-178-1 spawn position that they will roam around in.");
             config1781WanderingWaitTime = Config.Bind("SCP-1781", "Wandering wait time", 5f, "When spawned, SCP-178-1 will pick a random position in their wandering radius and walk to it. This determines how long they will wait until picking another position to walk to.");
             config1781DistanceToAddAnger = Config.Bind("SCP-1781", "Distance to add anger", 10f, "The distance you need to be from SCP-178-1 to increase their anger meter when looking at them.");
-            config1781ObservationGracePeriod = Config.Bind("SCP-1781", "Observation grace period", 5f, "The time it takes for SCP-178-1 instances to start looking at you after staring at them.");
+            config1781ObservationGracePeriod = Config.Bind("SCP-1781", "Observation grace period", 5f, "The time it takes for SCP-178-1 instances to start getting angry after staring at them.");
 
             // SCP-323
             configEnableSCP323 = Config.Bind("SCP-323", "Enable SCP-323", true, "Whether or not SCP-323 can spawn as scrap.");
