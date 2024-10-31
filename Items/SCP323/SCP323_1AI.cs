@@ -720,7 +720,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        public double MapValue(double a0, double a1, double b0, double b1, double a)
+        public double MapValue(double a0, double a1, double b0, double b1, double a) // TODO: Thank Hamunii for this function
         {
             return b0 + (b1 - b0) * ((a - a0) / (a1 - a0));
         }
@@ -991,12 +991,24 @@ namespace HeavyItemSCPs.Items.SCP323
         public void PlayerDamaged(PlayerControllerB player)
         {
             if (targetPlayer != null && targetPlayer == player) { return; }
-            if (targetPlayer == null || (targetPlayer.health > player.health))
+            if (targetPlayer == null || (targetPlayer.health > player.health) || player.bleedingHeavily)
             {
-                if (Vector3.Distance(player.transform.position, transform.position) <= playerBloodSenseRange && !inSpecialAnimation)
+                if (!inSpecialAnimation)
                 {
-                    targetPlayer = player;
-                    SwitchToBehaviourStateCustom((int)State.BloodSearch);
+                    if (player.bleedingHeavily)
+                    {
+                        if ((player.isInsideFactory && !isOutside) || (!player.isInsideFactory && isOutside))
+                        {
+                            targetPlayer = player;
+                            SwitchToBehaviourStateCustom((int)State.BloodSearch);
+                            return;
+                        }
+                    }
+                    if (Vector3.Distance(player.transform.position, transform.position) <= playerBloodSenseRange)
+                    {
+                        targetPlayer = player;
+                        SwitchToBehaviourStateCustom((int)State.BloodSearch);
+                    }
                 }
             }
         }
@@ -1020,7 +1032,7 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             return 0;
         }
-        int IVisibleThreat.GetThreatLevel(Vector3 seenByPosition) // TODO: Figure out how this works and fix it
+        int IVisibleThreat.GetThreatLevel(Vector3 seenByPosition)
         {
             return 999999999;
         }
@@ -1174,10 +1186,6 @@ namespace HeavyItemSCPs.Items.SCP323
                 if (__instance.health >= 100)
                 {
                     return;
-                }
-                else
-                {
-                    //dtransf
                 }
                 if (SCP323_1AI.Instance != null)
                 {

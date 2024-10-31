@@ -28,7 +28,7 @@ namespace HeavyItemSCPs
     {
         const string PLUGIN_GUID = "ProjectSCP.HeavyItemSCPs";
         const string PLUGIN_NAME = "HeavyItemSCPs";
-        const string PLUGIN_VERSION = "1.2.1";
+        const string PLUGIN_VERSION = "1.3.0";
 
         public static Plugin PluginInstance;
         public static ManualLogSource LoggerInstance;
@@ -237,7 +237,7 @@ namespace HeavyItemSCPs
             config3231MaxDamage = Config.Bind("SCP-323-1", "Max damage", 50, "The maximum amount of damage SCP-323-1 can deal.");
             config3231MinDamage = Config.Bind("SCP-323-1", "Min damage", 10, "The minimum amount of damage SCP-323-1 can deal.");
             config3231ReverseDamage = Config.Bind("SCP-323-1", "Reverse damage", true, "When false, SCP-323-1 will do more damage the more health it has. When true, it will do more damage the less health it has.");
-            config3231ChaseMaxSpeed = Config.Bind("SCP-323-1", "Chase max speed", 9f, "The maximum speed at which SCP-323-1 will chase the player based on health.");
+            config3231ChaseMaxSpeed = Config.Bind("SCP-323-1", "Chase max speed", 8.5f, "The maximum speed at which SCP-323-1 will chase the player based on health.");
             config3231RoamMaxSpeed = Config.Bind("SCP-323-1", "Roam max speed", 5f, "The maximum speed at which SCP-323-1 will roam based on health. This is also the min speed SCP-323-1 will roam at.");
             config3231RoamMinSpeed = Config.Bind("SCP-323-1", "Roam min speed", 3f, "The minimum speed at which SCP-323-1 will roam based on health.");
             config3231TimeToLosePlayer = Config.Bind("SCP-323-1", "Time to lose player", 5f, "The time the player needs to be out of LOS to lose SCP-323-1.");

@@ -1,3 +1,8 @@
+## 1.3.1
+- Updated README to include SCP-323-1
+- Added bestiaries for SCP-323-1 and SCP-178-1
+- Changed link to SCP Discord page to an invite // TODO
+
 ## 1.3.0
 - Added SCP-323
 - Added fear for SCP-178 while staring at SCP-178-1 instances
