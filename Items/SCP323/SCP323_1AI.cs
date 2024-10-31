@@ -15,13 +15,6 @@ namespace HeavyItemSCPs.Items.SCP323
 {
     internal class SCP323_1AI : EnemyAI, IVisibleThreat
     {
-        // TODO: Make sure he works on the new version
-        // Increase his size
-        // Fix bug where you dont transform if outside?? or in ship??
-        // Stopping for too long on random ai nodes, make my own search coroutine
-        // Not playing roaming sfx correctly
-        // Not playing eating corpse animation correctly
-        // He should not run after killing a player or enemy
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323_1AI? Instance { get; private set; }
 
@@ -632,25 +625,6 @@ namespace HeavyItemSCPs.Items.SCP323
             return closestNode;
         }
 
-        public override void DetectNoise(Vector3 noisePosition, float noiseLoudness, int timesPlayedInOneSpot = 0, int noiseID = 0) // TODO: Set this up
-        {
-            base.DetectNoise(noisePosition, noiseLoudness, timesPlayedInOneSpot, noiseID);
-            if (currentBehaviourStateIndex == (int)State.Roaming)
-            {
-                if (Vector3.Distance(transform.position, noisePosition) < huntingRange / 2f)
-                {
-                    GameObject closestNode = RoundManager.Instance.GetClosestNode(noisePosition, isOutside).gameObject;
-                    if (closestNode != null)
-                    {
-                        if (SetDestinationToPosition(closestNode.transform.position, true))
-                        {
-                            targetNode = closestNode.transform;
-                        }
-                    }
-                }
-            }
-        }
-
         public override void KillEnemy(bool destroy = false)
         {
             if (!inSpecialAnimation && currentBehaviourStateIndex != (int)State.Eating)
@@ -690,10 +664,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 enemyHP -= force;
                 if (enemyHP <= 0)
                 {
-                    if (IsOwner)
-                    {
-                        KillEnemyOnOwnerClient();
-                    }
+                    KillEnemyOnOwnerClient();
                     return;
                 }
 
@@ -705,6 +676,23 @@ namespace HeavyItemSCPs.Items.SCP323
                 {
                     TargetNearestEnemyIfInRange();
                 }
+            }
+        }
+
+        public override void HitFromExplosion(float distance)
+        {
+            base.HitFromExplosion(distance);
+            if (distance < 2)
+            {
+                HitEnemy(20);
+            }
+            else if (distance < 3)
+            {
+                HitEnemy(15);
+            }
+            else if (distance < 5)
+            {
+                HitEnemy(19);
             }
         }
 

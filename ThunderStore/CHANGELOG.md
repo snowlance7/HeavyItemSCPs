@@ -2,6 +2,7 @@
 - Updated README to include SCP-323-1
 - Added bestiaries for SCP-323-1 and SCP-178-1
 - Changed link to SCP Discord page to an invite // TODO
+- SCP-323-1 now takes damage from explosions
 
 ## 1.3.0
 - Added SCP-323

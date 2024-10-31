@@ -10,7 +10,6 @@ using UnityEngine.Rendering;
 using static HeavyItemSCPs.Plugin;
 using BepInEx;
 using System.Linq;
-using UnityEngine.ProBuilder;
 using HarmonyLib;
 
 // lens distortion -0.35
@@ -45,6 +44,9 @@ namespace HeavyItemSCPs.Items.SCP178
         public Material highlightMaterial;
         public GameObject lungObject;
         public Material lungMaterial;
+
+        public Dictionary<GameObject, Material> highlightedScrap;
+        float timeSinceIntervalUpdate = 0f;
 
         private void Awake()
         {
@@ -125,7 +127,48 @@ namespace HeavyItemSCPs.Items.SCP178
                 glasses_volume.weight = glasses_timer / glasses_response_time;
             }
 
-            
+            timeSinceIntervalUpdate += Time.deltaTime;
+
+            if (timeSinceIntervalUpdate >= 0.2f)
+            {
+                timeSinceIntervalUpdate = 0f;
+                DoIntervalUpdate();
+            }
+        }
+
+        void DoIntervalUpdate()
+        {
+            if (wearingGlasses)
+            {
+                HighlightScrap();
+            }
+        }
+
+        void HighlightScrap()
+        {
+            List<GameObject> scrapList = new List<GameObject>();
+
+            RaycastHit[] hits = Physics.RaycastAll(localPlayer.playerEye.transform.position, localPlayer.playerEye.transform.forward, 50f, LayerMask.GetMask("Props"));
+
+            foreach (RaycastHit hit in hits)
+            {
+                GameObject prop = hit.collider.gameObject;
+                if (prop != null && prop.TryGetComponent<GrabbableObject>(out GrabbableObject grabbableObject))
+                {
+                    if (grabbableObject.itemProperties.isScrap)
+                    {
+                        scrapList.Add(prop);
+                    }
+                }
+            }
+
+            foreach (GameObject scrap in highlightedScrap.Keys.ToList())
+            {
+                if (scrapList.Contains(scrap))
+                {
+                    // TODO: Continue here
+                }
+            }
         }
 
         public void Enable3DVision(bool enable)
@@ -152,6 +195,11 @@ namespace HeavyItemSCPs.Items.SCP178
                     if (lungObject != null)
                     {
                         lungObject.GetComponentInChildren<MeshRenderer>().material = lungMaterial;
+                    }
+
+                    if (highlightedScrap != null)
+                    {
+                        //highlightedScrap.GetComponentInChildren<MeshRenderer>().material = hightlightedScrapMaterial;
                     }
                 }
             }
