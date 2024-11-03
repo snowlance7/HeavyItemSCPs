@@ -45,7 +45,7 @@ namespace HeavyItemSCPs.Items.SCP178
         public GameObject lungObject;
         public Material lungMaterial;
 
-        public Dictionary<GameObject, Material> highlightedScrap;
+        public Dictionary<GameObject, Material> highlightedScrap = new Dictionary<GameObject, Material>();
         float timeSinceIntervalUpdate = 0f;
 
         private void Awake()
@@ -127,12 +127,15 @@ namespace HeavyItemSCPs.Items.SCP178
                 glasses_volume.weight = glasses_timer / glasses_response_time;
             }
 
-            timeSinceIntervalUpdate += Time.deltaTime;
-
-            if (timeSinceIntervalUpdate >= 0.2f)
+            if (config178SeeScrapThroughWalls.Value)
             {
-                timeSinceIntervalUpdate = 0f;
-                DoIntervalUpdate();
+                timeSinceIntervalUpdate += Time.deltaTime;
+
+                if (timeSinceIntervalUpdate >= 0.2f)
+                {
+                    timeSinceIntervalUpdate = 0f;
+                    DoIntervalUpdate();
+                }
             }
         }
 
@@ -144,11 +147,11 @@ namespace HeavyItemSCPs.Items.SCP178
             }
         }
 
-        void HighlightScrap()
+        void HighlightScrap() // TODO: Test this
         {
             List<GameObject> scrapList = new List<GameObject>();
 
-            RaycastHit[] hits = Physics.RaycastAll(localPlayer.playerEye.transform.position, localPlayer.playerEye.transform.forward, 50f, LayerMask.GetMask("Props"));
+            RaycastHit[] hits = Physics.RaycastAll(localPlayer.playerEye.transform.position, localPlayer.playerEye.transform.forward, config178SeeScrapRange.Value, LayerMask.GetMask("Props"));
 
             foreach (RaycastHit hit in hits)
             {
@@ -164,9 +167,30 @@ namespace HeavyItemSCPs.Items.SCP178
 
             foreach (GameObject scrap in highlightedScrap.Keys.ToList())
             {
-                if (scrapList.Contains(scrap))
+                if (!scrapList.Contains(scrap))
                 {
-                    // TODO: Continue here
+                    if (scrap != null)
+                    {
+                        MeshRenderer renderer = scrap.GetComponentInChildren<MeshRenderer>();
+                        if (renderer != null)
+                        {
+                            renderer.material = highlightedScrap[scrap];
+                        }
+                    }
+                    highlightedScrap.Remove(scrap);
+                }
+            }
+
+            foreach (GameObject scrap in scrapList)
+            {
+                if (!highlightedScrap.ContainsKey(scrap) && scrap != null)
+                {
+                    MeshRenderer renderer = scrap.GetComponentInChildren<MeshRenderer>();
+                    if (renderer != null)
+                    {
+                        highlightedScrap.Add(scrap, renderer.material);
+                        renderer.material = highlightMaterial;
+                    }
                 }
             }
         }
@@ -180,7 +204,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 {
                     normal_filter.SetActive(value: false);
 
-                    LungProp lung = FindObjectsOfType<LungProp>().Where(x => x.isLungDocked).FirstOrDefault(); // TODO: Test this IT WORKSSSSSSS
+                    LungProp lung = FindObjectsOfType<LungProp>().Where(x => x.isLungDocked).FirstOrDefault();
                     if (lung != null)
                     {
                         lungObject = lung.gameObject;
@@ -197,9 +221,20 @@ namespace HeavyItemSCPs.Items.SCP178
                         lungObject.GetComponentInChildren<MeshRenderer>().material = lungMaterial;
                     }
 
-                    if (highlightedScrap != null)
+                    if (highlightedScrap != null && highlightedScrap.Count > 0)
                     {
-                        //highlightedScrap.GetComponentInChildren<MeshRenderer>().material = hightlightedScrapMaterial;
+                        foreach (GameObject scrap in highlightedScrap.Keys.ToList())
+                        {
+                            if (scrap != null)
+                            {
+                                MeshRenderer renderer = scrap.GetComponentInChildren<MeshRenderer>();
+                                if (renderer != null)
+                                {
+                                    renderer.material = highlightedScrap[scrap];
+                                }
+                            }
+                        }
+                        highlightedScrap.Clear();
                     }
                 }
             }

@@ -1,8 +1,14 @@
 ## 1.3.1
 - Updated README to include SCP-323-1
 - Added bestiaries for SCP-323-1 and SCP-178-1
-- Changed link to SCP Discord page to an invite // TODO
-- SCP-323-1 now takes damage from explosions
+- Changed link to SCP Discord page to an invite
+- SCP-323-1 takes damage from explosions
+- Fixed bug with SCP-323 not transforming client players and causing bugs
+- SCP-178 can allow you to see scrap through walls if you are looking directly at it
+- SCP-178-1 will only open doors when chasing
+- SCP-178-1 will return to its spawn position if chasing the player too far
+- Added percentage based spawning amount for SCP-178-1
+- SCP-178-1 will only add anger when colliding with a player if they were being observed first
 
 ## 1.3.0
 - Added SCP-323

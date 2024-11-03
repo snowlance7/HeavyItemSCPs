@@ -38,28 +38,58 @@ namespace HeavyItemSCPs.Items.SCP178
             if (scpEnemy == null) { logger.LogError("Error: Couldnt get SCP-178-1 from enemies list"); return; }
             GameObject enemyPrefab = scpEnemy.enemyType.enemyPrefab;
 
+
+            int maxCountOutside = GetMaxCount(true);
             int count = 0;
             foreach (var node in RoundManager.Instance.outsideAINodes)
             {
-                if (count >= config1781MaxCountOutside.Value && config1781MaxCountOutside.Value != -1) { break; }
+                if (count >= maxCountOutside && maxCountOutside != -1) { break; }
                 GameObject spawnableEnemy = Instantiate(enemyPrefab, node.transform.position, Quaternion.identity);
                 spawnableEnemy.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
+                RoundManager.Instance.SpawnedEnemies.Add(spawnableEnemy.GetComponent<SCP1781AI>());
                 SCP1781Instances.Add(spawnableEnemy);
+                spawnableEnemy.GetComponent<SCP1781AI>().SetEnemyOutsideClientRpc(true);
                 count++;
             }
 
+            int maxCountInside = GetMaxCount(false);
             count = 0;
             foreach (var node in RoundManager.Instance.insideAINodes)
             {
-                if (count >= config1781MaxCountInside.Value && config1781MaxCountInside.Value != -1) { break; }
+                if (count >= maxCountInside && maxCountInside != -1) { break; }
                 GameObject spawnableEnemy = Instantiate(enemyPrefab, node.transform.position, Quaternion.identity);
                 spawnableEnemy.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
                 SCP1781Instances.Add(spawnableEnemy);
                 count++;
             }
 
-            RoundManager.Instance.RefreshEnemiesList();
             logger.LogDebug($"Spawned {SCP1781Instances.Count} SCP-178-1 instances");
+        }
+
+        public int GetMaxCount(bool outside)
+        {
+            if (outside)
+            {
+                if (config1781UsePercentageBasedCount.Value && config1781MaxPercentCountOutside.Value < 1 && config1781MaxPercentCountOutside.Value > 0)
+                {
+                    return (int)(RoundManager.Instance.outsideAINodes.Length * config1781MaxPercentCountOutside.Value);
+                }
+                else
+                {
+                    return config1781MaxCountOutside.Value;
+                }
+            }
+            else
+            {
+                if (config1781UsePercentageBasedCount.Value && config1781MaxPercentCountInside.Value < 1 && config1781MaxPercentCountInside.Value > 0)
+                {
+                    return (int)(RoundManager.Instance.insideAINodes.Length * config1781MaxPercentCountInside.Value);
+                }
+                else
+                {
+                    return config1781MaxCountInside.Value;
+                }
+            }
         }
 
         public void Update()
@@ -70,7 +100,7 @@ namespace HeavyItemSCPs.Items.SCP178
             }
             else
             {
-                logger.LogDebug("Despawning in " + despawnTimer);
+                //logger.LogDebug("Despawning in " + despawnTimer);
                 despawnTimer -= Time.deltaTime;
                 if (despawnTimer <= 0)
                 {

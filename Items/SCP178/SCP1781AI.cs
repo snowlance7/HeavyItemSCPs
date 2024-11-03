@@ -76,7 +76,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             spawnPosition = transform.position;
 
-            SetOutsideOrInside();
+            //SetOutsideOrInside();
 
             logger.LogDebug("SCP-178-1 Spawned");
         }
@@ -133,7 +133,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 return;
             };
 
-            if (currentBehaviourStateIndex != (int)State.Chasing && TargetPlayerIfClose())
+            if (currentBehaviourStateIndex != (int)State.Chasing && TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
             {
                 SwitchToBehaviourClientRpc((int)State.Chasing);
                 networkAnimator.SetTrigger("run");
@@ -145,6 +145,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 case (int)State.Roaming:
                     agent.speed = 2f;
                     agent.stoppingDistance = 0f;
+                    openDoorSpeedMultiplier = 0f;
 
                     if (CheckForPlayersLookingAtMe())
                     {
@@ -164,6 +165,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 case (int)State.Observing:
                     agent.speed = 0f;
                     agent.stoppingDistance = 0f;
+                    openDoorSpeedMultiplier = 0f;
 
                     if (!CheckForPlayersLookingAtMe() && postObservationTimer > stareTime)
                     {
@@ -187,9 +189,10 @@ namespace HeavyItemSCPs.Items.SCP178
 
                 case (int)State.Chasing:
                     agent.speed = 10f;
-                    agent.stoppingDistance = 2.5f; // TODO: Get this right
+                    agent.stoppingDistance = 2.5f;
+                    openDoorSpeedMultiplier = 1f;
 
-                    if (TargetPlayerIfClose())
+                    if (TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
                     {
                         SetMovingTowardsTargetPlayer(targetPlayer);
                     }
@@ -216,6 +219,11 @@ namespace HeavyItemSCPs.Items.SCP178
             }
 
             return false;
+        }
+
+        bool IsWithinWanderingRadius(float multiplier = 1f)
+        {
+            return Vector3.Distance(transform.position, spawnPosition) < wanderingRadius * multiplier;
         }
 
         public bool TargetPlayerIfClose()
@@ -437,11 +445,11 @@ namespace HeavyItemSCPs.Items.SCP178
             base.OnCollideWithPlayer(other);
             PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other, default, true);
 
-            if (player != null)
+            if (player != null && currentBehaviourStateIndex != (int)State.Roaming)
             {
                 //logger.LogDebug("Collided with player " + player.playerUsername);
 
-                if (timeSinceDamagePlayer > 1f)
+                if (timeSinceDamagePlayer > 2f)
                 {
                     timeSinceDamagePlayer = 0f;
                     CollidedWithPlayerServerRpc(player.actualClientId);
@@ -452,7 +460,7 @@ namespace HeavyItemSCPs.Items.SCP178
         // RPC's
 
         [ClientRpc]
-        private void SetEnemyOutsideClientRpc(bool value)
+        public void SetEnemyOutsideClientRpc(bool value)
         {
             SetEnemyOutside(value);
         }

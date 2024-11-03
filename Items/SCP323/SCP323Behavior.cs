@@ -41,7 +41,6 @@ namespace HeavyItemSCPs.Items.SCP323
         float timeSinceInsanityIncrease;
         bool attaching;
         bool skullOn;
-        PlayerControllerB? lastPlayerHeldBy;
         Coroutine? transformingCoroutine;
 
         public SCP323_1AI AttachedToWendigo = null!;
@@ -111,11 +110,6 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.Update();
 
-            if (playerHeldBy != null)
-            {
-                lastPlayerHeldBy = playerHeldBy;
-            }
-
             if (PlayerIsTargetable(localPlayer) && Vector3.Distance(transform.position, localPlayer.transform.position) < distanceToIncreaseInstanity)
             {
                 if (showInsanity) // TODO: Test this
@@ -135,7 +129,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     if (playerHeldBy != null)
                     {
-                        lastPlayerHeldBy = playerHeldBy;
                         if (localPlayer == playerHeldBy)
                         {
                             if (skullOn)
@@ -281,26 +274,26 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        void DoTransformationAnimation()
+        void DoTransformationAnimation(PlayerControllerB player)
         {
             logger.LogDebug("Doing transformation animation.");
             attaching = true;
             ChangeAttachState(AttachState.Transforming);
-            playerHeldBy.playerBodyAnimator.SetBool("HoldMask", true);
+            player.playerBodyAnimator.SetBool("HoldMask", true);
 
             try
             {
-                if (playerHeldBy.currentVoiceChatAudioSource == null)
+                if (player.currentVoiceChatAudioSource == null)
                 {
                     StartOfRound.Instance.RefreshPlayerVoicePlaybackObjects();
                 }
-                if (playerHeldBy.currentVoiceChatAudioSource != null)
+                if (player.currentVoiceChatAudioSource != null)
                 {
-                    playerHeldBy.currentVoiceChatAudioSource.GetComponent<AudioLowPassFilter>().lowpassResonanceQ = 3f;
-                    OccludeAudio component = playerHeldBy.currentVoiceChatAudioSource.GetComponent<OccludeAudio>();
+                    player.currentVoiceChatAudioSource.GetComponent<AudioLowPassFilter>().lowpassResonanceQ = 3f;
+                    OccludeAudio component = player.currentVoiceChatAudioSource.GetComponent<OccludeAudio>();
                     component.overridingLowPass = true;
                     component.lowPassOverride = 300f;
-                    playerHeldBy.voiceMuffledByEnemy = true;
+                    player.voiceMuffledByEnemy = true;
                 }
             }
             catch (Exception arg)
@@ -314,55 +307,55 @@ namespace HeavyItemSCPs.Items.SCP323
                 StopCoroutine(transformingCoroutine);
                 transformingCoroutine = null;
             }
-            transformingCoroutine = StartCoroutine(DoTransformationAnimationCoroutine()); // TODO: Test this
+            transformingCoroutine = StartCoroutine(DoTransformationAnimationCoroutine(player)); // TODO: Test this
         }
 
-        IEnumerator DoTransformationAnimationCoroutine()
+        IEnumerator DoTransformationAnimationCoroutine(PlayerControllerB player)
         {
             yield return new WaitForSecondsRealtime(5f);
 
-            if (lastPlayerHeldBy != null && !lastPlayerHeldBy.isPlayerDead)
+            if (player != null && !player.isPlayerDead)
             {
-                FinishTransformation();
+                FinishTransformation(player);
             }
             else
             {
-                StopTransformation();
+                StopTransformation(player);
             }
         }
 
-        void FinishTransformation() // TODO: Test this
+        void FinishTransformation(PlayerControllerB player) // TODO: Test this
         {
             logger.LogDebug("Finishing transformation.");
-            lastPlayerHeldBy = playerHeldBy;
-            lastPlayerHeldBy.DropAllHeldItemsAndSync();
-            lastPlayerHeldBy.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning); // This despawns the item too?
+            player.DropAllHeldItemsAndSync();
+            player.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning); // This despawns the item too?
             logger.LogDebug("Killed player.");
-            StopTransformation();
+            StopTransformation(player);
 
-            if (lastPlayerHeldBy != null && lastPlayerHeldBy.isPlayerDead)
+            if (IsServerOrHost)
             {
-                if (IsServerOrHost)
+                logger.LogDebug("Spawning SCP-323-1.");
+                SpawnSCP3231(player.transform.position);
+                if (NetworkObject.IsSpawned)
                 {
-                    logger.LogDebug("Spawning SCP-323-1.");
-                    SpawnSCP3231(lastPlayerHeldBy.transform.position);
-                    if (NetworkObject.IsSpawned)
-                    {
-                        Instance = null;
-                        NetworkObject.Despawn(true);
-                    }
+                    Instance = null;
+                    NetworkObject.Despawn(true);
                 }
             }
         }
 
-        void StopTransformation()
+        void StopTransformation(PlayerControllerB player)
         {
             logger.LogDebug("Stopping transformation.");
-            if (lastPlayerHeldBy != null)
+            if (player != null)
             {
-                lastPlayerHeldBy.activatingItem = false;
-                lastPlayerHeldBy.voiceMuffledByEnemy = false;
-                lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", false);
+                player.activatingItem = false;
+                player.voiceMuffledByEnemy = false;
+                player.playerBodyAnimator.SetBool("HoldMask", false);
+            }
+            else
+            {
+                logger.LogError("playerHeldBy is null.");
             }
             ChangeAttachState(AttachState.None);
             attaching = false;
@@ -458,8 +451,7 @@ namespace HeavyItemSCPs.Items.SCP323
         void TransformPlayerClientRpc()
         {
             logger.LogDebug("In SCP323Behavior.TransformPlayerClientRpc");
-            lastPlayerHeldBy = playerHeldBy;
-            DoTransformationAnimation();
+            DoTransformationAnimation(playerHeldBy);
         }
 
         [ServerRpc(RequireOwnership = false)]
