@@ -80,16 +80,12 @@ namespace HeavyItemSCPs.Items.SCP427
         float wallCollisionSFXDebounce;
         float agentSpeedWithNegative;
 
-        bool hasEnteredChaseMode;
-
-        //bool walking;
-        //bool running;
-        //bool roaring;
         bool throwingPlayer;
-        //bool throwingScrap;
         bool grabbingPlayer;
         bool pickingUpScrap;
 
+        float timeSinceDamagePlayer;
+        float timeSinceThrowingPlayer;
         float timeSinceSeenPlayer;
         float idlingTimer;
         float timeSpawned;
@@ -103,6 +99,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         // Config values
         DropMethod dropMethod;
+        int maxHealth;
 
         public enum State
         {
@@ -119,24 +116,48 @@ namespace HeavyItemSCPs.Items.SCP427
             None
         }
 
+        public void SwitchToBehaviourCustom(State state)
+        {
+            switch (state)
+            {
+                case State.Roaming:
+                    DoAnimationClientRpc(walk: true, run: false);
+                    StartSearch(transform.position);
+
+                    break;
+                case State.Chasing:
+                    DoAnimationClientRpc(walk: false, run: true);
+                    StopSearch(currentSearch);
+
+                    break;
+                case State.Throwing:
+                    StopSearch(currentSearch);
+
+                    break;
+                default:
+                    break;
+            }
+
+            SwitchToBehaviourClientRpc((int)state);
+        }
+
         public override void Start()
         {
             base.Start();
             logger.LogDebug("SCP-427-1 Spawned");
 
             dropMethod = config4271DropMethod.Value;
+            maxHealth = config4271MaxHealth.Value;
 
             SetOutsideOrInside();
             //SetEnemyOutsideClientRpc(true);
             //debugEnemyAI = true;
 
-            currentBehaviourStateIndex = (int)State.Roaming;
             RoundManager.Instance.RefreshEnemiesList();
             HoarderBugAI.RefreshGrabbableObjectsInMapList();
 
             timeSinceSeenPlayer = Mathf.Infinity;
-            networkAnimator.SetTrigger("startWalk");
-            StartSearch(transform.position);
+            SwitchToBehaviourCustom(State.Roaming);
 
             logger.LogDebug("Finished spawning SCP-427-1");
         }
@@ -146,6 +167,8 @@ namespace HeavyItemSCPs.Items.SCP427
             base.Update();
 
             timeSpawned += Time.deltaTime;
+            timeSinceThrowingPlayer += Time.deltaTime;
+            timeSinceDamagePlayer += Time.deltaTime;
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
             {
@@ -162,7 +185,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 heldObject.transform.position = RightHandTransform.position + new Vector3(0f, heldObjectVerticalOffset, 0f);
             }
 
-            if (!(NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost)) { return; } // TODO: Test this
+            if (!IsServerOrHost) { return; }
 
             if (currentBehaviourStateIndex == (int)State.Roaming) { timeSinceSeenPlayer += Time.deltaTime; }
 
@@ -172,7 +195,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (idlingTimer <= 0f && currentBehaviourStateIndex == (int)State.Roaming)
                 {
-                    networkAnimator.SetTrigger("startWalk");
+                    DoAnimationClientRpc(walk: true, run: false);
                     idlingTimer = 0f;
                 }
             }
@@ -180,29 +203,26 @@ namespace HeavyItemSCPs.Items.SCP427
             CalculateAgentSpeed();
         }
 
-        public override void DoAIInterval() // TODO: Player gets stuck in their hand fix it
+        public override void DoAIInterval()
         {
             base.DoAIInterval();
-            //logger.LogDebug("Doing AI Interval");
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
             {
                 return;
             };
 
-            if (stunNormalizedTimer > 0f || timeSpawned < 1f) { return; }
+            if (stunNormalizedTimer > 0f || timeSpawned < 2.5f) { return; }
 
-            //if (debugEnemyAI) { logger.LogDebug("Starting indexed behavior..."); }
             switch (currentBehaviourStateIndex)
             {
                 case (int)State.Roaming:
-                    //agent.speed = 2f;
 
                     if (FoundClosestPlayerInRange(25f, 5f))
                     {
                         if (heldObject != null)
                         {
-                            SwitchToBehaviourClientRpc((int)State.Throwing);
+                            SwitchToBehaviourCustom(State.Throwing);
                             AttemptThrowScrapAtTargetPlayer();
                         }
                         else
@@ -215,8 +235,7 @@ namespace HeavyItemSCPs.Items.SCP427
                             }
                             else
                             {
-                                SwitchToBehaviourClientRpc((int)State.Chasing);
-                                networkAnimator.SetTrigger("startRun");
+                                SwitchToBehaviourCustom(State.Chasing);
                             }
 
                             idlingTimer = 0f;
@@ -235,9 +254,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     {
                         logger.LogDebug("Stop Targeting");
                         targetPlayer = null;
-                        SwitchToBehaviourClientRpc((int)State.Roaming);
-                        StartSearch(transform.position);
-                        networkAnimator.SetTrigger("startWalk");
+                        SwitchToBehaviourCustom(State.Roaming);
                         return;
                     }
 
@@ -432,7 +449,7 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 targetObject = null;
                 StartSearch(transform.position);
-                networkAnimator.SetTrigger("startWalk");
+                DoAnimationClientRpc(walk: true, run: false);
                 return;
             }
 
@@ -462,7 +479,7 @@ namespace HeavyItemSCPs.Items.SCP427
             StartSearch(transform.position);
             pickingUpScrap = false;
             inSpecialAnimation = false;
-            networkAnimator.SetTrigger("startWalk");
+            //networkAnimator.SetTrigger("startWalk");
         }
 
         public void AttemptThrowScrapAtTargetPlayer()
@@ -490,8 +507,7 @@ namespace HeavyItemSCPs.Items.SCP427
             }
             else
             {
-                SwitchToBehaviourClientRpc((int)State.Chasing);
-                networkAnimator.SetTrigger("startRun");
+                SwitchToBehaviourCustom(State.Chasing);
             }
         }
 
@@ -564,6 +580,7 @@ namespace HeavyItemSCPs.Items.SCP427
             logger.LogDebug("Applying force: " + throwDirection * throwForce);
             player.playerRigidbody.velocity = Vector3.zero;
             player.externalForceAutoFade += throwDirection * throwForce;
+            MakePlayerDrop(player);
 
             CancelSpecialAnimationWithPlayer();
 
@@ -604,8 +621,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             targetEnemy = null!;
             inSpecialAnimation = false;
-            creatureAnimator.SetTrigger("startWalk");
-            SwitchToBehaviourStateOnLocalClient((int)State.Roaming);
+            SwitchToBehaviourCustom(State.Roaming);
         }
 
         public IEnumerator InjureLocalPlayerCoroutine()
@@ -651,14 +667,11 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (targetPlayer != null)
             {
-                SwitchToBehaviourClientRpc((int)State.Chasing);
-                networkAnimator.SetTrigger("startRun");
+                SwitchToBehaviourCustom(State.Chasing);
             }
             else
             {
-                SwitchToBehaviourClientRpc((int)State.Roaming);
-                networkAnimator.SetTrigger("startWalk");
-                StartSearch(transform.position);
+                SwitchToBehaviourCustom(State.Roaming);
             }
         }
 
@@ -680,7 +693,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 }
 
                 idlingTimer = 2f;
-                networkAnimator.SetTrigger("stopWalk");
+                DoAnimationClientRpc(walk: false, run: false);
             }
         }
 
@@ -690,7 +703,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (!isEnemyDead)
             {
-                enemyHP -= 75;
+                enemyHP -= (maxHealth / 2);
                 if (enemyHP <= 0 && IsOwner)
                 {
                     KillEnemyOnOwnerClient();
@@ -739,15 +752,34 @@ namespace HeavyItemSCPs.Items.SCP427
             base.OnCollideWithPlayer(other);
             //if (!throwingPlayerEnabled) { return; } // TODO: For testing, remove later
             PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
-            if (player != null && currentBehaviourStateIndex != (int)State.Throwing && !inSpecialAnimation)
+            if (player != null && currentBehaviourStateIndex != (int)State.Throwing && !inSpecialAnimation && heldObject == null)
             {
-                logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
-                logger.LogDebug("Throwing player");
+                if (timeSinceDamagePlayer > 2f)
+                {
+                    logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
+                    timeSinceDamagePlayer = 0f;
+                    
+                    if (timeSinceThrowingPlayer > 10f)
+                    {
+                        logger.LogDebug("Throwing player");
 
-                MakePlayerDrop(player);
-                inSpecialAnimation = true;
-                FreezePlayer(player, 2f);
-                ThrowPlayerServerRpc(player.actualClientId);
+                        if (player.currentlyHeldObjectServer != null && player.currentlyHeldObjectServer.itemProperties.name == "CaveDwellerBaby")
+                        {
+                            player.DiscardHeldObject();
+                        }
+
+                        inSpecialAnimation = true;
+                        timeSinceThrowingPlayer = 0f;
+
+                        FreezePlayer(player, 2f);
+                        ThrowPlayerServerRpc(player.actualClientId);
+                    }
+                    else
+                    {
+                        DoAnimationServerRpc("throw");
+                        player.DamagePlayer(10, true, true, CauseOfDeath.Mauling);
+                    }
+                }
             }
         }
 
@@ -792,7 +824,7 @@ namespace HeavyItemSCPs.Items.SCP427
                         logger.LogDebug("Throwing enemy");
                         inSpecialAnimation = true;
                         targetEnemy = collidedEnemy;
-                        SwitchToBehaviourClientRpc((int)State.Throwing);
+                        SwitchToBehaviourCustom(State.Throwing);
                         networkAnimator.SetTrigger("throw");
                     }
                 }
@@ -846,6 +878,28 @@ namespace HeavyItemSCPs.Items.SCP427
         }
 
         // RPC's
+
+        [ServerRpc(RequireOwnership = false)]
+        void DoAnimationServerRpc(string animationName)
+        {
+            if (IsServerOrHost)
+            {
+                networkAnimator.SetTrigger(animationName);
+            }
+        }
+
+        [ClientRpc]
+        void DoAnimationClientRpc(string animationName, bool value)
+        {
+            creatureAnimator.SetBool(animationName, value);
+        }
+
+        [ClientRpc]
+        void DoAnimationClientRpc(bool walk, bool run)
+        {
+            creatureAnimator.SetBool("walk", walk);
+            creatureAnimator.SetBool("run", run);
+        }
 
         [ServerRpc(RequireOwnership = false)]
         private void ThrowPlayerServerRpc(ulong clientId)

@@ -1,3 +1,12 @@
+## 1.3.2
+- SCP-427-1 will force the player to drop all items when throwing them (configurable)
+- SCP-427-1 has a cooldown for throwing players, when colliding with a player and still in cooldown, he will do a normal swipe attack that does 10 damage
+- SCP-427 transform time has been changed from 120 to 45 seconds
+- SCP-427 transform time only goes up when opening the locket
+- SCP-427 transform time will slowly decrease by one second every 2.5 seconds when not holding SCP-427
+- Fixed bug with player not dying when transforming into SCP-323-1
+- Fixed bug with SCP-427-1 getting stuck when first spawning in
+
 ## 1.3.1
 - Updated README to include SCP-323-1
 - Added bestiaries for SCP-323-1 and SCP-178-1

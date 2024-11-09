@@ -160,6 +160,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
             RoundManager.Instance.SpawnedEnemies.Add(this);
             SetOutsideOrInside();
+            agent.enabled = true;
             //SetEnemyOutsideClientRpc(true);
             //debugEnemyAI = true;
 
@@ -397,11 +398,8 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     if (enemyHP <= 0)
                     {
-                        if (IsOwner)
-                        {
-                            logger.LogDebug("SCP-323-1 ran out of health from decay");
-                            KillEnemyOnOwnerClient();
-                        }
+                        logger.LogDebug("SCP-323-1 ran out of health from decay");
+                        KillEnemyOnOwnerClient();
                     }
                 }
             }
@@ -458,8 +456,12 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 movingTowardsTargetPlayer = false;
                 TargetRandomNode();
-                if (SetDestinationToPosition(targetNode.position, true))
+                yield return null;
+
+                logger.LogDebug("Setting destination to position");
+                if (SetDestinationToPosition(targetNode.position, checkForPath: true))
                 {
+                    logger.LogDebug("Waiting till arrived at targetNode");
                     yield return new WaitUntil(() => Vector3.Distance(transform.position, targetNode.position) <= 1f);
                     logger.LogDebug("Arrived at targetNode");
                 }
@@ -469,8 +471,19 @@ namespace HeavyItemSCPs.Items.SCP323
         void TargetRandomNode()
         {
             logger.LogDebug("Choosing new target node...");
-            int randIndex = UnityEngine.Random.Range(0, allAINodes.Length);
-            targetNode = allAINodes[randIndex].transform;
+
+            GameObject[] nodes;
+            if (isOutside)
+            {
+                nodes = RoundManager.Instance.outsideAINodes;
+            }
+            else
+            {
+                nodes = RoundManager.Instance.insideAINodes;
+            }
+
+            int randIndex = UnityEngine.Random.Range(0, nodes.Length);
+            targetNode = nodes[randIndex].transform;
         }
 
         void CheckForCorpseToEat()

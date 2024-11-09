@@ -34,14 +34,7 @@ namespace HeavyItemSCPs.Patches
         public static void PingScan_performedPostFix()
         {
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
-            if (SCP323_1AI.Instance != null)
-            {
-                logger.LogDebug("Speed: " + SCP323_1AI.Instance.agent.speed);
-                logger.LogDebug("HP: " + SCP323_1AI.Instance.enemyHP);
-                logger.LogDebug("Decay: " + SCP323_1AI.Instance.decayMultiplier);
-            }
-            //localPlayer.drunkness = drunkness;
-            //BashDoor();
+            
 
         } // HoarderBug, BaboonHawk
 
@@ -54,6 +47,10 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/spawn":
+                    EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP323_1Enemy").FirstOrDefault().enemyType;
+                    RoundManager.Instance.SpawnEnemyGameObject(localPlayer.transform.position, Quaternion.identity.y, 0, scp);
+                    break;
                 case "/door":
                     SCP323_1AI.Instance.openDoorSpeedMultiplier = float.Parse(args[1]); // TODO: Get this in testing
                     break;

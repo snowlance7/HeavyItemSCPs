@@ -312,31 +312,35 @@ namespace HeavyItemSCPs.Items.SCP323
 
         IEnumerator DoTransformationAnimationCoroutine(PlayerControllerB player)
         {
+            logger.LogDebug("Doing transformation animation coroutine.");
             yield return new WaitForSecondsRealtime(5f);
 
-            if (player != null && !player.isPlayerDead)
+            player.DropAllHeldItemsAndSync();
+
+            Vector3 spawnPos = player.transform.position;
+            player.KillPlayer(Vector3.zero, false, CauseOfDeath.Bludgeoning);
+
+            yield return new WaitForSeconds(1f);
+
+            if (player != null)
             {
-                FinishTransformation(player);
-            }
-            else
-            {
+                if (player.isPlayerDead)
+                {
+                    FinishTransformation(spawnPos);
+                }
                 StopTransformation(player);
             }
         }
 
-        void FinishTransformation(PlayerControllerB player) // TODO: Test this
+        void FinishTransformation(Vector3 spawnPos) // TODO: Test this
         {
             logger.LogDebug("Finishing transformation.");
-            player.DropAllHeldItemsAndSync();
-            player.KillPlayer(Vector3.zero, spawnBody: false, CauseOfDeath.Bludgeoning); // This despawns the item too?
-            logger.LogDebug("Killed player.");
-            StopTransformation(player);
 
             if (IsServerOrHost)
             {
                 logger.LogDebug("Spawning SCP-323-1.");
-                SpawnSCP3231(player.transform.position);
-                if (NetworkObject.IsSpawned)
+                SpawnSCP3231(spawnPos);
+                if (NetworkObject != null && NetworkObject.IsSpawned)
                 {
                     Instance = null;
                     NetworkObject.Despawn(true);
@@ -352,10 +356,6 @@ namespace HeavyItemSCPs.Items.SCP323
                 player.activatingItem = false;
                 player.voiceMuffledByEnemy = false;
                 player.playerBodyAnimator.SetBool("HoldMask", false);
-            }
-            else
-            {
-                logger.LogError("playerHeldBy is null.");
             }
             ChangeAttachState(AttachState.None);
             attaching = false;
