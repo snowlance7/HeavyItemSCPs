@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e80ae96b3eb9177eea5c8f9dadbcda1, type: 3}
+  m_Name: SCP323_1TN
+  m_EditorClassIdentifier: 
+  displayText: 'The Wendigo
+
+
+    Danger level: S-
+
+
+    Scientific name: SCP-323-1
+
+
+    I
+    have never seen such a fast creature. This wendigo is by far one of the most
+    relentless creatures I have encountered. We couldn''t get away from it, even
+    when we tried to lock a metal door behind us, it just bashed its head against
+    it, sending it flying. The only thing that can stop this thing is those big steel
+    doors.
+
+
+    It does seem like it gets slower and slower over time, as if they
+    can''t survive without constant meat consumption. It was limping, and we saw
+    it take down a zombie and eat it. Jess shot it with a shotgun, and it didn''t
+    even seem phased. Then it got up, and the limp was gone, like it recovered completely
+    from just one meal.
+
+
+    Jess cut her arm up really bad, and we could just hear
+    the thing howling behind a blast door trying to get to her like it smelled her
+    blood.
+
+
+    We finally killed it, and one of the newbies just pulled the skull
+    off its head and started bashing his head into it, trying to fit it in. We just
+    had to get out. We left him behind. I hope we never see that thing again.
+
+
+    -
+    Carl'
+  terminalEvent: 
+  clearPreviousText: 1
+  maxCharactersToType: 35
+  buyItemIndex: -1
+  isConfirmationNode: 0
+  buyRerouteToMoon: -1
+  displayPlanetInfo: -1
+  lockedInDemo: 0
+  shipUnlockableID: -1
+  buyUnlockable: 0
+  returnFromStorage: 0
+  itemCost: 0
+  creatureFileID: 7014
+  creatureName: SCP-323-1
+  storyLogFileID: -1
+  overrideOptions: 0
+  acceptAnything: 0
+  terminalOptions: []
+  playClip: {fileID: 0}
+  playSyncedClip: 2
+  displayTexture: {fileID: 0}
+  displayVideo: {fileID: 32900000, guid: d2497e7aef1c8cd3eb8c03e57932f1b3, type: 3}
+  loadImageSlowly: 1
+  persistentImage: 0

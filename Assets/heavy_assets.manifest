@@ -1,0 +1,126 @@
+ManifestFileVersion: 0
+CRC: 3135292980
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 677f5d4f2d92491a1f9972ee208f1561
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: e4346caecfc28dbbb917727bd6e59a3c
+  IncrementalBuildHash:
+    serializedVersion: 2
+    Hash: 677f5d4f2d92491a1f9972ee208f1561
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 23
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 33
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 54
+  Script: {instanceID: 0}
+- Class: 65
+  Script: {instanceID: 0}
+- Class: 74
+  Script: {instanceID: 0}
+- Class: 82
+  Script: {instanceID: 0}
+- Class: 83
+  Script: {instanceID: 0}
+- Class: 91
+  Script: {instanceID: 0}
+- Class: 95
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: 1339316418, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: 2131381628, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 65d3fcb39dd67306e9bb17a603308070, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 04f75356a7e9c978bddc7d568e58a50b, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
+- Class: 114
+  Script: {fileID: -1770466690, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: -2111379243, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: -1030968450, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: -1492431532, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: -2099154595, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: 1969256421, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: c30496d6ae6d6f907456e10a94e01ec6, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 3c36d0a92cbb1f26a39169ef0eae393a, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 6d7127b8f98ca8ec9896b384a71d39a2, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 0e80ae96b3eb9177eea5c8f9dadbcda1, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: d3cecf05b78b173605122a700874719c, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 135
+  Script: {instanceID: 0}
+- Class: 137
+  Script: {instanceID: 0}
+- Class: 195
+  Script: {instanceID: 0}
+- Class: 198
+  Script: {instanceID: 0}
+- Class: 199
+  Script: {instanceID: 0}
+- Class: 213
+  Script: {instanceID: 0}
+- Class: 241
+  Script: {instanceID: 0}
+- Class: 243
+  Script: {instanceID: 0}
+- Class: 245
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers:
+- AssemblyName: Assembly-CSharp
+  ClassName: AISearchRoutine
+- AssemblyName: Assembly-CSharp
+  ClassName: Battery
+- AssemblyName: Assembly-CSharp
+  ClassName: EnemyBehaviourState
+- AssemblyName: Assembly-CSharp
+  ClassName: NavSizeLimit
+- AssemblyName: Unity.Netcode.Components
+  ClassName: Unity.Netcode.Components.NetworkAnimator/TransitionStateinfo
+Assets:
+- Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
+- Assets/ModAssets/SCP427/SCP4271Enemy.asset
+- Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset
+- Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset
+- Assets/ModAssets/SharedAssets/NetworkHandlerHeavyItemSCPs.prefab
+- Assets/ModAssets/SCP323/SCP323_1Enemy.asset
+- Assets/ModAssets/SCP178/SCP1781Enemy.asset
+- Assets/ModAssets/SCP323/SCP323Item.asset
+- Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset
+- Assets/ModAssets/SCP178/Bestiary/SCP1781TN.asset
+- Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset
+- Assets/ModAssets/SCP427/SCP427Item.asset
+- Assets/ModAssets/SCP178/SCP178Item.asset
+Dependencies: []
