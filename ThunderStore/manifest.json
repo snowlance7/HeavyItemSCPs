@@ -5,7 +5,6 @@
   "description": "A collection of SCP items with a monster attached to it",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
-    "Evaisa-LethalLib-0.16.1",
-    "Snowlance-WearableItemsAPI-0.1.9"
+    "Evaisa-LethalLib-0.16.2"
   ]
 }

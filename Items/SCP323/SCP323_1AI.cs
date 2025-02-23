@@ -18,24 +18,29 @@ namespace HeavyItemSCPs.Items.SCP323
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323_1AI? Instance { get; private set; }
 
-#pragma warning disable 0649
-        public NetworkAnimator networkAnimator = null!;
-        public AudioClip doorWooshSFX = null!;
-        public AudioClip metalDoorSmashSFX = null!;
-        public AudioClip bashSFX = null!;
-        public AudioClip roarSFX = null!;
-        public AudioClip slashSFX = null!;
-        public AudioClip[] walkingSFX = null!;
-        public AudioClip[] growlSFX = null!;
-        public AudioClip roamingNoisesSFX = null!; // TODO: Set up
-        public AudioClip eatingCorpseSFX = null!;
-        public GameObject SCP323Prefab = null!;
-        public Transform SkullTransform = null!;
-        public DoorCollisionDetect doorCollisionDetectScript = null!;
-#pragma warning restore 0649
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public NetworkAnimator networkAnimator;
+        public AudioClip doorWooshSFX;
+        public AudioClip metalDoorSmashSFX;
+        public AudioClip bashSFX;
+        public AudioClip roarSFX;
+        public AudioClip slashSFX;
+        public AudioClip[] walkingSFX;
+        public AudioClip[] growlSFX;
+        public AudioClip roamingNoisesSFX; // TODO: Set up
+        public AudioClip eatingCorpseSFX;
+        public GameObject SCP323Prefab;
+        public Transform SkullTransform;
+        public DoorCollisionDetect doorCollisionDetectScript;
 
-        EnemyAI targetEnemy = null!;
-        EnemyAI lastEnemyAttackedMe = null!;
+        DeadBodyInfo targetPlayerCorpse;
+        EnemyAI targetEnemyCorpse;
+        DoorLock doorLock;
+        Coroutine roamCoroutine;
+
+        EnemyAI targetEnemy;
+        EnemyAI lastEnemyAttackedMe;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         float timeSinceDamage;
         float timeSinceSeenPlayer;
@@ -46,10 +51,6 @@ namespace HeavyItemSCPs.Items.SCP323
         bool growlPlayed = false;
 
         Vector3 targetPlayerLastSeenPos;
-        DeadBodyInfo targetPlayerCorpse = null!;
-        EnemyAI targetEnemyCorpse = null!;
-        DoorLock doorLock = null!;
-        Coroutine roamCoroutine = null!;
 
         // Constants
         const string maskedName = "MaskedPlayerEnemy";
@@ -165,31 +166,35 @@ namespace HeavyItemSCPs.Items.SCP323
             //debugEnemyAI = true;
 
             timeSinceSeenPlayer = Mathf.Infinity;
-
-            if (IsServerOrHost) { StartCoroutine(DelayedStart()); }
         }
 
-        IEnumerator DelayedStart()
+        public override void OnNetworkSpawn()
         {
-            yield return new WaitUntil(() => NetworkObject.IsSpawned);
-
-            if (Instance != null && NetworkObject.IsSpawned)
+            base.OnNetworkSpawn();
+            if (Instance != null && Instance != this)
             {
                 logger.LogDebug("There is already a SCP-323-1 in the scene. Removing this one.");
+                if (!IsServerOrHost) { return; }
                 NetworkObject.Despawn(true);
+                return;
             }
-            else
+            Instance = this;
+            logger.LogDebug("Finished spawning SCP-323-1");
+
+            if (!IsServerOrHost) { return; }
+
+            StartCoroutine(DecayHealthCoroutine());
+
+            SwitchToBehaviourStateCustom((int)State.Roaming);
+            networkAnimator.SetTrigger("start");
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            if (Instance == this)
             {
-                Instance = this;
-
-                yield return new WaitForSeconds(2f);
-
-                StartCoroutine(DecayHealthCoroutine());
-
-                SwitchToBehaviourStateCustom((int)State.Roaming);
-                networkAnimator.SetTrigger("start");
-
-                logger.LogDebug("Finished spawning SCP-323-1");
+                Instance = null;
             }
         }
 
@@ -1112,7 +1117,7 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             if (IsServerOrHost)
             {
-                PlayerControllerB player = NetworkHandlerHeavy.PlayerFromId(clientId);
+                PlayerControllerB player = PlayerFromId(clientId);
                 PlayerDamaged(player);
             }
         }
@@ -1122,7 +1127,7 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             logger.LogDebug("in eat player body clientrpc");
             inSpecialAnimation = true;
-            targetPlayerCorpse = NetworkHandlerHeavy.PlayerFromId(clientId).deadBody;
+            targetPlayerCorpse = PlayerFromId(clientId).deadBody;
             targetPlayerCorpse.canBeGrabbedBackByPlayers = false;
             targetPlayerCorpse.grabBodyObject.grabbable = false;
             targetPlayerCorpse.grabBodyObject.grabbableToEnemies = false;

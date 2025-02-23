@@ -97,6 +97,7 @@ GameObject:
   - component: {fileID: 8055937498063748581}
   - component: {fileID: 5483755365748617448}
   - component: {fileID: 5937949177856206172}
+  - component: {fileID: 8355691983343552484}
   m_Layer: 6
   m_Name: SCP323
   m_TagString: PhysicsProp
@@ -164,9 +165,9 @@ AudioSource:
   Priority: 10
   DopplerLevel: 1
   MinDistance: 5
-  MaxDistance: 10
+  MaxDistance: 15
   Pan2D: 0
-  rolloffMode: 0
+  rolloffMode: 1
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -309,7 +310,25 @@ MonoBehaviour:
   grabbableToEnemies: 0
   hasBeenHeld: 0
   MeshObj: {fileID: 1497352537173118679}
+  SCP3231Prefab: {fileID: 2381925397762389571, guid: d05849edad1dbde4099ea78426b940b9,
+    type: 3}
   AttachedToWendigo: {fileID: 0}
+--- !u!114 &8355691983343552484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4717279271233725913}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04f75356a7e9c978bddc7d568e58a50b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  useReverb: 0
+  overridingLowPass: 0
+  lowPassOverride: 20000
+  debugLog: 0
 --- !u!1 &9139282977299227352
 GameObject:
   m_ObjectHideFlags: 0
@@ -380,7 +399,7 @@ MonoBehaviour:
   minRange: 1
   requiresLineOfSight: 1
   headerText: SCP-323
-  subText: 'Value: '
+  subText: 
   scrapValue: 0
   creatureScanID: -1
   nodeType: 2

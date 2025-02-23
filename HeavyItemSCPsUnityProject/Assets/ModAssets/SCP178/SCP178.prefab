@@ -96,6 +96,7 @@ GameObject:
   - component: {fileID: 7907593043083450842}
   - component: {fileID: 902457156824663995}
   - component: {fileID: -7326016152601540309}
+  - component: {fileID: 2621540608699054275}
   m_Layer: 6
   m_Name: SCP178
   m_TagString: PhysicsProp
@@ -184,9 +185,9 @@ AudioSource:
   Priority: 10
   DopplerLevel: 1
   MinDistance: 5
-  MaxDistance: 10
+  MaxDistance: 15
   Pan2D: 0
-  rolloffMode: 0
+  rolloffMode: 1
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -307,12 +308,26 @@ MonoBehaviour:
   reachedFloorTarget: 0
   grabbableToEnemies: 1
   hasBeenHeld: 0
-  playerWornBy: {fileID: 0}
-  WearSlot: 1
-  wearablePositionOffset: {x: 0, y: 0.17, z: 0}
-  wearableRotationOffset: {x: 0, y: 0, z: 0}
-  showWearable: 1
-  showWearableOnClient: 0
+  SCP1781Prefab: {fileID: 2016720193739766057, guid: b1f920303f5f54e4982357c8d4795300,
+    type: 3}
+  SCP1781Instances: []
+  wearing: 0
+--- !u!114 &2621540608699054275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2395141377240338178}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04f75356a7e9c978bddc7d568e58a50b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  useReverb: 0
+  overridingLowPass: 0
+  lowPassOverride: 20000
+  debugLog: 0
 --- !u!1 &3266971508156557727
 GameObject:
   m_ObjectHideFlags: 0
@@ -502,7 +517,7 @@ MonoBehaviour:
   minRange: 1
   requiresLineOfSight: 1
   headerText: SCP-178
-  subText: 'Value: '
+  subText: 
   scrapValue: 0
   creatureScanID: -1
   nodeType: 2

@@ -47,13 +47,6 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
-                case "/spawn":
-                    EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP323_1Enemy").FirstOrDefault().enemyType;
-                    RoundManager.Instance.SpawnEnemyGameObject(localPlayer.transform.position, Quaternion.identity.y, 0, scp);
-                    break;
-                case "/door":
-                    SCP323_1AI.Instance.openDoorSpeedMultiplier = float.Parse(args[1]); // TODO: Get this in testing
-                    break;
                 case "/drunk":
                     drunkness = float.Parse(args[1]);
                     break;

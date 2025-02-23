@@ -99,7 +99,7 @@ namespace HeavyItemSCPs.Items.SCP178
             initiated = true;
 
 
-            highlightMaterial = NetworkHandlerHeavy.Instance.OverlayMaterial;
+            highlightMaterial = ModAssets!.LoadAsset<Material>("Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat");
         }
 
         private void Update()

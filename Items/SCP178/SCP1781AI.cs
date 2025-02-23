@@ -11,6 +11,8 @@ using UnityEngine.Animations.Rigging;
 using UnityEngine.UIElements.Experimental;
 using UnityEngine.Android;
 using Unity.Netcode.Components;
+using System;
+using UnityEngine.AI;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
@@ -52,7 +54,9 @@ namespace HeavyItemSCPs.Items.SCP178
         bool playersNearby = false;
 
         float timeSincePlayersCheck;
-        bool angryIdle;
+
+        int hashSpeed;
+        int hashAngryIdle;
 
         public enum State
         {
@@ -63,7 +67,25 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public override void Start()
         {
-            base.Start();
+            try
+            {
+                overlapColliders = new Collider[1];
+                thisNetworkObject = NetworkObject;
+                thisEnemyIndex = RoundManager.Instance.numberOfEnemiesInScene;
+                RoundManager.Instance.numberOfEnemiesInScene++;
+                RoundManager.Instance.SpawnedEnemies.Add(this);
+
+                path1 = new NavMeshPath();
+                openDoorSpeedMultiplier = enemyType.doorSpeedMultiplier;
+                serverPosition = base.transform.position;
+            }
+            catch (Exception arg)
+            {
+                logger.LogError($"Error when initializing enemy variables for {base.gameObject.name} : {arg}");
+            }
+
+            hashSpeed = Animator.StringToHash("speed");
+            hashAngryIdle = Animator.StringToHash("angryIdle");
 
             currentBehaviourStateIndex = (int)State.Roaming;
 
@@ -76,14 +98,24 @@ namespace HeavyItemSCPs.Items.SCP178
 
             spawnPosition = transform.position;
 
-            //SetOutsideOrInside();
-
             logger.LogDebug("SCP-178-1 Spawned");
         }
 
-        public override void Update() // TODO: They arent using angryidle when being stared at and animations are being weird
+        public override void Update()
         {
-            base.Update();
+            if (inSpecialAnimation)
+            {
+                return;
+            }
+            if (updateDestinationInterval >= 0f)
+            {
+                updateDestinationInterval -= Time.deltaTime;
+            }
+            else
+            {
+                DoAIInterval();
+                updateDestinationInterval = AIIntervalTime;
+            }
 
             timeSincePlayersCheck += Time.deltaTime;
 
@@ -124,6 +156,14 @@ namespace HeavyItemSCPs.Items.SCP178
                 }
             }
         }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+            if (SCP178Behavior.Instance == null) { return; }
+            SCP178Behavior.Instance.SCP1781Instances.Remove(this);
+        }
+
         public override void DoAIInterval()
         {
             base.DoAIInterval();
@@ -132,6 +172,18 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 return;
             };
+
+            bool wearing178 = SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearing && SCP178Behavior.Instance.playerHeldBy != null && SCP178Behavior.Instance.playerHeldBy == localPlayer;
+            if (meshEnabledOnClient != wearing178)
+            {
+                EnableMesh(wearing178);
+            }
+
+            creatureAnimator.SetFloat(hashSpeed, agent.velocity.magnitude / 2);
+            creatureAnimator.SetBool(hashAngryIdle, currentBehaviourStateIndex == (int)State.Observing && lastObservingPlayer != null);
+
+            // SERVER ONLY
+            if (!IsServerOrHost) { return; }
 
             if (currentBehaviourStateIndex != (int)State.Chasing && TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
             {
@@ -145,7 +197,6 @@ namespace HeavyItemSCPs.Items.SCP178
                 case (int)State.Roaming:
                     agent.speed = 2f;
                     agent.stoppingDistance = 0f;
-                    openDoorSpeedMultiplier = 0f;
 
                     if (CheckForPlayersLookingAtMe())
                     {
@@ -153,24 +204,21 @@ namespace HeavyItemSCPs.Items.SCP178
                         SwitchToBehaviourClientRpc((int)State.Observing);
                         StopCoroutine(wanderingRoutine);
                         wanderingRoutine = null!;
-                        networkAnimator.SetTrigger("passiveIdle");
                         break;
                     }
                     if (wanderingRoutine == null)
                     {
-                        wanderingRoutine = StartCoroutine(WanderingCoroutine());
+                        wanderingRoutine = StartCoroutine(WanderingCoroutine(spawnPosition, wanderingRadius));
                     }
                     break;
 
                 case (int)State.Observing:
                     agent.speed = 0f;
                     agent.stoppingDistance = 0f;
-                    openDoorSpeedMultiplier = 0f;
 
                     if (!CheckForPlayersLookingAtMe() && postObservationTimer > stareTime)
                     {
                         logger.LogDebug("Switching to roaming");
-                        angryIdle = false;
                         SwitchToBehaviourClientRpc((int)State.Roaming);
                         return;
                     }
@@ -178,23 +226,17 @@ namespace HeavyItemSCPs.Items.SCP178
                     {
                         DoAngerCalculations();
                         timeSinceLastAngerCalc = 0f;
-
-                        if (!angryIdle)
-                        {
-                            angryIdle = true;
-                            networkAnimator.SetTrigger("angryIdle");
-                        }
                     }
                     break;
 
                 case (int)State.Chasing:
                     agent.speed = 10f;
                     agent.stoppingDistance = 2.5f;
-                    openDoorSpeedMultiplier = 1f;
 
                     if (TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
                     {
-                        SetMovingTowardsTargetPlayer(targetPlayer);
+                        //SetMovingTowardsTargetPlayer(targetPlayer);
+                        SetDestinationToPosition(targetPlayer.transform.position);
                     }
                     else
                     {
@@ -228,13 +270,13 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public bool TargetPlayerIfClose()
         {
-            if (SCP1781Manager.Instance.PlayersAngerLevels == null) { return false; }
+            if (SCP178Behavior.Instance.PlayersAngerLevels == null) { return false; }
 
             if (targetPlayer != null && (targetPlayer.isPlayerDead || targetPlayer.disconnectedMidGame)) { targetPlayer = null; } // TODO: Test this
 
             float closestDistance = -1f;
 
-            foreach (var player in SCP1781Manager.Instance.PlayersAngerLevels)
+            foreach (var player in SCP178Behavior.Instance.PlayersAngerLevels)
             {
                 if (player.Value < 100) { continue; }
 
@@ -300,28 +342,37 @@ namespace HeavyItemSCPs.Items.SCP178
             return observingPlayer != null;
         }
 
-        public IEnumerator WanderingCoroutine() // TODO: Test this
+        IEnumerator WanderingCoroutine(Vector3 position, float radius)
         {
             yield return null;
             while (wanderingRoutine != null)
             {
-                networkAnimator.SetTrigger("walk");
-                destination = RoundManager.Instance.GetRandomNavMeshPositionInRadius(spawnPosition, wanderingRadius, RoundManager.Instance.navHit);
-                SetDestinationToPosition(destination);
-                yield return new WaitForSecondsRealtime(1f);
-                yield return new WaitUntil(() => Vector3.Distance(transform.position, destination) < 1f);
-                networkAnimator.SetTrigger("passiveIdle");
-
-                yield return new WaitForSecondsRealtime(wanderWaitTime / 2f);
-
-                if (UnityEngine.Random.Range(0, 2) == 0)
+                float timeStopped = 0f;
+                Vector3 pos = position;
+                pos = RoundManager.Instance.GetRandomNavMeshPositionInRadius(pos, radius, RoundManager.Instance.navHit);
+                SetDestinationToPosition(pos);
+                while (agent.enabled)
                 {
-                    networkAnimator.SetTrigger("scratch");
-                    yield return new WaitForSecondsRealtime(1.6f);
-                }
-                else
-                {
-                    yield return new WaitForSecondsRealtime(wanderWaitTime / 2f);
+                    yield return new WaitForSeconds(AIIntervalTime);
+                    if (timeStopped > wanderWaitTime / 2f)
+                    {
+                        if (UnityEngine.Random.Range(0, 2) == 0)
+                        {
+                            networkAnimator.SetTrigger("scratch");
+                            yield return new WaitForSecondsRealtime(1.6f);
+                        }
+                        else
+                        {
+                            yield return new WaitForSecondsRealtime(wanderWaitTime / 2f);
+                        }
+
+                        break;
+                    }
+
+                    if (agent.velocity == Vector3.zero)
+                    {
+                        timeStopped += AIIntervalTime;
+                    }
                 }
             }
         }
@@ -333,7 +384,7 @@ namespace HeavyItemSCPs.Items.SCP178
             int anger = 1;
 
             //bool wearing178 = SCP1781Manager.PlayersWearing178.Contains(observingPlayer);
-            bool wearing178 = SCP178Behavior.Instance != null && SCP178Behavior.Instance.playerWornBy != null && SCP178Behavior.Instance.playerWornBy == observingPlayer;
+            bool wearing178 = SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearing && SCP178Behavior.Instance.playerHeldBy != null && SCP178Behavior.Instance.playerHeldBy == observingPlayer;
             logger.LogDebug($"wearing178: {wearing178}");
 
             if (!wearing178 && !IsNearbySCP178(observingPlayer)) { return; }
@@ -356,7 +407,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 anger = 70;
             }
 
-            SCP1781Manager.Instance.AddAngerToPlayer(observingPlayer, anger);
+            SCP178Behavior.Instance.AddAngerToPlayer(observingPlayer, anger);
         }
 
         public bool IsNearbySCP178(PlayerControllerB player)
@@ -376,17 +427,6 @@ namespace HeavyItemSCPs.Items.SCP178
             Mesh.SetActive(enable);
             ScanNode.gameObject.SetActive(enable);
             meshEnabledOnClient = enable;
-        }
-
-        public void SetOutsideOrInside()
-        {
-            GameObject closestOutsideNode = GetClosestAINode(false);
-            GameObject closestInsideNode = GetClosestAINode(true);
-
-            if (Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position))
-            {
-                SetEnemyOutsideClientRpc(true);
-            }
         }
 
         public GameObject GetClosestAINode(bool inside)
@@ -414,7 +454,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (playerWhoHit != null)
             {
-                SCP1781Manager.Instance.AddAngerToPlayer(playerWhoHit, 30);
+                SCP178Behavior.Instance.AddAngerToPlayer(playerWhoHit, 30);
             }
         }
 
@@ -459,12 +499,6 @@ namespace HeavyItemSCPs.Items.SCP178
 
         // RPC's
 
-        [ClientRpc]
-        public void SetEnemyOutsideClientRpc(bool value)
-        {
-            SetEnemyOutside(value);
-        }
-
         [ServerRpc(RequireOwnership = false)]
         private void CollidedWithPlayerServerRpc(ulong clientId)
         {
@@ -478,20 +512,20 @@ namespace HeavyItemSCPs.Items.SCP178
                     DoAttackAnimation();
                     creatureSFX.PlayOneShot(creatureSFX.clip, 1f);
 
-                    if (targetPlayer.isPlayerDead || targetPlayer.disconnectedMidGame)
+                    if (!targetPlayer.isPlayerControlled)
                     {
-                        if (SCP1781Manager.Instance.PlayersAngerLevels.ContainsKey(targetPlayer))
+                        if (SCP178Behavior.Instance.PlayersAngerLevels.ContainsKey(targetPlayer))
                         {
-                            SCP1781Manager.Instance.PlayersAngerLevels.Remove(targetPlayer);
+                            SCP178Behavior.Instance.PlayersAngerLevels.Remove(targetPlayer);
                         }
                         targetPlayer = null;
                     }
                 }
                 else
                 {
-                    if (SCP178Behavior.Instance != null && SCP178Behavior.Instance.playerWornBy != null && SCP178Behavior.Instance.playerWornBy == player && !player.isPlayerDead)
+                    if (SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearing && SCP178Behavior.Instance.playerHeldBy != null && SCP178Behavior.Instance.playerHeldBy == player && !player.isPlayerDead && player.isPlayerControlled)
                     {
-                        SCP1781Manager.Instance.AddAngerToPlayer(player, 10);
+                        SCP178Behavior.Instance.AddAngerToPlayer(player, 10);
                     }
                 }
             }

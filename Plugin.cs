@@ -366,6 +366,13 @@ namespace HeavyItemSCPs
             }
         }
 
+        public static void FreezePlayer(PlayerControllerB player, bool value)
+        {
+            player.disableInteract = value;
+            player.disableLookInput = value;
+            player.disableMoveInput = value;
+        }
+
         public static void DespawnItemInSlotOnClient(int itemSlot)
         {
             HUDManager.Instance.itemSlotIcons[itemSlot].enabled = false;

@@ -1,37 +1,16 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem.Utilities;
-using UnityEngine.UIElements;
-using UnityEngine.VFX;
 using static HeavyItemSCPs.Plugin;
-using WearableItemsAPI;
-using HarmonyLib;
-
-/* bodyparts
- * 0 head
- * 1 right arm
- * 2 left arm
- * 3 right leg
- * 4 left leg
- * 5 chest
- * 6 feet
- * 7 right hip
- * 8 crotch
- * 9 left shoulder
- * 10 right shoulder */
-
-// Pos offset 0, 0.17, 0
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    public class SCP178Behavior : WearableItem
+    public class SCP178Behavior : PhysicsProp
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -41,8 +20,14 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public static SCP178Behavior? Instance { get; private set; }
 
-        public List<GameObject> SCP1781Instances = [];
+        public List<SCP1781AI> SCP1781Instances = [];
         public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
+
+        readonly Vector3 posOffsetWearing = new Vector3(-0.275f, -0.15f, -0.05f);
+        readonly Vector3 rotOffsetWearing = new Vector3(-55f, -60f, 0f);
+
+        public bool wearing;
+        float despawnTimer;
 
         public override void OnNetworkSpawn()
         {
@@ -67,84 +52,145 @@ namespace HeavyItemSCPs.Items.SCP178
             }
         }
 
-        public override void ItemActivate(bool used, bool buttonDown = true)
+        public override void Update()
         {
-            base.ItemActivate(used, buttonDown);
-            if (buttonDown)
+            base.Update();
+
+            if (wearing)
             {
-                Wear();
+                despawnTimer = config1781DespawnTime.Value;
             }
-        }
-
-        public override void Wear()
-        {
-            base.Wear();
-            if (playerWornBy!.drunkness < 0.2f) { playerWornBy.drunkness = 0.2f; }
-
-            StartCoroutine(Enable1781MeshesCoroutine());
-            WearServerRpc();
-
-            SCP1783DVision.Instance.Enable3DVision(true);
-        }
-
-        public override void UnWear(bool grabItem = true)
-        {
-            UnWearServerRpc();
-            SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
-            base.UnWear(grabItem);
-
-            SCP1783DVision.Instance.Enable3DVision(false);
-        }
-
-        private IEnumerator Enable1781MeshesCoroutine()
-        {
-            yield return new WaitForSecondsRealtime(2.5f);
-            SCP1781Manager.EnableAll1781MeshesOnLocalClient(true);
-        }
-
-        // RPCs
-        [ServerRpc(RequireOwnership = false)]
-        public void WearServerRpc()
-        {
-            logger.LogDebug("WearServerRpc called.");
-
-            if (IsServerOrHost)
+            else
             {
-                if (playerWornBy == null) { logger.LogError("playerWornBy is null."); return; }
-                playerWornBy.voiceMuffledByEnemy = true;
-
-                if (StartOfRound.Instance.inShipPhase) { return; }
-
-                if (SCP1781Manager.Instance == null)
+                despawnTimer -= Time.deltaTime;
+                if (despawnTimer <= 0)
                 {
-                    logger.LogDebug("SCP1781Manager instance is null. Creating a new instance.");
-                    SCP1781Manager.Init();
+                    DespawnEntities();
                 }
             }
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void UnWearServerRpc()
+        public override void ItemActivate(bool used, bool buttonDown = true)
         {
-            logger.LogDebug("UnWearServerRpc called.");
+            base.ItemActivate(used, buttonDown);
 
-            if (IsServerOrHost)
+            wearing = buttonDown;
+            playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
+            playerHeldBy.activatingItem = buttonDown;
+
+            if (playerHeldBy == localPlayer)
             {
-                if (playerWornBy == null) { logger.LogError("playerWornBy is null."); return; }
-                playerWornBy.voiceMuffledByEnemy = false;
+                SCP1783DVision.Instance.Enable3DVision(buttonDown);
+            }
+
+            if (buttonDown)
+            {
+                if (playerHeldBy.drunkness < 0.2f) { playerHeldBy.drunkness = 0.2f; }
+                SpawnEntities();
             }
         }
 
-        [ClientRpc]
-        public void EnableMeshesClientRpc(bool enabled) // TODO: Test this to make sure it works and enables the mesh properly
+        void SpawnEntities()
         {
-            logger.LogDebug($"EnableMeshesClientRpc called with enabled = {enabled}.");
+            if (!IsServerOrHost) { return; }
+            if (StartOfRound.Instance.inShipPhase || !StartOfRound.Instance.shipHasLanded || StartOfRound.Instance.shipIsLeaving) { return; }
+            if (SCP1781Instances.Count > 0) { return; }
 
-            if (localPlayer == playerWornBy)
+            StartCoroutine(SpawnEntitiesCoroutine());
+        }
+
+        IEnumerator SpawnEntitiesCoroutine()
+        {
+            yield return null;
+            logger.LogDebug("Spawning SCP-178-1 Instances");
+
+            int maxCountOutside = GetMaxCount(true);
+            int count = 0;
+            foreach (var node in RoundManager.Instance.outsideAINodes)
             {
-                logger.LogDebug($"localPlayer matches playerWornBy ({playerWornBy}). Enabling/Disabling meshes.");
+                yield return null;
+                if (count >= maxCountOutside && maxCountOutside != -1) { break; }
+                GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
+                SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
+                scp.NetworkObject.Spawn(destroyWithScene: true);
+                RoundManager.Instance.SpawnedEnemies.Add(scp);
+                SCP1781Instances.Add(scp);
+                count++;
+            }
 
-                SCP1781Manager.EnableAll1781MeshesOnLocalClient(false);
+            int maxCountInside = GetMaxCount(false);
+            count = 0;
+            foreach (var node in RoundManager.Instance.insideAINodes)
+            {
+                yield return null;
+                if (count >= maxCountInside && maxCountInside != -1) { break; }
+                GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
+                SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
+                scp.NetworkObject.Spawn(destroyWithScene: true);
+                RoundManager.Instance.SpawnedEnemies.Add(scp);
+                SCP1781Instances.Add(scp);
+                count++;
+            }
+
+            logger.LogDebug($"Spawned {SCP1781Instances.Count} SCP-178-1 instances");
+        }
+
+        void DespawnEntities()
+        {
+            if (!IsServerOrHost) { return; }
+            if (SCP1781Instances.Count <= 0) { return; }
+
+            StartCoroutine(DespawnEntitiesCoroutine());
+        }
+
+        IEnumerator DespawnEntitiesCoroutine()
+        {
+            yield return null;
+            logger.LogDebug("Despawning SCP-178-1 Instances");
+            foreach (var entity in SCP1781Instances.ToList())
+            {
+                yield return null;
+                if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
+                RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
+            }
+        }
+
+        public void AddAngerToPlayer(PlayerControllerB player, int anger)
+        {
+            logger.LogDebug("AddAngerToPlayer: " + player.playerUsername + " " + anger);
+            if (!PlayersAngerLevels.ContainsKey(player))
+            {
+                PlayersAngerLevels.Add(player, anger);
+            }
+            else
+            {
+                PlayersAngerLevels[player] += anger;
+            }
+        }
+
+        public static int GetMaxCount(bool outside)
+        {
+            if (outside)
+            {
+                if (config1781UsePercentageBasedCount.Value && config1781MaxPercentCountOutside.Value < 1 && config1781MaxPercentCountOutside.Value > 0)
+                {
+                    return (int)(RoundManager.Instance.outsideAINodes.Length * config1781MaxPercentCountOutside.Value);
+                }
+                else
+                {
+                    return config1781MaxCountOutside.Value;
+                }
+            }
+            else
+            {
+                if (config1781UsePercentageBasedCount.Value && config1781MaxPercentCountInside.Value < 1 && config1781MaxPercentCountInside.Value > 0)
+                {
+                    return (int)(RoundManager.Instance.insideAINodes.Length * config1781MaxPercentCountInside.Value);
+                }
+                else
+                {
+                    return config1781MaxCountInside.Value;
+                }
             }
         }
     }
@@ -166,19 +212,9 @@ namespace HeavyItemSCPs.Items.SCP178
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.DespawnPropsAtEndOfRound))]
         public static void DespawnPropsAtEndOfRoundPostfix()
         {
-            if (configEnableSCP178.Value && SCP1781Manager.Instance != null)
+            if (SCP178Behavior.Instance != null)
             {
-                Object.Destroy(SCP1781Manager.Instance);
-            }
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnShipLandedMiscEvents))]
-        public static void OnShipLandedMiscEventsPostfix()
-        {
-            if (SCP1781Manager.Instance == null && SCP178Behavior.Instance != null && SCP178Behavior.Instance.playerWornBy != null)
-            {
-                SCP1781Manager.Init();
+                SCP178Behavior.Instance.PlayersAngerLevels.Clear();
             }
         }
     }

@@ -44,6 +44,15 @@
         -->
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
     </PropertyGroup>
+    <ItemGroup>
+      <Compile Remove="HeavyItemSCPsUnityProject\**" />
+      <EmbeddedResource Remove="HeavyItemSCPsUnityProject\**" />
+      <None Remove="HeavyItemSCPsUnityProject\**" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Remove=".gitattributes" />
+      <None Remove=".gitignore" />
+    </ItemGroup>
 
     <!-- Primary Package References -->
     <ItemGroup>
@@ -54,7 +63,6 @@
         <PackageReference Include="Evaisa.LethalLib" Version="0.16.2" />
         <PackageReference Include="LethalCompany.GameLibs.Steam" Version="*-*" Publicize="true" PrivateAssets="all" />
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" PrivateAssets="all" />
-        <PackageReference Include="WearableItemsAPI" Version="0.1.11" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
@@ -63,6 +71,12 @@
 
     <ItemGroup>
       <Folder Include="ThunderStore\HeavyItemSCPs\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="ProjectSCP.SCP500">
+        <HintPath>..\1Resources\1Assemblies\ProjectSCP.SCP500.dll</HintPath>
+      </Reference>
     </ItemGroup>
 
     <!-- Netcode Patcher Post-Build Event -->

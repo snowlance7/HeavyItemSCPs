@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e80ae96b3eb9177eea5c8f9dadbcda1, type: 3}
+  m_Name: SCP4271TN
+  m_EditorClassIdentifier: 
+  displayText: 'Flesh beast
+
+
+    Danger level: -A+
+
+
+    Scientific name: SCP-427-1
+
+
+    I
+    don''t think I have ever seen a monster this weird in ages, I found this monster
+    after David left with this weird necklace thing he found, he said it made him
+    fell better, so who was I to say that I should put it away, but either this monster,
+    killed David or it is David, This monster has some weird habit of picking up
+    scrap and throwing it at us, but after that it will just throw us around.
+
+    We
+    did try to take it down with Violence, but not even Gus had the strength to take
+    this thing down.
+
+
+    But by total accident Vanessa dragged this monster and
+    it ran over some mines and it got blown to hell, it seems that explosions are
+    the only way to take these things out
+
+    But after closer inspection it does
+    seem like it is the necklace, I gave it to a lootbug and well.
+
+
+    The necklace
+    and monster are connected but I just think I will stay away from both
+
+
+    -
+    Carl'
+  terminalEvent: 
+  clearPreviousText: 1
+  maxCharactersToType: 35
+  buyItemIndex: -1
+  isConfirmationNode: 0
+  buyRerouteToMoon: -1
+  displayPlanetInfo: -1
+  lockedInDemo: 0
+  shipUnlockableID: -1
+  buyUnlockable: 0
+  returnFromStorage: 0
+  itemCost: 0
+  creatureFileID: 7014
+  creatureName: SCP-427-1
+  storyLogFileID: -1
+  overrideOptions: 0
+  acceptAnything: 0
+  terminalOptions: []
+  playClip: {fileID: 8300000, guid: 4bc0a7126fcbad74e8190afd38a725d1, type: 3}
+  playSyncedClip: 2
+  displayTexture: {fileID: 0}
+  displayVideo: {fileID: 32900000, guid: d2497e7aef1c8cd3eb8c03e57932f1b3, type: 3}
+  loadImageSlowly: 1
+  persistentImage: 0

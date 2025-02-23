@@ -20,9 +20,10 @@ namespace HeavyItemSCPs.Items.SCP323
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323Behavior? Instance { get; private set; }
 
-#pragma warning disable 0649
-        public GameObject MeshObj = null!;
-#pragma warning restore 0649
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GameObject MeshObj;
+        public GameObject SCP3231Prefab;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         public static bool isTesting = false;
         public static AttachState testState = AttachState.None;
@@ -366,8 +367,10 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             if (IsServerOrHost)
             {
-                EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP323_1Enemy").FirstOrDefault().enemyType;
-                RoundManager.Instance.SpawnEnemyGameObject(spawnPos, Quaternion.identity.y, 0, scp);
+                GameObject scpObj = Instantiate(SCP3231Prefab, spawnPos, Quaternion.identity);
+                SCP323_1AI scp = scpObj.GetComponent<SCP323_1AI>();
+                scp.NetworkObject.Spawn(destroyWithScene: true);
+                RoundManager.Instance.SpawnedEnemies.Add(scp);
             }
         }
 

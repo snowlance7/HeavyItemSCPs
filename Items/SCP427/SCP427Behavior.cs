@@ -41,12 +41,13 @@ namespace HeavyItemSCPs.Items.SCP427
 
         bool playedPassiveTransformationSound = false;
 
-#pragma warning disable 0649
-        public AudioSource ItemSFX = null!;
-        public AudioClip PassiveTransformationSFX = null!;
-        public AudioClip FullTransformationSFX = null!;
-        public Animator itemAnimator = null!;
-#pragma warning restore 0649
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public AudioSource ItemSFX;
+        public AudioClip PassiveTransformationSFX;
+        public AudioClip FullTransformationSFX;
+        public Animator itemAnimator;
+        public GameObject SCP4271Prefab;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         bool isOpen = false;
 
@@ -354,13 +355,15 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 logger.LogDebug("Spawning SCP-427-1");
 
-                EnemyType scp = SCPItems.SCPEnemiesList.Where(x => x.enemyType.name == "SCP4271Enemy").FirstOrDefault().enemyType;
-                NetworkObjectReference scpRef = RoundManager.Instance.SpawnEnemyGameObject(spawnPos, Quaternion.identity.y, 0, scp);
+                GameObject scpObj = Instantiate(SCP4271Prefab, spawnPos, Quaternion.identity);
+                SCP4271AI scp = scpObj.GetComponent<SCP4271AI>();
+                scp.NetworkObject.Spawn(destroyWithScene: true);
+                RoundManager.Instance.SpawnedEnemies.Add(scp);
 
-                if (variant != SCP4271AI.MaterialVariants.None && scpRef.TryGet(out var netObj))
+                if (variant != SCP4271AI.MaterialVariants.None)
                 {
                     logger.LogDebug("Got net obj for SCP-427-1");
-                    netObj.GetComponent<SCP4271AI>().SetMaterialVariantClientRpc(variant);
+                    scp.SetMaterialVariantClientRpc(variant);
                 }
             }
         }

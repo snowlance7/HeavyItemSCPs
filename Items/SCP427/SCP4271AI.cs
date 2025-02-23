@@ -47,16 +47,16 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private static ManualLogSource logger = LoggerInstance;
 
-#pragma warning disable 0649
-        public Transform turnCompass = null!;
-        public Transform RightHandTransform = null!;
-        public AudioClip[] stompSFXList = null!;
-        public AudioClip roarSFX = null!;
-        public AudioClip warningRoarSFX = null!;
-        public AudioClip hitWallSFX = null!;
-        public NetworkAnimator networkAnimator = null!;
-        public Material[] materials = null!;
-#pragma warning restore 0649
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Transform turnCompass;
+        public Transform RightHandTransform;
+        public AudioClip[] stompSFXList;
+        public AudioClip roarSFX;
+        public AudioClip warningRoarSFX;
+        public AudioClip hitWallSFX;
+        public NetworkAnimator networkAnimator;
+        public Material[] materials;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         readonly float throwForce = 70f;
 

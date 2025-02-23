@@ -10272,7 +10272,7 @@ GameObject:
   - component: {fileID: 9101580972537869513}
   m_Layer: 22
   m_Name: ScanNode
-  m_TagString: DoNotSet
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -13904,14 +13904,6 @@ MonoBehaviour:
     IsAnimTrigger: 0
     parameterString: 
     boolValue: 0
-  - name: Eating
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
   currentBehaviourState:
     name: 
     VoiceClip: {fileID: 0}
@@ -14006,6 +13998,7 @@ MonoBehaviour:
     type: 3}
   SkullTransform: {fileID: 8286744014996899727}
   doorCollisionDetectScript: {fileID: 8135802638172585580}
+  decayMultiplier: 1
 --- !u!1 &2387500492614508776
 GameObject:
   m_ObjectHideFlags: 0
