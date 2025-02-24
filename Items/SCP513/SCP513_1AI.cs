@@ -1,18 +1,15 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
-using Unity.Netcode.Components;
 using UnityEngine;
-using UnityEngine.AI;
 using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    internal class SCP323_1AI : EnemyAI
+    internal class SCP513_1AI : EnemyAI
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -22,6 +19,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public GameObject ScanNode;
         public AudioClip[] BellSFX;
         public AudioClip[] AmbientSFX;
+        public AudioClip[] StalkSFX;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         bool enemyMeshEnabled;
@@ -47,7 +45,8 @@ namespace HeavyItemSCPs.Items.SCP513
         public enum State
         {
             Inactive,
-            Chasing
+            Active,
+            Manifesting
         }
 
         public override void Start()
@@ -120,56 +119,20 @@ namespace HeavyItemSCPs.Items.SCP513
             switch (currentBehaviourStateIndex)
             {
                 case (int)State.Inactive:
-                    agent.speed = 0f;
 
-                    if (!targetPlayer.isInsideFactory) { return; }
-
-                    if (targetPlayer.insanityLevel >= maxInsanity && timeSinceChaseAttempt > chaseCooldown)
-                    {
-                        timeSinceChaseAttempt = 0f;
-                        TryStartChase();
-                        return;
-                    }
-
-                    if (staring)
-                    {
-                        if (targetPlayer.HasLineOfSightToPosition(transform.position))
-                        {
-                            targetPlayer.insanityLevel += insanityIncreaseOnLook;
-                            if (targetPlayer.insanityLevel >= maxInsanity)
-                            {
-                                SwitchToBehaviourServerRpc((int)State.Chasing);
-                                creatureVoice.Play(); // play chase sfx
-                                staring = false;
-                                timeSinceStare = 0f;
-                                return;
-                            }
-
-                            timeSinceStare = 0f;
-                            staring = false;
-                            creatureAnimator.SetTrigger("despawn");
-                            //creatureSFX.PlayOneShot(disappearSFX);
-                            return;
-                        }
-                    }
-                    else if ((maxInsanity * insanityPhase3) <= targetPlayer.insanityLevel && timeSinceStare > stareCooldown) // Staring at player
-                    {
-                        logger.LogDebug("Attempting stare player");
-                        staring = true;
-                        StarePlayer();
-                    }
+                    
 
                     break;
 
-                case (int)State.Chasing:
-                    agent.speed = somethingChaseSpeed;
+                case (int)State.Active:
 
-                    if (!targetPlayer.isPlayerAlone || !targetPlayer.isInsideFactory)
-                    {
-                        StopChase();
-                    }
 
-                    SetDestinationToPosition(targetPlayer.transform.position);
+
+                    break;
+
+                case (int)State.Manifesting:
+
+
 
                     break;
 
@@ -177,32 +140,6 @@ namespace HeavyItemSCPs.Items.SCP513
                     logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
                     break;
             }
-        }
-
-        void TryStartChase()
-        {
-            logger.LogDebug("Trying to start chase");
-            targetNode = ChoosePositionInFrontOfPlayer(5f);
-            if (targetNode == null)
-            {
-                logger.LogDebug("targetNode is null!");
-                return;
-            }
-
-            StartCoroutine(FreezePlayerCoroutine(3f));
-            Teleport(targetNode.position);
-            EnableEnemyMesh(true);
-            staring = false;
-            inSpecialAnimation = true;
-            creatureAnimator.SetTrigger("spawn");
-            SwitchToBehaviourServerRpc((int)State.Chasing);
-        }
-
-        void StopChase()
-        {
-            creatureVoice.Stop();
-            EnableEnemyMesh(false);
-            SwitchToBehaviourServerRpc((int)State.Inactive);
         }
 
         IEnumerator FreezePlayerCoroutine(float freezeTime)
@@ -232,7 +169,7 @@ namespace HeavyItemSCPs.Items.SCP513
         IEnumerator StopStareAfterDelay(float delay)
         {
             yield return new WaitForSeconds(delay);
-            if (enemyMeshEnabled && currentBehaviourStateIndex != (int)State.Chasing)
+            if (enemyMeshEnabled && currentBehaviourStateIndex != (int)State.Active)
             {
                 EnableEnemyMesh(false);
                 timeSinceStare = 0f;
@@ -337,7 +274,7 @@ namespace HeavyItemSCPs.Items.SCP513
             PlayerControllerB player = PlayerFromId(clientId);
             player.insanityLevel = 0f;
             targetPlayer = player;
-            logger.LogDebug($"Something: Haunting player with playerClientId: {targetPlayer.playerClientId}; actualClientId: {targetPlayer.actualClientId}");
+            logger.LogDebug($"SCP-513-1: Haunting player with playerClientId: {targetPlayer.playerClientId}; actualClientId: {targetPlayer.actualClientId}");
             ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
             hauntingLocalPlayer = localPlayer == targetPlayer;
 

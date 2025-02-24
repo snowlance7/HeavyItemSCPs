@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d7127b8f98ca8ec9896b384a71d39a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainScript: {fileID: 0}
+  mainScript: {fileID: 8630109645017042488}
   canCollideWithEnemies: 0
   onlyCollideWhenGrounded: 0
 --- !u!65 &7307826035505290003
@@ -1100,7 +1100,7 @@ Transform:
   m_GameObject: {fileID: 2036021199647479346}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.39, z: 0.338}
+  m_LocalPosition: {x: 0, y: 1.39, z: -0.042}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1125,10 +1125,10 @@ AudioSource:
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 0
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 15
+  MaxDistance: 2000
   Pan2D: 0
   rolloffMode: 1
   BypassEffects: 0
@@ -1163,7 +1163,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 1
+      value: 0
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -1425,8 +1425,9 @@ GameObject:
   - component: {fileID: 4085338376240457624}
   - component: {fileID: 7379213096311749191}
   - component: {fileID: 8630109645017042488}
+  - component: {fileID: 5004526506431924014}
   m_Layer: 19
-  m_Name: SCP323_1
+  m_Name: SCP513_1
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1452,7 +1453,8 @@ Transform:
   - {fileID: 6427329257660550048}
   - {fileID: 5474705441137903851}
   - {fileID: 7214298511435717655}
-  - {fileID: 4071499584399351215}
+  - {fileID: 4094978160432546080}
+  - {fileID: 2825902953381084993}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!195 &2782649738501197346
@@ -1489,7 +1491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1688248496
+  GlobalObjectIdHash: 2080542287
   InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -1542,14 +1544,39 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyType: {fileID: 11400000, guid: 1df60f26a3ceb8749aba285ffd1db38d, type: 2}
-  skinnedMeshRenderers: []
+  skinnedMeshRenderers:
+  - {fileID: 2656446498813867851}
   meshRenderers: []
-  creatureAnimator: {fileID: 0}
-  creatureVoice: {fileID: 0}
-  creatureSFX: {fileID: 0}
-  eye: {fileID: 0}
+  creatureAnimator: {fileID: 5004526506431924014}
+  creatureVoice: {fileID: 550918106905493945}
+  creatureSFX: {fileID: 2175500726018964752}
+  eye: {fileID: 7214298511435717655}
   dieSFX: {fileID: 0}
-  enemyBehaviourStates: []
+  enemyBehaviourStates:
+  - name: Inactive
+    VoiceClip: {fileID: 0}
+    playOneShotVoice: 0
+    SFXClip: {fileID: 0}
+    playOneShotSFX: 0
+    IsAnimTrigger: 0
+    parameterString: 
+    boolValue: 0
+  - name: Active
+    VoiceClip: {fileID: 0}
+    playOneShotVoice: 0
+    SFXClip: {fileID: 0}
+    playOneShotSFX: 0
+    IsAnimTrigger: 0
+    parameterString: 
+    boolValue: 0
+  - name: Manifesting
+    VoiceClip: {fileID: 0}
+    playOneShotVoice: 0
+    SFXClip: {fileID: 0}
+    playOneShotSFX: 0
+    IsAnimTrigger: 0
+    parameterString: 
+    boolValue: 0
   currentBehaviourState:
     name: 
     VoiceClip: {fileID: 0}
@@ -1563,12 +1590,12 @@ MonoBehaviour:
   previousBehaviourStateIndex: 0
   currentOwnershipOnThisClient: 0
   isInsidePlayerShip: 0
-  AIIntervalTime: 0
+  AIIntervalTime: 0.2
   inSpecialAnimation: 0
   inSpecialAnimationWithPlayer: {fileID: 0}
   serverPosition: {x: 0, y: 0, z: 0}
   serverRotation: {x: 0, y: 0, z: 0}
-  agent: {fileID: 0}
+  agent: {fileID: 2782649738501197346}
   allAINodes: []
   targetNode: {fileID: 0}
   favoriteSpot: {fileID: 0}
@@ -1578,7 +1605,7 @@ MonoBehaviour:
   thisNetworkObject: {fileID: 0}
   thisEnemyIndex: 0
   isClientCalculatingAI: 0
-  updatePositionThreshold: 0
+  updatePositionThreshold: 99999
   targetPlayer: {fileID: 0}
   movingTowardsTargetPlayer: 0
   moveTowardsDestination: 0
@@ -1616,11 +1643,32 @@ MonoBehaviour:
   stunnedByPlayer: {fileID: 0}
   debugEnemyAI: 0
   isOutside: 0
-  turnCompass: {fileID: 0}
-  enemyMesh: {fileID: 0}
-  ScanNode: {fileID: 0}
+  turnCompass: {fileID: 3922893198445650476}
+  enemyMesh: {fileID: 8651808419257290193}
+  ScanNode: {fileID: 6124889963872117346}
   BellSFX: []
   AmbientSFX: []
+--- !u!95 &5004526506431924014
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2510840225416614795}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 4e45c4ee10dd903489f2ca3dab7df248, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &2525098024950143557
 GameObject:
   m_ObjectHideFlags: 0
@@ -2321,13 +2369,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4370788140103903123}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
-  m_LocalScale: {x: 100, y: 100, z: 100}
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
+  m_LocalPosition: {x: 0, y: 0, z: -0.0967}
+  m_LocalScale: {x: 12.475, y: 12.474999, z: 12.474999}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1325152347820637616}
-  m_Father: {fileID: 4071499584399351215}
+  m_Father: {fileID: 9200087714663905612}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4382835941420925670
 GameObject:
@@ -2356,7 +2404,7 @@ Transform:
   m_GameObject: {fileID: 4382835941420925670}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.383, z: 0.329}
+  m_LocalPosition: {x: 0, y: 1.383, z: -0.039}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2381,10 +2429,10 @@ AudioSource:
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 0
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 1500
+  MaxDistance: 2000
   Pan2D: 0
   rolloffMode: 1
   BypassEffects: 0
@@ -2732,39 +2780,6 @@ Transform:
   m_Children:
   - {fileID: 4656253013355480668}
   m_Father: {fileID: 9204519514069197835}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &5201072351029627056
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4071499584399351215}
-  m_Layer: 0
-  m_Name: SCP513-1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4071499584399351215
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5201072351029627056}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.0967}
-  m_LocalScale: {x: 0.124749996, y: 0.124749996, z: 0.124749996}
-  m_ConstrainProportionsScale: 1
-  m_Children:
-  - {fileID: 4094978160432546080}
-  - {fileID: 2825902953381084993}
-  m_Father: {fileID: 9200087714663905612}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5211608411854085901
 GameObject:
@@ -4336,12 +4351,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8651808419257290193}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: -0, y: 0, z: 0}
-  m_LocalScale: {x: 100, y: 100, z: 100}
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
+  m_LocalPosition: {x: 0, y: 0, z: -0.0967}
+  m_LocalScale: {x: 12.475, y: 12.474999, z: 12.474999}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4071499584399351215}
+  m_Father: {fileID: 9200087714663905612}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!137 &2656446498813867851
 SkinnedMeshRenderer:
