@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65d3fcb39dd67306e9bb17a603308070, type: 3}
   m_Name: SCP513_1Enemy
   m_EditorClassIdentifier: 
-  enemyName: SCP-513-1
+  enemyName: 
   probabilityCurve:
     serializedVersion: 2
     m_Curve: []
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  spawningDisabled: 1
+  spawningDisabled: 0
   numberSpawnedFalloff:
     serializedVersion: 2
     m_Curve: []

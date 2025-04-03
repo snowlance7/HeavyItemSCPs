@@ -6,6 +6,7 @@ using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
+using static HeavyItemSCPs.Utils;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
@@ -20,27 +21,42 @@ namespace HeavyItemSCPs.Items.SCP513
         public AudioClip[] BellSFX;
         public AudioClip[] AmbientSFX;
         public AudioClip[] StalkSFX;
+
+        public SCP513Behavior SCP513Script;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         bool enemyMeshEnabled;
         public static bool hauntingLocalPlayer;
-        float timeSinceStare;
-        float timeSinceChaseAttempt;
         bool staring;
+
+        float cooldownMultiplier;
+        float timeSinceCommonEvent;
+        float timeSinceMediumEvent;
+        float timeSinceRareEvent;
+
+        float nextCommonEventTime;
+        float nextMediumEventTime;
+        float nextRareEventTime;
 
         // Constants
         const float maxInsanity = 50f;
 
         // Configs
-        float insanityPhase3 = 0.3f;
-        float stareCooldown = 20f;
-        float stareBufferTime = 5f;
-        float stareTime = 10f;
-        float insanityIncreaseOnLook = 10f;
-        float somethingChaseSpeed = 10f;
-        float chaseCooldown = 5f;
-        float insanityPhase1 = 0f;
-        float insanityPhase2 = 0.1f;
+        float commonEventMinCooldown = 10f;
+        float commonEventMaxCooldown = 20f;
+        float uncommonEventMinCooldown = 30f;
+        float uncommonEventMaxCooldown = 60f;
+        float rareEventMinCooldown = 180f;
+        float rareEventMaxCooldown = 240f;
+
+        int eventNothingWeight = 100;
+        int eventBlockDoorWeight = 50;
+        int eventStareWeight = 50;
+        int eventJumpscareWeight = 50;
+        int eventChaseWeight = 50;
+        int eventMimicEnemyWeight = 25;
+        int eventMimicPlayerWeight = 25;
+        int eventMimicObstaclesWeight = 25;
 
         public enum State
         {
@@ -55,6 +71,10 @@ namespace HeavyItemSCPs.Items.SCP513
             base.Start();
 
             currentBehaviourStateIndex = (int)State.Inactive;
+
+            nextCommonEventTime = commonEventMaxCooldown;
+            nextMediumEventTime = uncommonEventMaxCooldown;
+            nextRareEventTime = rareEventMaxCooldown;
         }
 
         public override void Update()
@@ -96,8 +116,11 @@ namespace HeavyItemSCPs.Items.SCP513
             float newFear = targetPlayer.insanityLevel / maxInsanity;
             targetPlayer.playersManager.fearLevel = Mathf.Max(targetPlayer.playersManager.fearLevel, newFear); // Change fear based on insanity
 
-            timeSinceStare += Time.deltaTime;
-            timeSinceChaseAttempt += Time.deltaTime;
+            cooldownMultiplier = 1f - localPlayer.playersManager.fearLevel;
+
+            timeSinceCommonEvent += Time.deltaTime * cooldownMultiplier;
+            timeSinceMediumEvent += Time.deltaTime * cooldownMultiplier;
+            timeSinceRareEvent += Time.deltaTime * cooldownMultiplier;
         }
 
         public override void DoAIInterval()
@@ -106,33 +129,30 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (!base.IsOwner) { return; }
 
-            if (StartOfRound.Instance.allPlayersDead
-                || targetPlayer == null
-                || targetPlayer.isPlayerDead
-                || targetPlayer.disconnectedMidGame
-                || !targetPlayer.isPlayerControlled
-                || inSpecialAnimation)
-            {
-                return;
-            }
-
             switch (currentBehaviourStateIndex)
             {
                 case (int)State.Inactive:
 
-                    
+                    if (targetPlayer == null) { return; }
+                    SwitchToBehaviourClientRpc((int)State.Active);
 
                     break;
 
                 case (int)State.Active:
 
-
+                    if (enemyMeshEnabled)
+                    {
+                        EnableEnemyMesh(false);
+                    }
 
                     break;
 
                 case (int)State.Manifesting:
 
-
+                    if (!enemyMeshEnabled)
+                    {
+                        EnableEnemyMesh(true);
+                    }
 
                     break;
 
@@ -140,58 +160,6 @@ namespace HeavyItemSCPs.Items.SCP513
                     logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
                     break;
             }
-        }
-
-        IEnumerator FreezePlayerCoroutine(float freezeTime)
-        {
-            FreezePlayer(targetPlayer, true);
-            yield return new WaitForSeconds(freezeTime);
-            FreezePlayer(targetPlayer, false);
-        }
-
-        void StarePlayer()
-        {
-            targetNode = TryFindingHauntPosition();
-            if (targetNode == null)
-            {
-                logger.LogDebug("targetNode is null!");
-                timeSinceStare = stareCooldown - stareBufferTime;
-                staring = false;
-                return;
-            }
-
-            Teleport(targetNode.position);
-            EnableEnemyMesh(true);
-            //RoundManager.PlayRandomClip(creatureVoice, ambientSFX);
-            StartCoroutine(StopStareAfterDelay(stareTime));
-        }
-
-        IEnumerator StopStareAfterDelay(float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            if (enemyMeshEnabled && currentBehaviourStateIndex != (int)State.Active)
-            {
-                EnableEnemyMesh(false);
-                timeSinceStare = 0f;
-                staring = false;
-            }
-        }
-
-        private Transform? TryFindingHauntPosition(bool mustBeInLOS = true)
-        {
-            if (targetPlayer.isInsideFactory)
-            {
-                for (int i = 0; i < allAINodes.Length; i++)
-                {
-                    if ((!mustBeInLOS || !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
-                    {
-                        Debug.DrawLine(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, Color.green, 2f);
-                        Debug.Log($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
-                        return allAINodes[i].transform;
-                    }
-                }
-            }
-            return null;
         }
 
         public Transform? ChoosePositionInFrontOfPlayer(float minDistance)
@@ -225,7 +193,7 @@ namespace HeavyItemSCPs.Items.SCP513
             enemyMeshEnabled = enable;
         }
 
-        Vector3 FindPositionOutOfLOS()
+        public Vector3 FindPositionOutOfLOS()
         {
             targetNode = ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
             return RoundManager.Instance.GetNavMeshPosition(targetNode.position);
@@ -236,12 +204,6 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("Teleporting to " + position.ToString());
             position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit);
             agent.Warp(position);
-        }
-
-        GameObject GetRandomAINode(List<GameObject> nodes)
-        {
-            int randIndex = UnityEngine.Random.Range(0, nodes.Count);
-            return nodes[randIndex];
         }
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with
@@ -255,7 +217,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         }
 
-        // Animations
+        // Animation Methods
 
 
 
@@ -265,6 +227,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public void ChangeTargetPlayerServerRpc(ulong clientId)
         {
             if (!IsServerOrHost) { return; }
+            NetworkObject.ChangeOwnership(clientId);
             ChangeTargetPlayerClientRpc(clientId);
         }
 
@@ -277,11 +240,6 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug($"SCP-513-1: Haunting player with playerClientId: {targetPlayer.playerClientId}; actualClientId: {targetPlayer.actualClientId}");
             ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
             hauntingLocalPlayer = localPlayer == targetPlayer;
-
-            if (IsServerOrHost)
-            {
-                NetworkObject.ChangeOwnership(targetPlayer.actualClientId);
-            }
         }
     }
 }

@@ -31,13 +31,13 @@ namespace HeavyItemSCPs.Items.SCP513
             base.OnNetworkSpawn();
             if (Instance != null && Instance != this)
             {
-                logger.LogDebug("There is already a SCP-178 in the scene. Removing this one.");
+                logger.LogDebug("There is already a SCP-513 in the scene. Removing this one.");
                 if (!IsServerOrHost) { return; }
                 NetworkObject.Despawn(true);
                 return;
             }
             Instance = this;
-            logger.LogDebug("Finished spawning SCP-178");
+            logger.LogDebug("Finished spawning SCP-513");
         }
 
         public override void OnNetworkDespawn()
@@ -53,16 +53,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     bellMan.NetworkObject.Despawn(true);
                 }
-            }
-        }
-
-        public override void ItemActivate(bool used, bool buttonDown = true)
-        {
-            base.ItemActivate(used, buttonDown);
-
-            if (buttonDown)
-            {
-                RingBell();
             }
         }
 
