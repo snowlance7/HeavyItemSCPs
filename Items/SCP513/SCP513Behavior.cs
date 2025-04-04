@@ -26,6 +26,34 @@ namespace HeavyItemSCPs.Items.SCP513
         public List<SCP513_1AI> BellManInstances = [];
         public NetworkList<ulong> HauntedPlayers = new NetworkList<ulong>();
 
+        const float maxFallDistance = 1f;
+        const float ringCooldown = 3f;
+
+        float timeSinceRingChance;
+        float timeSinceLastRing;
+        Vector2 lastCameraAngles;
+
+        // Configs
+        float ringChanceSprint = 0.1f;
+        float maxTurnSpeed = 1000f;
+
+        public override void Update()
+        {
+            base.Update();
+
+            if (!IsServerOrHost || playerHeldBy == null)
+            {
+                timeSinceLastRing = 0f;
+                return;
+            }
+
+            timeSinceRingChance += Time.deltaTime;
+            timeSinceLastRing += Time.deltaTime;
+
+            TrackCameraMovement();
+            TrackPlayerSprinting();
+        }
+
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
@@ -51,22 +79,63 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 foreach (var bellMan in BellManInstances)
                 {
+                    if (bellMan == null || !bellMan.NetworkObject.IsSpawned) { continue; }
                     bellMan.NetworkObject.Despawn(true);
                 }
             }
         }
 
-        public override void DiscardItem()
+        public override void OnHitGround()
         {
+            base.OnHitGround();
+            if (!IsServerOrHost) { return; }
             float fallDistance = startFallingPosition.y - targetFloorPosition.y;
-            logger.LogDebug("FallDistance: " + fallDistance); // TODO: Use this to figure out how far it should fall to make the bell go off
+            logger.LogDebug("FallDistance: " + fallDistance);
+
+            if (fallDistance > maxFallDistance)
+            {
+                RingBell();
+            }
+        }
+        void TrackCameraMovement()
+        {
+            Vector2 currentAngles = new Vector2(
+                playerHeldBy.gameplayCamera.transform.eulerAngles.x,
+                playerHeldBy.gameplayCamera.transform.eulerAngles.y
+            );
+
+            // Calculate delta, account for angle wrapping (360 to 0)
+            float deltaX = Mathf.DeltaAngle(lastCameraAngles.x, currentAngles.x);
+            float deltaY = Mathf.DeltaAngle(lastCameraAngles.y, currentAngles.y);
+
+            // Combine both axes into a single turn speed value
+            float cameraTurnSpeed = new Vector2(deltaX, deltaY).magnitude / Time.deltaTime;
+            lastCameraAngles = currentAngles;
+
+            if (cameraTurnSpeed > maxTurnSpeed)
+            {
+                RingBell();
+            }
+        }
+
+        void TrackPlayerSprinting()
+        {
+            if (timeSinceRingChance < 1f)
+                return;
+
+            timeSinceRingChance = 0f;
+
+            if (playerHeldBy.isSprinting && UnityEngine.Random.Range(0f, 1f) <= ringChanceSprint)
+                RingBell();
         }
 
         public void RingBell()
         {
-            RoundManager.PlayRandomClip(ItemAudio, BellSFX);
+            if (!IsServerOrHost || timeSinceLastRing < ringCooldown) { return; }
 
-            if (!IsServerOrHost) { return; }
+            timeSinceLastRing = 0f;
+
+            RingBellClientRpc();
 
             foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
             {
@@ -84,12 +153,19 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public void SpawnBellMan(ulong targetPlayerClientId)
         {
+            if (!IsServerOrHost) { return; }
             GameObject bellManObj = Instantiate(SCP513_1Prefab, Vector3.zero, Quaternion.identity);
             SCP513_1AI bellMan = bellManObj.GetComponent<SCP513_1AI>();
             bellMan.NetworkObject.Spawn(true);
             RoundManager.Instance.SpawnedEnemies.Add(bellMan);
             BellManInstances.Add(bellMan);
             bellMan.ChangeTargetPlayerClientRpc(targetPlayerClientId);
+        }
+
+        [ClientRpc]
+        public void RingBellClientRpc()
+        {
+            RoundManager.PlayRandomClip(ItemAudio, BellSFX);
         }
     }
 
@@ -110,27 +186,6 @@ namespace HeavyItemSCPs.Items.SCP513
                     PlayerControllerB player = PlayerFromId(clientId);
                     if (player == null || !player.isPlayerControlled) { continue; }
                     SCP513Behavior.Instance.SpawnBellMan(clientId);
-                }
-            }
-            catch (System.Exception e)
-            {
-                LoggerInstance.LogError(e);
-                return;
-            }
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.KillPlayerServerRpc))]
-        public static void KillPlayerServerRpcPostfix(PlayerControllerB __instance)
-        {
-            try
-            {
-                if (!IsServerOrHost) { return; }
-                if (SCP513Behavior.Instance == null) { return; }
-
-                if (SCP513Behavior.Instance.HauntedPlayers.Contains(__instance.actualClientId))
-                {
-                    SCP513Behavior.Instance.HauntedPlayers.Remove(__instance.actualClientId);
                 }
             }
             catch (System.Exception e)

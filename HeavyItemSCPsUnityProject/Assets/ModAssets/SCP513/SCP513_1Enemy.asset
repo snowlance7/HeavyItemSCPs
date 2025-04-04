@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65d3fcb39dd67306e9bb17a603308070, type: 3}
   m_Name: SCP513_1Enemy
   m_EditorClassIdentifier: 
-  enemyName: 
+  enemyName: SCP-513-1
   probabilityCurve:
     serializedVersion: 2
     m_Curve: []
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  spawningDisabled: 0
+  spawningDisabled: 1
   numberSpawnedFalloff:
     serializedVersion: 2
     m_Curve: []
@@ -29,8 +29,9 @@ MonoBehaviour:
   useNumberSpawnedFalloff: 0
   spawnInGroupsOf: 0
   requireNestObjectsToSpawn: 0
-  enemyPrefab: {fileID: 0}
-  PowerLevel: 0
+  enemyPrefab: {fileID: 2510840225416614795, guid: 8b92cf7a5f3385146a0773061e5183e7,
+    type: 3}
+  PowerLevel: 1
   MaxCount: 0
   numberSpawned: 0
   nestsSpawned: 0
@@ -42,7 +43,7 @@ MonoBehaviour:
   stunGameDifficultyMultiplier: 0
   canBeStunned: 0
   canDie: 0
-  destroyOnDeath: 0
+  destroyOnDeath: 1
   canSeeThroughFog: 0
   pushPlayerForce: 0
   pushPlayerDistance: 0

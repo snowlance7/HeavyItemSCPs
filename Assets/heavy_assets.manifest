@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 3135292980
+CRC: 1653049800
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 677f5d4f2d92491a1f9972ee208f1561
+    Hash: 4ebd670f7020d1e537a9fd2e5c789000
   TypeTreeHash:
     serializedVersion: 2
-    Hash: e4346caecfc28dbbb917727bd6e59a3c
+    Hash: ed482be20bb22cefb0029cb80d457267
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 677f5d4f2d92491a1f9972ee208f1561
+    Hash: 4ebd670f7020d1e537a9fd2e5c789000
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -45,8 +45,6 @@ ClassTypes:
 - Class: 114
   Script: {fileID: 1339316418, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
-  Script: {fileID: 2131381628, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
-- Class: 114
   Script: {fileID: 11500000, guid: 65d3fcb39dd67306e9bb17a603308070, type: 3}
 - Class: 114
   Script: {fileID: 11500000, guid: 04f75356a7e9c978bddc7d568e58a50b, type: 3}
@@ -58,6 +56,8 @@ ClassTypes:
   Script: {fileID: -2111379243, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: -1030968450, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: 2131381628, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: -1492431532, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
@@ -78,6 +78,10 @@ ClassTypes:
   Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
 - Class: 114
   Script: {fileID: 11500000, guid: d3cecf05b78b173605122a700874719c, type: 3}
+- Class: 114
+  Script: {fileID: -1683112408, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: 564475876, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 115
   Script: {instanceID: 0}
 - Class: 135
@@ -111,14 +115,19 @@ SerializeReferenceClassIdentifiers:
   ClassName: Unity.Netcode.Components.NetworkAnimator/TransitionStateinfo
 Assets:
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
+- Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset
+- Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset
 - Assets/ModAssets/SharedAssets/NetworkHandlerHeavyItemSCPs.prefab
 - Assets/ModAssets/SCP323/SCP323_1Enemy.asset
+- Assets/ModAssets/SCP513/SCP513_1Enemy.asset
+- Assets/ModAssets/SCP513/SCP513Item.asset
 - Assets/ModAssets/SCP178/SCP1781Enemy.asset
 - Assets/ModAssets/SCP323/SCP323Item.asset
 - Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset
+- Assets/ModAssets/SCP513/Bestiary/SCP5131TN.asset
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TN.asset
 - Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset
 - Assets/ModAssets/SCP427/SCP427Item.asset

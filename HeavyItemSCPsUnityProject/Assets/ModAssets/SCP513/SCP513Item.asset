@@ -13,28 +13,29 @@ MonoBehaviour:
   m_Name: SCP513Item
   m_EditorClassIdentifier: 
   itemId: 0
-  itemName: 
+  itemName: SCP-513
   spawnPositionTypes: []
   twoHanded: 0
   twoHandedAnimation: 0
   disableHandsOnWall: 0
-  canBeGrabbedBeforeGameStart: 0
-  weight: 0
+  canBeGrabbedBeforeGameStart: 1
+  weight: 1.2
   itemIsTrigger: 0
   holdButtonUse: 0
-  itemSpawnsOnGround: 0
+  itemSpawnsOnGround: 1
   isConductiveMetal: 0
-  isScrap: 0
+  isScrap: 1
   creditsWorth: 0
   lockedInDemo: 0
   highestSalePercentage: 0
   maxValue: 0
   minValue: 0
-  spawnPrefab: {fileID: 0}
+  spawnPrefab: {fileID: 1840457349918929, guid: 3f2228cb0d64325458b126452ce0492d,
+    type: 3}
   requiresBattery: 0
   batteryUsage: 0
   automaticallySetUsingPower: 0
-  itemIcon: {fileID: 0}
+  itemIcon: {fileID: 21300000, guid: 26183cbb9edf7b44c9f9b7387666bed6, type: 3}
   grabAnim: 
   useAnim: 
   pocketAnim: 
@@ -55,8 +56,8 @@ MonoBehaviour:
   floorYOffset: 0
   allowDroppingAheadOfPlayer: 0
   restingRotation: {x: 0, y: 0, z: 0}
-  rotationOffset: {x: 0, y: 0, z: 0}
-  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: -90, z: 0}
+  positionOffset: {x: -0.1, y: 0.065, z: -0.16}
   meshOffset: 0
   meshVariants: []
   materialVariants: []

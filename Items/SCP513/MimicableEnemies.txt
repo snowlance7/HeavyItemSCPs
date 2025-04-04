@@ -1,0 +1,24 @@
+Fake Enemies
+[Debug  :HeavyItemSCPs] SandSpider
+[Debug  :HeavyItemSCPs] HoarderBug
+[Debug  :HeavyItemSCPs] Flowerman
+[Debug  :HeavyItemSCPs] Crawler
+[Debug  :HeavyItemSCPs] Blob
+[Debug  :HeavyItemSCPs] MouthDog
+[Debug  :HeavyItemSCPs] ForestGiant
+[Debug  :HeavyItemSCPs] ClaySurgeon
+[Debug  :HeavyItemSCPs] CaveDweller		???
+[Debug  :HeavyItemSCPs] BaboonHawk
+[Debug  :HeavyItemSCPs] SpringMan
+[Debug  :HeavyItemSCPs] Jester
+[Debug  :HeavyItemSCPs] Butler
+
+Chase Fake Enemies
+[Debug  :HeavyItemSCPs] Flowerman
+[Debug  :HeavyItemSCPs] RedLocustBees
+[Debug  :HeavyItemSCPs] MouthDog
+[Debug  :HeavyItemSCPs] ForestGiant
+[Debug  :HeavyItemSCPs] SandWorm
+[Debug  :HeavyItemSCPs] SpringMan
+[Debug  :HeavyItemSCPs] Jester
+[Debug  :HeavyItemSCPs] MaskedPlayerEnemy

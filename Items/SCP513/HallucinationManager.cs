@@ -4,9 +4,21 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
+    /*
+     Status effects
+
+    - Ears ringing
+    - Fear
+    - Bleeding
+    - Encumbered
+    - Insanity
+    - 
+     */
+
     internal class HallucinationManager : MonoBehaviour
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -31,15 +43,19 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(Jumpscare);
             commonEvents.Add(FlickerLights);
             commonEvents.Add(Stare);
+            commonEvents.Add(PlayAmbientSFXNearby);
+            commonEvents.Add(PlaySoundEffectMinor);
+            commonEvents.Add(WallBloodMessage);
+            commonEvents.Add(PlayBellSFX);
 
             uncommonEvents.Add(BlockDoor);
             uncommonEvents.Add(StalkPlayer);
-            uncommonEvents.Add(MimicMine);
-            uncommonEvents.Add(MimicTurret);
-            uncommonEvents.Add(MimicSpikeTrap);
+            uncommonEvents.Add(MimicHazard);
+            uncommonEvents.Add(PlayFakeSoundEffectMajor);
+            uncommonEvents.Add(MimicEnemy);
 
-            rareEvents.Add(MimicEnemy);
-            rareEvents.Add(FakeMimicPlayer);
+            rareEvents.Add(MimicEnemyChase);
+            rareEvents.Add(MimicPlayer);
             rareEvents.Add(ChasePlayer);
         }
 
@@ -65,6 +81,11 @@ namespace HeavyItemSCPs.Items.SCP513
                 default:
                     break;
             }
+        }
+
+        public void OnDestroy()
+        {
+            StopAllCoroutines();
         }
 
         #region Common
@@ -96,6 +117,26 @@ namespace HeavyItemSCPs.Items.SCP513
             StartCoroutine(StareCoroutine());
         }
 
+        void PlayAmbientSFXNearby()
+        {
+
+        }
+
+        void PlaySoundEffectMinor()
+        {
+
+        }
+
+        void WallBloodMessage()
+        {
+
+        }
+
+        void PlayBellSFX()
+        {
+
+        }
+
         #endregion
 
         #region UnCommon
@@ -110,36 +151,66 @@ namespace HeavyItemSCPs.Items.SCP513
 
         }
 
-        void MimicMine()
+        void MimicHazard()
         {
 
         }
 
-        void MimicTurret()
+        void PlayFakeSoundEffectMajor()
         {
 
         }
 
-        void MimicSpikeTrap()
+        void ShowFakeShipLeavingDisplayTip()
         {
 
+        }
+
+        void SpawnFakeBody()
+        {
+            
+        }
+
+        void SlowWalkToPlayer() // Use arms crossed
+        {
+
+        }
+
+        void MimicEnemy()
+        {
+            // See MimicableEnemies.txt
         }
 
         #endregion
 
         #region Rare
 
-        void MimicEnemy()
+        void MimicEnemyChase()
+        {
+            // See MimicableEnemies.txt
+        }
+
+        void MimicPlayer()
         {
 
         }
 
-        void FakeMimicPlayer()
+        void ChasePlayer() // Use arms down, faster
         {
 
         }
 
-        void ChasePlayer()
+        void SpawnGhostGirl() // DressGirl
+        {
+
+        }
+
+        void TurnOffAllLights()
+        {
+
+        }
+
+        void SpawnFakeLandMineUnderPlayer()
         {
 
         }

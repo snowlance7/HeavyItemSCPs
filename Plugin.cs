@@ -23,8 +23,10 @@ namespace HeavyItemSCPs
     [BepInDependency("SCP500", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public static Plugin PluginInstance;
         public static ManualLogSource LoggerInstance;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         private readonly Harmony harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         public static PlayerControllerB localPlayer { get { return StartOfRound.Instance.localPlayerController; } }
         public static PlayerControllerB PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts.Where(x => x.actualClientId == id).First(); }
@@ -34,26 +36,25 @@ namespace HeavyItemSCPs
         public static AssetBundle? ModAssets;
 
         // SCP-427 Configs
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public static ConfigEntry<bool> configEnableSCP427;
         public static ConfigEntry<int> config427MinValue;
         public static ConfigEntry<int> config427MaxValue;
         public static ConfigEntry<string> config427LevelRarities;
         public static ConfigEntry<string> config427CustomLevelRarities;
-        public static ConfigEntry<int> config427SCPDungeonRarity;
 
         public static ConfigEntry<float> configTimeToTransform;
         public static ConfigEntry<int> configHealthPerSecondOpen;
         public static ConfigEntry<float> configHoarderBugTransformTime;
         public static ConfigEntry<float> configBaboonHawkTransformTime;
         public static ConfigEntry<float> configOtherEnemyTransformTime;
-        public static ConfigEntry<float> configTimeToSpawnSCP4271;
+        public static ConfigEntry<float>? configTimeToSpawnSCP4271;
         public static ConfigEntry<int> configMaxSpawns;
         public static ConfigEntry<bool> config427_500Compatibility;
 
         // SCP-427-1 Enemy Configs
         public static ConfigEntry<string> config4271LevelRarities;
         public static ConfigEntry<string> config4271CustomLevelRarities;
-        public static ConfigEntry<int> config4271SCPDungeonRarity;
         public static ConfigEntry<SCP4271AI.DropMethod> config4271DropMethod;
         public static ConfigEntry<int> config4271MaxHealth;
 
@@ -92,7 +93,6 @@ namespace HeavyItemSCPs
         public static ConfigEntry<int> config323MaxValue;
         public static ConfigEntry<string> config323LevelRarities;
         public static ConfigEntry<string> config323CustomLevelRarities;
-        public static ConfigEntry<int> config323SCPDungeonRarity;
 
         public static ConfigEntry<float> config323DistanceToIncreaseInsanity;
         public static ConfigEntry<int> config323InsanityNearby;
@@ -105,7 +105,6 @@ namespace HeavyItemSCPs
         // SCP-323-1
         public static ConfigEntry<string> config3231LevelRarities;
         public static ConfigEntry<string> config3231CustomLevelRarities;
-        public static ConfigEntry<int> config3231SCPDungeonRarity;
 
         public static ConfigEntry<float> config3231PlayerBloodSenseRange;
         public static ConfigEntry<float> config3231MaskedBloodSenseRange;
@@ -124,6 +123,15 @@ namespace HeavyItemSCPs
         public static ConfigEntry<float> config3231RoamMinSpeed;
         public static ConfigEntry<float> config3231TimeToLosePlayer;
         public static ConfigEntry<float> config3231SearchAfterLosePlayerTime;
+
+        // SCP-513
+        public static ConfigEntry<bool> configEnableSCP513;
+        public static ConfigEntry<int> config513MinValue;
+        public static ConfigEntry<int> config513MaxValue;
+        public static ConfigEntry<string> config513LevelRarities;
+        public static ConfigEntry<string> config513CustomLevelRarities;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
 
         private void Awake()
         {
@@ -145,7 +153,6 @@ namespace HeavyItemSCPs
             config427MaxValue = Config.Bind("SCP-427", "Maximum value", 300, "The maximum value of SCP-427.");
             config427LevelRarities = Config.Bind("SCP-427 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
             config427CustomLevelRarities = Config.Bind("SCP-427 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
-            config427SCPDungeonRarity = Config.Bind("SCP-427 Rarities", "SCP Dungeon Rarity", 100, "The rarity of SCP-427 in the SCP Dungeon. Set to -1 to use level rarities.");
 
             configTimeToTransform = Config.Bind("SCP-427", "Time to transform", 30f, "How long a player can hold the necklace before they transform into SCP-427-1. Set to -1 to disable transforming.");
             configHealthPerSecondOpen = Config.Bind("SCP-427", "Health per second open", 5, "The health gained per second while opening SCP-427.");
@@ -159,7 +166,6 @@ namespace HeavyItemSCPs
             // SCP-427-1
             config4271LevelRarities = Config.Bind("SCP-427-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
             config4271CustomLevelRarities = Config.Bind("SCP-427-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:0", "Rarities for modded levels. Same formatting as level rarities.");
-            config4271SCPDungeonRarity = Config.Bind("SCP-427-1 Rarities", "SCP Dungeon Rarity", -1, "The rarity of SCP-427-1 in the SCP Dungeon. Set to -1 to use level rarities.");
             config4271DropMethod = Config.Bind("SCP-427-1", "Drop method", SCP4271AI.DropMethod.DropAllItems, "When the player is grabbed by SCP-427-1, they should drop: 0 = Drop nothing, 1 = Drop held item, 2 = Drop two-handed item, 3 = Drop all items.");
             config4271MaxHealth = Config.Bind("SCP-427-1", "Max health", 50, "The maximum health of SCP-427-1.");
 
@@ -197,7 +203,6 @@ namespace HeavyItemSCPs
             config323MaxValue = Config.Bind("SCP-323", "Maximum value", 150, "The maximum value of SCP-323.");
             config323LevelRarities = Config.Bind("SCP-323 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
             config323CustomLevelRarities = Config.Bind("SCP-323 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
-            config323SCPDungeonRarity = Config.Bind("SCP-323 Rarities", "SCP Dungeon Rarity", 100, "The rarity in the SCP Dungeon. Set to -1 to use level rarities.");
 
             config323DistanceToIncreaseInsanity = Config.Bind("SCP-323", "Distance to increase insanity", 10f, "The distance you need to be from SCP-323 for it to start decreasing your insanity.");
             config323InsanityNearby = Config.Bind("SCP-323", "Insanity nearby", 5, "The amount of insanity you will gain every 10 seconds of being near SCP-323.");
@@ -210,7 +215,6 @@ namespace HeavyItemSCPs
             // SCP-323-1
             config3231LevelRarities = Config.Bind("SCP-323-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
             config3231CustomLevelRarities = Config.Bind("SCP-323-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:0", "Rarities for modded levels. Same formatting as level rarities.");
-            config3231SCPDungeonRarity = Config.Bind("SCP-323-1 Rarities", "SCP Dungeon Rarity", -1, "The rarity in the SCP Dungeon. Set to -1 to use level rarities.");
 
             config3231PlayerBloodSenseRange = Config.Bind("SCP-323-1", "Player blood sense range", 75f, "When the player takes damage, SCP-323-1 will enter BloodSearch phase if the player is in this range.");
             config3231MaskedBloodSenseRange = Config.Bind("SCP-323-1", "Masked blood sense range", 75f, "When a masked enemy takes damage, SCP-323-1 will enter BloodSearch phase if a masked is in this range.");
@@ -230,6 +234,13 @@ namespace HeavyItemSCPs
             config3231RoamMinSpeed = Config.Bind("SCP-323-1", "Roam min speed", 3f, "The minimum speed at which SCP-323-1 will roam based on health.");
             config3231TimeToLosePlayer = Config.Bind("SCP-323-1", "Time to lose player", 5f, "The time the player needs to be out of LOS to lose SCP-323-1.");
             config3231SearchAfterLosePlayerTime = Config.Bind("SCP-323-1", "Search after lose player time", 25f, "The time it takes for SCP-323-1 to search after losing the player.");
+            
+            // SCP-513
+            configEnableSCP513 = Config.Bind("SCP-513", "Enable SCP-513", true, "Whether or not SCP-513 can spawn as scrap.");
+            config513MinValue = Config.Bind("SCP-513", "Minimum value", 100, "The minimum value of SCP-513.");
+            config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
+            config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 50, Modded:50", "Rarities for each level. See default for formatting.");
+            config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
 
             // Loading Assets
             string sAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -262,6 +273,13 @@ namespace HeavyItemSCPs
             {
                 RegisterItem("Assets/ModAssets/SCP323/SCP323Item.asset", config323LevelRarities.Value, config323CustomLevelRarities.Value, config323MinValue.Value, config323MaxValue.Value);
                 RegisterEnemy("Assets/ModAssets/SCP323/SCP323_1Enemy.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset", config3231LevelRarities.Value, config3231CustomLevelRarities.Value);
+            }
+
+            // SCP-513
+            if (configEnableSCP513.Value)
+            {
+                RegisterItem("Assets/ModAssets/SCP513/SCP513Item.asset", config513LevelRarities.Value, config513CustomLevelRarities.Value, config513MinValue.Value, config513MaxValue.Value);
+                RegisterEnemy("Assets/ModAssets/SCP513/SCP513_1Enemy.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TN.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset");
             }
 
             // Finished

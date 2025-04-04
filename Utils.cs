@@ -1,10 +1,14 @@
-﻿using GameNetcodeStuff;
+﻿using DunGen.Tags;
+using GameNetcodeStuff;
 using LethalLib.Modules;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AI;
 using static HeavyItemSCPs.Plugin;
+using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs
 {
@@ -130,6 +134,47 @@ namespace HeavyItemSCPs
             scavengerModel.transform.Find("LOD2").gameObject.SetActive(!value);
             scavengerModel.transform.Find("LOD3").gameObject.SetActive(!value);
             player.playerBadgeMesh.gameObject.SetActive(value);
+        }
+
+        public static List<SpawnableEnemyWithRarity> GetEnemies()
+        {
+            List<SpawnableEnemyWithRarity> enemies = new List<SpawnableEnemyWithRarity>();
+            enemies = GameObject.Find("Terminal")
+                .GetComponentInChildren<Terminal>()
+                .moonsCatalogueList
+                .SelectMany(x => x.Enemies.Concat(x.DaytimeEnemies).Concat(x.OutsideEnemies))
+                .Where(x => x != null && x.enemyType != null && x.enemyType.name != null)
+                .GroupBy(x => x.enemyType.name, (k, v) => v.First())
+                .ToList();
+
+            return enemies;
+        }
+
+        public static EnemyVent GetClosestVentToPosition(Vector3 pos)
+        {
+            float mostOptimalDistance = 2000f;
+            EnemyVent targetVent = null!;
+            foreach (var vent in RoundManager.Instance.allEnemyVents)
+            {
+                float distance = Vector3.Distance(pos, vent.floorNode.transform.position);
+
+                if (distance < mostOptimalDistance)
+                {
+                    mostOptimalDistance = distance;
+                    targetVent = vent;
+                }
+            }
+
+            return targetVent;
+        }
+
+        public static bool CalculatePath(Vector3 fromPos, Vector3 toPos)
+        {
+            Vector3 from = RoundManager.Instance.GetNavMeshPosition(fromPos, RoundManager.Instance.navHit, 1.75f);
+            Vector3 to = RoundManager.Instance.GetNavMeshPosition(toPos, RoundManager.Instance.navHit, 1.75f);
+
+            NavMeshPath path = new();
+            return NavMesh.CalculatePath(from, to, -1, path) && Vector3.Distance(path.corners[path.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(to, RoundManager.Instance.navHit, 2.7f)) <= 1.55f; // TODO: Test this
         }
     }
 }

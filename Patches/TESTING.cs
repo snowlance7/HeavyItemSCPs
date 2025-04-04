@@ -24,7 +24,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Patches
 {
-    //[HarmonyPatch]
+    [HarmonyPatch]
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
@@ -34,8 +34,13 @@ namespace HeavyItemSCPs.Patches
         public static void PingScan_performedPostFix()
         {
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
-            
 
+            /*Ray interactRay = new Ray(localPlayer.transform.position + Vector3.up, -Vector3.up);
+            if (!Physics.Raycast(interactRay, out RaycastHit hit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore))
+            {
+                return;
+            }
+            logger.LogDebug(hit.collider.tag);*/
         } // HoarderBug, BaboonHawk
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
@@ -47,38 +52,20 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/surfaces":
+                    foreach (var surface in StartOfRound.Instance.footstepSurfaces)
+                    {
+                        logger.LogDebug(surface.surfaceTag);
+                    }
+                    break;
                 case "/drunk":
                     drunkness = float.Parse(args[1]);
                     break;
-                case "/destroy":
-                    var obj = UnityEngine.Object.FindObjectsOfType<GameObject>().Where(x => Vector3.Distance(x.transform.position, localPlayer.transform.position) < 5f).FirstOrDefault();
-                    if (obj != null)
-                    {
-                        NetworkObject netObj = obj.GetComponent<NetworkObject>();
-                        if (netObj != null && netObj.IsSpawned)
-                        {
-                            netObj.Despawn(true);
-                        }
-                        else
-                        {
-                            UnityEngine.Object.Destroy(obj);
-                        }
-                        //obj.gameObject.transform.position = obj.gameObject.transform.position + obj.gameObject.transform.forward * 5f;
-                    }
-                    break;
-                case "/state":
-                    SCP323Behavior.isTesting = true;
-                    SCP323Behavior.testState = (SCP323Behavior.AttachState)int.Parse(args[1]);
-                    SCP323Behavior.Instance?.ChangeAttachStateServerRpc(SCP323Behavior.testState);
-                    break;
                 case "/enemies":
-                    foreach (var enemy in GetEnemies())
+                    foreach (var enemy in Utils.GetEnemies())
                     {
                         logger.LogDebug(enemy.enemyType.name);
                     }
-                    break;
-                case "/outside":
-                    //UnityEngine.Object.FindObjectOfType<SCP4271AI>().SetEnemyOutsideClientRpc(bool.Parse(args[1]));
                     break;
                 case "/refresh":
                     RoundManager.Instance.RefreshEnemiesList();
@@ -102,22 +89,6 @@ namespace HeavyItemSCPs.Patches
                 default:
                     break;
             }
-        }
-
-        public static List<SpawnableEnemyWithRarity> GetEnemies()
-        {
-            logger.LogDebug("Getting enemies");
-            List<SpawnableEnemyWithRarity> enemies = new List<SpawnableEnemyWithRarity>();
-            enemies = GameObject.Find("Terminal")
-                .GetComponentInChildren<Terminal>()
-                .moonsCatalogueList
-                .SelectMany(x => x.Enemies.Concat(x.DaytimeEnemies).Concat(x.OutsideEnemies))
-                .Where(x => x != null && x.enemyType != null && x.enemyType.name != null)
-                .GroupBy(x => x.enemyType.name, (k, v) => v.First())
-                .ToList();
-
-            logger.LogDebug($"Enemy types: {enemies.Count}");
-            return enemies;
         }
 
         public static void LogChat(string msg)
