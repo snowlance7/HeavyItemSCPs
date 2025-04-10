@@ -23,6 +23,9 @@ namespace HeavyItemSCPs.Items.SCP513
         public AudioClip[] StalkSFX;
         public AudioClip[] StepChaseSFX;
 
+        public AudioClip[] MinorSoundEffectSFX;
+        public AudioClip[] MajorSoundEffectSFX;
+
         public SCP513Behavior SCP513Script;
         public HallucinationManager? hallucManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -124,6 +127,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             cooldownMultiplier = 1f - localPlayer.playersManager.fearLevel;
 
+            if (currentBehaviourStateIndex != (int)State.Active) { return; }
             timeSinceCommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceUncommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceRareEvent += Time.deltaTime * cooldownMultiplier;
@@ -267,7 +271,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         }
 
-        void GetCurrentMaterialStandingOn() // TODO: Set this up with function above
+        void GetCurrentMaterialStandingOn()
         {
             Ray interactRay = new Ray(transform.position + Vector3.up, -Vector3.up);
             if (!Physics.Raycast(interactRay, out RaycastHit hit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore) || hit.collider.CompareTag(StartOfRound.Instance.footstepSurfaces[currentFootstepSurfaceIndex].surfaceTag))

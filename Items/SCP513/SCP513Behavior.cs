@@ -135,7 +135,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             timeSinceLastRing = 0f;
 
-            RingBellClientRpc();
+            RingBellServerRpc();
 
             foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
             {
@@ -160,6 +160,13 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.Instance.SpawnedEnemies.Add(bellMan);
             BellManInstances.Add(bellMan);
             bellMan.ChangeTargetPlayerClientRpc(targetPlayerClientId);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void RingBellServerRpc()
+        {
+            if (!IsServerOrHost) { return; }
+            RingBellClientRpc();
         }
 
         [ClientRpc]
