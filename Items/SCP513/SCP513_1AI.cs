@@ -227,7 +227,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCP513Script.BellManInstances.Remove(this);
             }
             if (hallucManager != null)
-                UnityEngine.GameObject.Destroy(hallucManager);
+                UnityEngine.GameObject.Destroy(hallucManager.gameObject);
         }
 
         public Transform? ChoosePositionInFrontOfPlayer(float minDistance)
@@ -351,7 +351,10 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (localPlayer == targetPlayer)
             {
-                hallucManager = new HallucinationManager(this, targetPlayer);
+                GameObject obj = Instantiate(new GameObject(), Vector3.zero, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform);
+                hallucManager = obj.AddComponent<HallucinationManager>();
+                hallucManager.Instance = this;
+                hallucManager.targetPlayer = targetPlayer;
             }
         }
 

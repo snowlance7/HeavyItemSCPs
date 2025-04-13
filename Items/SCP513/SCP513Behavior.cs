@@ -41,11 +41,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             base.Update();
 
-            if (!IsServerOrHost || playerHeldBy == null)
-            {
-                timeSinceLastRing = 0f;
-                return;
-            }
+            if (playerHeldBy == null || localPlayer != playerHeldBy) { return; }
 
             timeSinceRingChance += Time.deltaTime;
             timeSinceLastRing += Time.deltaTime;
@@ -88,13 +84,13 @@ namespace HeavyItemSCPs.Items.SCP513
         public override void OnHitGround()
         {
             base.OnHitGround();
-            if (!IsServerOrHost) { return; }
+            if (localPlayer != playerHeldBy) { return; }
             float fallDistance = startFallingPosition.y - targetFloorPosition.y;
             logger.LogDebug("FallDistance: " + fallDistance);
 
             if (fallDistance > maxFallDistance)
             {
-                RingBell();
+                RingBellServerRpc();
             }
         }
         void TrackCameraMovement()
@@ -114,7 +110,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (cameraTurnSpeed > maxTurnSpeed)
             {
-                RingBell();
+                RingBellServerRpc();
             }
         }
 
@@ -126,29 +122,7 @@ namespace HeavyItemSCPs.Items.SCP513
             timeSinceRingChance = 0f;
 
             if (playerHeldBy.isSprinting && UnityEngine.Random.Range(0f, 1f) <= ringChanceSprint)
-                RingBell();
-        }
-
-        public void RingBell()
-        {
-            if (!IsServerOrHost || timeSinceLastRing < ringCooldown) { return; }
-
-            timeSinceLastRing = 0f;
-
-            RingBellServerRpc();
-
-            foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
-            {
-                if (player == null || !player.isPlayerControlled) { continue; }
-                if (HauntedPlayers.Contains(player.actualClientId)) { continue; }
-                if (Vector3.Distance(transform.position, player.bodyParts[0].transform.position) <= ItemAudio.maxDistance)
-                {
-                    HauntedPlayers.Add(player.actualClientId);
-
-                    if (StartOfRound.Instance.inShipPhase || StartOfRound.Instance.shipIsLeaving) { continue; }
-                    SpawnBellMan(player.actualClientId);
-                }
-            }
+                RingBellServerRpc();
         }
 
         public void SpawnBellMan(ulong targetPlayerClientId)
@@ -166,6 +140,22 @@ namespace HeavyItemSCPs.Items.SCP513
         public void RingBellServerRpc()
         {
             if (!IsServerOrHost) { return; }
+            if (timeSinceLastRing < ringCooldown) { return; }
+            timeSinceLastRing = 0f;
+
+            foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
+            {
+                if (player == null || !player.isPlayerControlled) { continue; }
+                if (HauntedPlayers.Contains(player.actualClientId)) { continue; }
+                if (Vector3.Distance(transform.position, player.bodyParts[0].transform.position) <= ItemAudio.maxDistance)
+                {
+                    HauntedPlayers.Add(player.actualClientId);
+
+                    if (StartOfRound.Instance.inShipPhase || StartOfRound.Instance.shipIsLeaving) { continue; }
+                    SpawnBellMan(player.actualClientId);
+                }
+            }
+
             RingBellClientRpc();
         }
 

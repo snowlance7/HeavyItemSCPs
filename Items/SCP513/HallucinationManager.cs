@@ -26,8 +26,8 @@ namespace HeavyItemSCPs.Items.SCP513
         private static ManualLogSource logger = LoggerInstance;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public SCP513_1AI Instance {  get; set; }
-        PlayerControllerB targetPlayer;
+        public SCP513_1AI? Instance {  get; set; }
+        public PlayerControllerB targetPlayer;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         delegate void MethodDelegate();
@@ -47,12 +47,6 @@ namespace HeavyItemSCPs.Items.SCP513
             Stalking
         }
 
-        public HallucinationManager(SCP513_1AI script, PlayerControllerB _targetPlayer)
-        {
-            Instance = script;
-            targetPlayer = _targetPlayer;
-        }
-
         public void Start()
         {
             commonEvents.Add(Jumpscare);
@@ -62,6 +56,7 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(PlaySoundEffectMinor);
             commonEvents.Add(WallBloodMessage);
             commonEvents.Add(PlayBellSFX);
+            logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
             uncommonEvents.Add(BlockDoor);
             uncommonEvents.Add(StalkPlayer);
@@ -71,6 +66,7 @@ namespace HeavyItemSCPs.Items.SCP513
             uncommonEvents.Add(SpawnFakeBody);
             uncommonEvents.Add(SlowWalkToPlayer);
             uncommonEvents.Add(MimicEnemy);
+            logger.LogDebug("UncommonEvents: " + uncommonEvents.Count);
 
             rareEvents.Add(MimicEnemyChase);
             rareEvents.Add(MimicPlayer);
@@ -78,6 +74,7 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(SpawnGhostGirl);
             rareEvents.Add(TurnOffAllLights);
             rareEvents.Add(SpawnFakeLandMineUnderPlayer);
+            logger.LogDebug("RareEvents: " + rareEvents.Count);
         }
 
         public void RunRandomEvent(int eventCategory)
@@ -88,15 +85,18 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 case 0:
                     index = UnityEngine.Random.Range(0, commonEvents.Count);
+                    logger.LogDebug("Running common event at index " + index);
                     commonEvents[index]?.Invoke();
                     break;
                 case 1:
                     index = UnityEngine.Random.Range(0, commonEvents.Count);
+                    logger.LogDebug("Running uncommon event at index " + index);
                     uncommonEvents[index]?.Invoke();
                     break;
                 case 2:
                     StopAllCoroutines();
                     index = UnityEngine.Random.Range(0, commonEvents.Count);
+                    logger.LogDebug("Running rare event at index " + index);
                     rareEvents[index]?.Invoke();
                     break;
                 default:
