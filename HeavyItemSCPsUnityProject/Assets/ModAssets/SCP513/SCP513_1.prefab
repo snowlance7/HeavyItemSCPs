@@ -1605,6 +1605,14 @@ MonoBehaviour:
     IsAnimTrigger: 0
     parameterString: 
     boolValue: 0
+  - name: Stalking
+    VoiceClip: {fileID: 0}
+    playOneShotVoice: 0
+    SFXClip: {fileID: 0}
+    playOneShotSFX: 0
+    IsAnimTrigger: 0
+    parameterString: 
+    boolValue: 0
   currentBehaviourState:
     name: 
     VoiceClip: {fileID: 0}
@@ -1723,8 +1731,11 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 0e09322c49d184648a0d45af75a78f94, type: 3}
   - {fileID: 8300000, guid: d480d5ece55e7d74b8e1f9e3d0bb24ee, type: 3}
   - {fileID: 8300000, guid: 4a0adc0ebc60e5049b3718ae2f78fae1, type: 3}
+  MinorSoundEffectSFX: []
+  MajorSoundEffectSFX: []
   SCP513Script: {fileID: 0}
   hallucManager: {fileID: 0}
+  facePlayer: 0
 --- !u!1 &2525098024950143557
 GameObject:
   m_ObjectHideFlags: 0

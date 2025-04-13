@@ -31,9 +31,10 @@ namespace HeavyItemSCPs.Items.SCP513
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         EnemyAI? mimicEnemy;
+        //Coroutine? mimicEnemyCoroutine;
 
         bool enemyMeshEnabled;
-        bool staring;
+        public bool facePlayer;
 
         float cooldownMultiplier;
         float timeSinceCommonEvent;
@@ -55,14 +56,6 @@ namespace HeavyItemSCPs.Items.SCP513
         float rareEventMinCooldown = 180f;
         float rareEventMaxCooldown = 240f;
 
-        int eventNothingWeight = 100;
-        int eventBlockDoorWeight = 50;
-        int eventStareWeight = 50;
-        int eventJumpscareWeight = 50;
-        int eventChaseWeight = 50;
-        int eventMimicEnemyWeight = 25;
-        int eventMimicPlayerWeight = 25;
-        int eventMimicObstaclesWeight = 25;
         private int currentFootstepSurfaceIndex;
         private int previousFootstepClip;
 
@@ -71,7 +64,8 @@ namespace HeavyItemSCPs.Items.SCP513
             Inactive,
             Active,
             Manifesting,
-            Chasing
+            Chasing,
+            Stalking
         }
 
         public override void Start()
@@ -119,8 +113,11 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            turnCompass.LookAt(localPlayer.gameplayCamera.transform.position);
-            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
+            if (facePlayer)
+            {
+                turnCompass.LookAt(localPlayer.gameplayCamera.transform.position);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
+            }
 
             float newFear = targetPlayer.insanityLevel / maxInsanity;
             targetPlayer.playersManager.fearLevel = Mathf.Max(targetPlayer.playersManager.fearLevel, newFear); // Change fear based on insanity
@@ -148,6 +145,8 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
 
                 case (int)State.Active:
+                    facePlayer = false;
+
                     if (enemyMeshEnabled)
                     {
                         EnableEnemyMesh(false);
@@ -189,12 +188,27 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
 
                 case (int)State.Chasing:
+                    creatureSFX.volume = 1f;
+
                     if (!enemyMeshEnabled)
                     {
                         EnableEnemyMesh(true);
                     }
 
                     SetDestinationToPosition(targetPlayer.transform.position);
+
+                    break;
+
+                case (int)State.Stalking:
+                    creatureSFX.volume = 0.5f;
+
+                    if (!enemyMeshEnabled)
+                    {
+                        EnableEnemyMesh(true);
+                    }
+
+                    Vector3 pos = ChooseClosestNodeToPosition(targetPlayer.transform.position, true).position;
+                    SetDestinationToPosition(pos);
 
                     break;
 
