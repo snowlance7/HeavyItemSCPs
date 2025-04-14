@@ -29,25 +29,41 @@ namespace HeavyItemSCPs.Items.SCP513
         const float maxFallDistance = 1f;
         const float ringCooldown = 3f;
 
-        float timeSinceRingChance;
+        float timeSpawned;
         float timeSinceLastRing;
+        float timeHeldByPlayer;
         Vector2 lastCameraAngles;
 
         // Configs
-        float ringChanceSprint = 0.1f;
         float maxTurnSpeed = 1000f;
 
         public override void Update()
         {
             base.Update();
 
-            if (playerHeldBy == null || localPlayer != playerHeldBy) { return; }
+            timeSpawned += Time.deltaTime;
 
-            timeSinceRingChance += Time.deltaTime;
+            if (IsServerOrHost && Instance != this && timeSpawned > 3f)
+            {
+                NetworkObject.Despawn(true);
+            }
+
+            if (playerHeldBy == null || localPlayer != playerHeldBy)
+            {
+                timeHeldByPlayer = 0f;
+                return;
+            }
+
             timeSinceLastRing += Time.deltaTime;
+            timeHeldByPlayer += Time.deltaTime;
 
             TrackCameraMovement();
-            TrackPlayerSprinting();
+
+            if (playerHeldBy.isJumping || playerHeldBy.isFallingFromJump || playerHeldBy.isFallingNoJump || playerHeldBy.isSprinting)
+            {
+                logger.LogDebug("Ringing bell from jumping or falling");
+                RingBell();
+            }
         }
 
         public override void OnNetworkSpawn()
@@ -57,7 +73,8 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 logger.LogDebug("There is already a SCP-513 in the scene. Removing this one.");
                 if (!IsServerOrHost) { return; }
-                NetworkObject.Despawn(true);
+                //NetworkObject.Despawn(true);
+                
                 return;
             }
             Instance = this;
@@ -84,21 +101,20 @@ namespace HeavyItemSCPs.Items.SCP513
         public override void OnHitGround()
         {
             base.OnHitGround();
-            if (localPlayer != playerHeldBy) { return; }
+            if (!IsServerOrHost) { return; }
             float fallDistance = startFallingPosition.y - targetFloorPosition.y;
             logger.LogDebug("FallDistance: " + fallDistance);
 
             if (fallDistance > maxFallDistance)
             {
-                RingBellServerRpc();
+                logger.LogDebug("Ringing bell from fall distance");
+                RingBell(true);
             }
         }
+
         void TrackCameraMovement()
         {
-            Vector2 currentAngles = new Vector2(
-                playerHeldBy.gameplayCamera.transform.eulerAngles.x,
-                playerHeldBy.gameplayCamera.transform.eulerAngles.y
-            );
+            Vector2 currentAngles = new Vector2(playerHeldBy.gameplayCamera.transform.eulerAngles.x, playerHeldBy.gameplayCamera.transform.eulerAngles.y);
 
             // Calculate delta, account for angle wrapping (360 to 0)
             float deltaX = Mathf.DeltaAngle(lastCameraAngles.x, currentAngles.x);
@@ -108,21 +124,19 @@ namespace HeavyItemSCPs.Items.SCP513
             float cameraTurnSpeed = new Vector2(deltaX, deltaY).magnitude / Time.deltaTime;
             lastCameraAngles = currentAngles;
 
-            if (cameraTurnSpeed > maxTurnSpeed)
+            if (cameraTurnSpeed > maxTurnSpeed && timeHeldByPlayer > 1f)
             {
-                RingBellServerRpc();
+                logger.LogDebug("Ringing bell from turn speed");
+                RingBell();
             }
         }
 
-        void TrackPlayerSprinting()
+        void RingBell(bool overrideRingCooldown = false)
         {
-            if (timeSinceRingChance < 1f)
-                return;
+            if (timeSinceLastRing < ringCooldown && !overrideRingCooldown) { return; }
+            timeSinceLastRing = 0f;
 
-            timeSinceRingChance = 0f;
-
-            if (playerHeldBy.isSprinting && UnityEngine.Random.Range(0f, 1f) <= ringChanceSprint)
-                RingBellServerRpc();
+            RingBellServerRpc();
         }
 
         public void SpawnBellMan(ulong targetPlayerClientId)
@@ -140,8 +154,6 @@ namespace HeavyItemSCPs.Items.SCP513
         public void RingBellServerRpc()
         {
             if (!IsServerOrHost) { return; }
-            if (timeSinceLastRing < ringCooldown) { return; }
-            timeSinceLastRing = 0f;
 
             foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
             {

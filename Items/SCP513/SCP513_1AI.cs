@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HeavyItemSCPs.Patches;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,11 +21,13 @@ namespace HeavyItemSCPs.Items.SCP513
         public GameObject ScanNode;
         public AudioClip[] BellSFX;
         public AudioClip[] AmbientSFX;
-        public AudioClip[] StalkSFX;
+        public AudioClip[] ScareSFX;
         public AudioClip[] StepChaseSFX;
 
         public AudioClip[] MinorSoundEffectSFX;
         public AudioClip[] MajorSoundEffectSFX;
+
+        public GameObject SoundObjectPrefab;
 
         public SCP513Behavior SCP513Script;
         public HallucinationManager? hallucManager;
@@ -45,8 +48,14 @@ namespace HeavyItemSCPs.Items.SCP513
         float nextUncommonEventTime;
         float nextRareEventTime;
 
+        int currentFootstepSurfaceIndex;
+        int previousFootstepClip;
+
         // Constants
         const float maxInsanity = 50f;
+        const float maxInsanityThreshold = 35;
+        const float minCooldown = 0.5f;
+        const float maxCooldown = 1f;
 
         // Configs
         float commonEventMinCooldown = 10f;
@@ -56,13 +65,9 @@ namespace HeavyItemSCPs.Items.SCP513
         float rareEventMinCooldown = 180f;
         float rareEventMaxCooldown = 240f;
 
-        private int currentFootstepSurfaceIndex;
-        private int previousFootstepClip;
-
         public enum State
         {
-            Inactive,
-            Active,
+            InActive,
             Manifesting,
             Chasing,
             Stalking
@@ -73,7 +78,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("SCP-513-1 spawned");
             base.Start();
 
-            currentBehaviourStateIndex = (int)State.Inactive;
+            currentBehaviourStateIndex = (int)State.InActive;
 
             nextCommonEventTime = commonEventMaxCooldown;
             nextUncommonEventTime = uncommonEventMaxCooldown;
@@ -119,12 +124,14 @@ namespace HeavyItemSCPs.Items.SCP513
                 transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
             }
 
-            float newFear = targetPlayer.insanityLevel / maxInsanity;
-            targetPlayer.playersManager.fearLevel = Mathf.Max(targetPlayer.playersManager.fearLevel, newFear); // Change fear based on insanity
+            //float newFear = targetPlayer.insanityLevel / maxInsanity;
+            //targetPlayer.playersManager.fearLevel = Mathf.Max(targetPlayer.playersManager.fearLevel, newFear); // Change fear based on insanity
 
-            cooldownMultiplier = 1f - localPlayer.playersManager.fearLevel;
+            //cooldownMultiplier = 1f - localPlayer.playersManager.fearLevel;
 
-            if (currentBehaviourStateIndex != (int)State.Active) { return; }
+            float t = Mathf.Clamp01(targetPlayer.insanityLevel / maxInsanityThreshold);
+            cooldownMultiplier = Mathf.Lerp(minCooldown, maxCooldown, t);
+
             timeSinceCommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceUncommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceRareEvent += Time.deltaTime * cooldownMultiplier;
@@ -135,65 +142,26 @@ namespace HeavyItemSCPs.Items.SCP513
             base.DoAIInterval();
 
             if (!base.IsOwner) { return; }
+            if (targetPlayer == null) { return; }
+
+            EnableEnemyMesh(currentBehaviourStateIndex != (int)State.InActive);
+            SetEnemyOutside(!targetPlayer.isInsideFactory);
 
             switch (currentBehaviourStateIndex)
             {
-                case (int)State.Inactive:
-                    if (targetPlayer == null) { return; }
-                    SwitchToBehaviourClientRpc((int)State.Active);
-
-                    break;
-
-                case (int)State.Active:
+                case (int)State.InActive:
                     facePlayer = false;
-
-                    if (enemyMeshEnabled)
-                    {
-                        EnableEnemyMesh(false);
-                    }
-
-                    if (timeSinceCommonEvent > nextCommonEventTime)
-                    {
-                        logger.LogDebug("Running Common Event");
-                        timeSinceCommonEvent = 0f;
-                        nextCommonEventTime = UnityEngine.Random.Range(commonEventMinCooldown, commonEventMaxCooldown);
-                        hallucManager!.RunRandomEvent(0);
-                        return;
-                    }
-                    if (timeSinceUncommonEvent > nextUncommonEventTime)
-                    {
-                        logger.LogDebug("Running Uncommon Event");
-                        timeSinceUncommonEvent = 0f;
-                        nextUncommonEventTime = UnityEngine.Random.Range(uncommonEventMinCooldown, uncommonEventMaxCooldown);
-                        hallucManager!.RunRandomEvent(1);
-                        return;
-                    }
-                    if (timeSinceRareEvent > nextRareEventTime)
-                    {
-                        logger.LogDebug("Running Rare Event");
-                        timeSinceRareEvent = 0f;
-                        nextRareEventTime = UnityEngine.Random.Range(rareEventMinCooldown, rareEventMaxCooldown);
-                        hallucManager!.RunRandomEvent(2);
-                        return;
-                    }
+                    creatureSFX.volume = 1f;
 
                     break;
 
                 case (int)State.Manifesting:
-                    if (!enemyMeshEnabled)
-                    {
-                        EnableEnemyMesh(true);
-                    }
+                    creatureSFX.volume = 1f;
 
                     break;
 
                 case (int)State.Chasing:
                     creatureSFX.volume = 1f;
-
-                    if (!enemyMeshEnabled)
-                    {
-                        EnableEnemyMesh(true);
-                    }
 
                     SetDestinationToPosition(targetPlayer.transform.position);
 
@@ -202,12 +170,14 @@ namespace HeavyItemSCPs.Items.SCP513
                 case (int)State.Stalking:
                     creatureSFX.volume = 0.5f;
 
-                    if (!enemyMeshEnabled)
+                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * 1f))
                     {
-                        EnableEnemyMesh(true);
+                        return;
                     }
 
-                    Vector3 pos = ChooseClosestNodeToPosition(targetPlayer.transform.position, true).position;
+                    agent.speed = Vector3.Distance(transform.position, targetPlayer.transform.position) / 2f; // TODO: Test this
+
+                    Vector3 pos = ChooseClosestNodeToPosition(targetPlayer.transform.position, true, 1).position;
                     SetDestinationToPosition(pos);
 
                     break;
@@ -215,6 +185,33 @@ namespace HeavyItemSCPs.Items.SCP513
                 default:
                     logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
                     break;
+            }
+
+            if (TESTING.testing) { return; }
+
+            if (timeSinceCommonEvent > nextCommonEventTime)
+            {
+                logger.LogDebug("Running Common Event");
+                timeSinceCommonEvent = 0f;
+                nextCommonEventTime = UnityEngine.Random.Range(commonEventMinCooldown, commonEventMaxCooldown);
+                hallucManager!.RunRandomEvent(0);
+                return;
+            }
+            if (timeSinceUncommonEvent > nextUncommonEventTime)
+            {
+                logger.LogDebug("Running Uncommon Event");
+                timeSinceUncommonEvent = 0f;
+                nextUncommonEventTime = UnityEngine.Random.Range(uncommonEventMinCooldown, uncommonEventMaxCooldown);
+                hallucManager!.RunRandomEvent(1);
+                return;
+            }
+            if (timeSinceRareEvent > nextRareEventTime)
+            {
+                logger.LogDebug("Running Rare Event");
+                timeSinceRareEvent = 0f;
+                nextRareEventTime = UnityEngine.Random.Range(rareEventMinCooldown, rareEventMaxCooldown);
+                hallucManager!.RunRandomEvent(2);
+                return;
             }
         }
 
@@ -253,18 +250,60 @@ namespace HeavyItemSCPs.Items.SCP513
             return result;
         }
 
+        public Vector3 FindPositionOutOfLOS()
+        {
+            Vector3 vector = base.transform.right;
+            float num = Vector3.Distance(base.transform.position, targetPlayer.transform.position);
+            for (int i = 0; i < 8; i++)
+            {
+                Ray ray = new Ray(base.transform.position + Vector3.up * 0.4f, vector);
+                if (Physics.Raycast(ray, out var hitInfo, 8f, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && Vector3.Distance(hitInfo.point, targetPlayer.transform.position) - num > -1f && Physics.Linecast(targetPlayer.gameplayCamera.transform.position, ray.GetPoint(hitInfo.distance - 0.1f), StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+                {
+                    logger.LogDebug("Found hide position with raycast");
+                    return RoundManager.Instance.GetNavMeshPosition(hitInfo.point, RoundManager.Instance.navHit);
+                }
+                vector = Quaternion.Euler(0f, 45f, 0f) * vector;
+            }
+            for (int j = 0; j < allAINodes.Length; j++)
+            {
+                if (Vector3.Distance(allAINodes[j].transform.position, base.transform.position) < 7f && Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[j].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+                {
+                    logger.LogDebug("Found hide position with AI nodes");
+                    return RoundManager.Instance.GetNavMeshPosition(allAINodes[j].transform.position, RoundManager.Instance.navHit);
+                }
+            }
+            logger.LogDebug("Unable to find a location to hide away; vanishing instead");
+            return Vector3.zero;
+        }
+
+        public Vector3 TryFindingHauntPosition(bool mustBeInLOS = true)
+        {
+            for (int i = 0; i < allAINodes.Length; i++)
+            {
+                if ((!mustBeInLOS || !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
+                {
+                    logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
+                    return allAINodes[i].transform.position;
+                }
+            }
+
+            return Vector3.zero;
+        }
+
+        public override void SetEnemyOutside(bool outside = false)
+        {
+            if (isOutside == outside) { return; }
+            logger.LogDebug("SettingOutside: " + outside);
+            base.SetEnemyOutside(outside);
+        }
+
         public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet = false)
         {
+            if (enemyMeshEnabled == enable) { return; }
             logger.LogDebug($"EnableEnemyMesh({enable})");
             enemyMesh.SetActive(enable);
             ScanNode.SetActive(enable);
             enemyMeshEnabled = enable;
-        }
-
-        public Vector3 FindPositionOutOfLOS()
-        {
-            targetNode = ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
-            return RoundManager.Instance.GetNavMeshPosition(targetNode.position);
         }
 
         public void Teleport(Vector3 position)
@@ -278,11 +317,15 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             base.OnCollideWithPlayer(other);
             if (inSpecialAnimation) { return; }
-            if (currentBehaviourStateIndex == (int)State.Inactive) { return; }
+            if (currentBehaviourStateIndex == (int)State.InActive) { return; }
             if (!other.gameObject.TryGetComponent(out PlayerControllerB player)) { return; }
             if (player == null || player != localPlayer) { return; }
 
-
+            RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
+            player.insanityLevel = 50f;
+            player.JumpToFearLevel(1f);
+            StunGrenadeItem.StunExplosion(transform.position, false, 5f, 0f);
+            SwitchToBehaviourServerRpc((int)State.InActive);
         }
 
         void GetCurrentMaterialStandingOn()
@@ -353,7 +396,7 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 GameObject obj = Instantiate(new GameObject(), Vector3.zero, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform);
                 hallucManager = obj.AddComponent<HallucinationManager>();
-                hallucManager.Instance = this;
+                hallucManager.SCPInstance = this;
                 hallucManager.targetPlayer = targetPlayer;
             }
         }

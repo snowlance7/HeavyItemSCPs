@@ -3,6 +3,7 @@ using DunGen;
 using HarmonyLib;
 using HeavyItemSCPs.Items.SCP323;
 using HeavyItemSCPs.Items.SCP427;
+using HeavyItemSCPs.Items.SCP513;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
@@ -28,6 +29,7 @@ namespace HeavyItemSCPs.Patches
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
+        public static bool testing = false;
         public static float drunkness = 0;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
@@ -52,6 +54,13 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/event":
+                    HallucinationManager.Instance.RunEvent(int.Parse(args[1]), int.Parse(args[2]));
+                    break;
+                case "/testing":
+                    testing = !testing;
+                    HUDManager.Instance.DisplayTip("Testing", testing.ToString());
+                    break;
                 case "/surfaces":
                     foreach (var surface in StartOfRound.Instance.footstepSurfaces)
                     {

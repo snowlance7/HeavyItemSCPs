@@ -3,10 +3,12 @@ using GameNetcodeStuff;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UIElements;
 using static HeavyItemSCPs.Plugin;
+using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
@@ -26,7 +28,8 @@ namespace HeavyItemSCPs.Items.SCP513
         private static ManualLogSource logger = LoggerInstance;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public SCP513_1AI? Instance {  get; set; }
+        public static HallucinationManager Instance { get; private set; }
+        public SCP513_1AI SCPInstance {  get; set; }
         public PlayerControllerB targetPlayer;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
@@ -40,8 +43,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public enum State
         {
-            Inactive,
-            Active,
+            InActive,
             Manifesting,
             Chasing,
             Stalking
@@ -49,15 +51,15 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public void Start()
         {
-            commonEvents.Add(Jumpscare);
             commonEvents.Add(FlickerLights);
             commonEvents.Add(Stare);
             commonEvents.Add(PlayAmbientSFXNearby);
-            commonEvents.Add(PlaySoundEffectMinor);
+            commonEvents.Add(PlayFakeSoundEffectMinor);
             commonEvents.Add(WallBloodMessage);
             commonEvents.Add(PlayBellSFX);
             logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
+            uncommonEvents.Add(Jumpscare);
             uncommonEvents.Add(BlockDoor);
             uncommonEvents.Add(StalkPlayer);
             //uncommonEvents.Add(MimicHazard);
@@ -74,30 +76,55 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(SpawnGhostGirl);
             rareEvents.Add(TurnOffAllLights);
             rareEvents.Add(SpawnFakeLandMineUnderPlayer);
+            rareEvents.Add(SpawnMultipleFakeBodies);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
+
+            Instance = this;
         }
 
-        public void RunRandomEvent(int eventCategory)
+        public void RunRandomEvent(int eventRarity)
         {
-            int index;
+            int eventIndex;
 
-            switch (eventCategory)
+            switch (eventRarity)
             {
                 case 0:
-                    index = UnityEngine.Random.Range(0, commonEvents.Count);
-                    logger.LogDebug("Running common event at index " + index);
-                    commonEvents[index]?.Invoke();
+                    eventIndex = UnityEngine.Random.Range(0, commonEvents.Count);
+                    logger.LogDebug("Running common event 0 at index " + eventIndex);
+                    commonEvents[eventIndex]?.Invoke();
                     break;
                 case 1:
-                    index = UnityEngine.Random.Range(0, commonEvents.Count);
-                    logger.LogDebug("Running uncommon event at index " + index);
-                    uncommonEvents[index]?.Invoke();
+                    eventIndex = UnityEngine.Random.Range(0, commonEvents.Count);
+                    logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
+                    uncommonEvents[eventIndex]?.Invoke();
                     break;
                 case 2:
                     StopAllCoroutines();
-                    index = UnityEngine.Random.Range(0, commonEvents.Count);
-                    logger.LogDebug("Running rare event at index " + index);
-                    rareEvents[index]?.Invoke();
+                    eventIndex = UnityEngine.Random.Range(0, commonEvents.Count);
+                    logger.LogDebug("Running rare event 2 at index " + eventIndex);
+                    rareEvents[eventIndex]?.Invoke();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public void RunEvent(int eventRarity, int eventIndex)
+        {
+            switch (eventRarity)
+            {
+                case 0:
+                    logger.LogDebug("Running common event 0 at index " + eventIndex);
+                    commonEvents[eventIndex]?.Invoke();
+                    break;
+                case 1:
+                    logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
+                    uncommonEvents[eventIndex]?.Invoke();
+                    break;
+                case 2:
+                    StopAllCoroutines();
+                    logger.LogDebug("Running rare event 2 at index " + eventIndex);
+                    rareEvents[eventIndex]?.Invoke();
                     break;
                 default:
                     break;
@@ -106,7 +133,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         void SwitchToBehavior(State state)
         {
-            Instance.SwitchToBehaviourServerRpc((int)state);
+            SCPInstance.SwitchToBehaviourServerRpc((int)state);
         }
 
         public void OnDestroy()
@@ -121,9 +148,9 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             if (activeCoroutine != null)
             {
-                if (tier <= currentCoroutineTier)
+                if (tier < currentCoroutineTier)
                 {
-                    // A higher or equal priority coroutine is already running, don't start this one
+                    // A higher priority coroutine is already running, don't start this one
                     return false;
                 }
 
@@ -144,7 +171,7 @@ namespace HeavyItemSCPs.Items.SCP513
             // Once it's done, clear the tracking
             if (tier == currentCoroutineTier)
             {
-                SwitchToBehavior(State.Active);
+                //SwitchToBehavior(State.Active);
                 activeCoroutine = null;
                 currentCoroutineTier = -1;
             }
@@ -152,52 +179,19 @@ namespace HeavyItemSCPs.Items.SCP513
 
         #region Common
 
-        void Jumpscare()
-        {
-            logger.LogDebug("Jumpscare");
-            IEnumerator DisappearAfterLOS()
-            {
-                float runSpeed = 15f;
-
-                yield return null;
-
-                Instance.Teleport(GetPositionBehindPlayer(targetPlayer, 1f));
-                Instance.creatureAnimator.SetBool("armsCrossed", true);
-                SwitchToBehavior(State.Manifesting);
-                RoundManager.PlayRandomClip(Instance.creatureSFX, Instance.AmbientSFX);
-
-                float timeElapsed = 0f;
-
-                while (timeElapsed < 10f)
-                {
-                    yield return new WaitForSeconds(0.2f);
-                    timeElapsed += 0.2f;
-
-                    if (targetPlayer.HasLineOfSightToPosition(Instance.transform.position + Vector3.up * LOSOffset, 70f, 100))
-                    {
-                        Instance.agent.speed = runSpeed;
-                        SwitchToBehavior(State.Chasing);
-                        yield break;
-                    }
-                }
-            }
-
-            TryStartCoroutine(DisappearAfterLOS(), 0);
-        }
-
-        void FlickerLights()
+        void FlickerLights() // 0 0
         {
             logger.LogDebug("FlickerLights");
+            if (!targetPlayer.isInsideFactory) { return; }
             RoundManager.Instance.FlickerLights(true, true);
             GameNetworkManager.Instance.localPlayerController.JumpToFearLevel(0.9f);
         }
 
-        void Stare()
+        void Stare() // 0 1 // TODO: not teleporting behind player
         {
             logger.LogDebug("Stare");
-            GameObject[] aiNodes = targetPlayer.isInsideFactory ? RoundManager.Instance.insideAINodes : RoundManager.Instance.outsideAINodes;
-            Transform? outsideLOS = TryFindingHauntPosition(targetPlayer, aiNodes, false);
-            if (outsideLOS == null) { return; }
+            Transform? outsideLOS = TryFindingHauntPosition(targetPlayer, SCPInstance.allAINodes, false);
+            if (outsideLOS == null) { logger.LogDebug("Unable to find position outside LOS"); return; }
 
 
             IEnumerator StareCoroutine()
@@ -206,10 +200,10 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 yield return null;
 
-                Instance.Teleport(outsideLOS.position);
+                SCPInstance.Teleport(outsideLOS.position);
                 SwitchToBehavior(State.Manifesting);
-                Instance.creatureAnimator.SetBool("armsCrossed", true);
-                RoundManager.PlayRandomClip(Instance.creatureSFX, Instance.AmbientSFX);
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
+                RoundManager.PlayRandomClip(SCPInstance.creatureSFX, SCPInstance.AmbientSFX);
 
                 float elapsedTime = 0f;
 
@@ -218,11 +212,10 @@ namespace HeavyItemSCPs.Items.SCP513
                     yield return new WaitForSeconds(0.2f);
                     elapsedTime += 0.2f;
 
-                    if (targetPlayer.HasLineOfSightToPosition(Instance.transform.position + Vector3.up * LOSOffset, 70f, 100))
+                    if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
                     {
                         FlickerLights();
-                        SwitchToBehavior(State.Active);
-
+                        SwitchToBehavior(State.InActive);
                         yield break;
                     }
                 }
@@ -231,40 +224,91 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(StareCoroutine(), 0);
         }
 
-        void PlayAmbientSFXNearby()
+        void PlayAmbientSFXNearby() // 0 2
         {
             logger.LogDebug("PlayAmbientSFXNearby");
             Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
-            Instance.Teleport(pos);
-            RoundManager.PlayRandomClip(Instance.creatureSFX, Instance.AmbientSFX);
+            PlaySoundAtPosition(pos, SCPInstance.AmbientSFX);
         }
 
-        void PlaySoundEffectMinor()
+        void PlayFakeSoundEffectMinor() // 0 3
         {
             logger.LogDebug("PlaySoundEffectMinor");
-            Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
-            Instance.Teleport(pos);
-            RoundManager.PlayRandomClip(Instance.creatureSFX, Instance.AmbientSFX);
+
+            // Filter clips that match inside/outside
+            var clips = SCPInstance.MinorSoundEffectSFX
+                .Where(clip => clip.name.Length >= 2 &&
+                               (clip.name[0] == 'I') == targetPlayer.isInsideFactory)
+                .ToArray();
+
+            if (clips.Length == 0)
+            {
+                logger.LogWarning("No matching sound effects for current environment.");
+                return;
+            }
+
+            // Pick one randomly
+            var clip = clips[UnityEngine.Random.Range(0, clips.Length)];
+
+            // Extract metadata from name
+            bool is2D = clip.name[1] == '2';
+            bool isFar = clip.name.Length > 3 && clip.name[3] == 'F';
+
+            // Choose sound position based on 'F'
+            int offset = isFar ? 5 : 0;
+            Vector3 pos = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, offset).position;
+
+            // Play the sound
+            GameObject soundObj = Instantiate(SCPInstance.SoundObjectPrefab, pos, Quaternion.identity);
+            AudioSource source = soundObj.GetComponent<AudioSource>();
+            source.spatialBlend = is2D ? 0f : 1f;
+            source.clip = clip;
+            source.Play();
+
+            GameObject.Destroy(soundObj, clip.length);
         }
 
-        void WallBloodMessage()
+        void WallBloodMessage() // 0 4
         {
             logger.LogDebug("WallBloodMessage");
             throw new NotImplementedException();
         }
 
-        void PlayBellSFX()
+        void PlayBellSFX() // 0 5
         {
             logger.LogDebug("PlayBellSFX");
-            Instance.Teleport(targetPlayer.transform.position);
-            RoundManager.PlayRandomClip(Instance.creatureVoice, Instance.BellSFX);
+            Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
+            PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
         #endregion
 
         #region UnCommon
 
-        void BlockDoor() //
+        void Jumpscare() // 1 0
+        {
+            logger.LogDebug("Jumpscare");
+            IEnumerator JumpscareCoroutine()
+            {
+                float runSpeed = 15f;
+
+                yield return null;
+
+                Transform? posTransform = SCPInstance.ChoosePositionInFrontOfPlayer(5f);
+                if (posTransform == null) { yield break; }
+                SCPInstance.Teleport(posTransform.position);
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
+                SCPInstance.agent.speed = runSpeed;
+                SCPInstance.facePlayer = true;
+                SwitchToBehavior(State.Chasing);
+
+                yield return new WaitForSeconds(10f);
+            }
+
+            TryStartCoroutine(JumpscareCoroutine(), 0);
+        }
+
+        void BlockDoor() // 1 1
         {
             logger.LogDebug("BlockDoor");
             float doorDistance = 10f;
@@ -278,33 +322,34 @@ namespace HeavyItemSCPs.Items.SCP513
             var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
             Vector3 blockPos = RoundManager.Instance.GetNavMeshPosition(steelDoorObj.transform.position + Vector3.forward * blockPosOffset);
 
-            IEnumerator StarePlayerCoroutine(Vector3 blockPos)
+            IEnumerator BlockDoorCoroutine(Vector3 blockPos)
             {
                 float disappearDistance = 15f;
                 float disappearTime = 15f;
 
                 yield return null;
 
-                Instance.Teleport(blockPos);
+                SCPInstance.Teleport(blockPos);
+                SCPInstance.SetDestinationToPosition(blockPos);
                 SwitchToBehavior(State.Manifesting);
-                Instance.facePlayer = true;
+                SCPInstance.facePlayer = true;
 
                 float elapsedTime = 0f;
                 while (elapsedTime < disappearTime)
                 {
                     yield return new WaitForSeconds(0.2f);
                     elapsedTime += 0.2f;
-                    if (Vector3.Distance(Instance.transform.position, targetPlayer.transform.position) > disappearDistance)
+                    if (Vector3.Distance(SCPInstance.transform.position, targetPlayer.transform.position) > disappearDistance)
                     {
                         yield break;
                     }
                 }
             }
 
-            TryStartCoroutine(StarePlayerCoroutine(blockPos), 1);
+            TryStartCoroutine(BlockDoorCoroutine(blockPos), 1);
         }
 
-        void StalkPlayer()
+        void StalkPlayer() // 1 2
         {
             logger.LogDebug("StalkPlayer");
             IEnumerator StalkCoroutine()
@@ -313,40 +358,80 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 yield return null;
 
-                Vector3 teleportPos = Instance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true).position;
-                Instance.Teleport(teleportPos);
+                Vector3 teleportPos = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true).position;
+                SCPInstance.Teleport(teleportPos);
                 SwitchToBehavior(State.Stalking);
 
-                while (Vector3.Distance(targetPlayer.transform.position, Instance.transform.position) > playerDistanceToDisappear)
+                while (Vector3.Distance(targetPlayer.transform.position, SCPInstance.transform.position) > playerDistanceToDisappear)
                 {
-                    yield return new WaitForSeconds(0.5f);
+                    yield return new WaitForSeconds(0.2f);
+
+                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * 1f))
+                    {
+                        yield return new WaitForSeconds(5f);
+                        RoundManager.Instance.FlickerPoweredLights(true, true);
+                        yield break;
+                    }
                 }
             }
 
             TryStartCoroutine(StalkCoroutine(), 1);
         }
 
-        void PlayFakeSoundEffectMajor()
+        void PlayFakeSoundEffectMajor() // 1 3
         {
             logger.LogDebug("PlayFakeSoundEffectMajor");
+
+            // Filter clips that match inside/outside
+            var clips = SCPInstance.MajorSoundEffectSFX
+                .Where(clip => clip.name.Length >= 2 &&
+                               (clip.name[0] == 'I') == targetPlayer.isInsideFactory)
+                .ToArray();
+
+            if (clips.Length == 0)
+            {
+                logger.LogWarning("No matching sound effects for current environment.");
+                return;
+            }
+
+            // Pick one randomly
+            var clip = clips[UnityEngine.Random.Range(0, clips.Length)];
+
+            // Extract metadata from name
+            bool is2D = clip.name[1] == '2';
+            bool isFar = clip.name.Length > 3 && clip.name[3] == 'F';
+
+            // Choose sound position based on 'F'
+            int offset = isFar ? 5 : 0;
+            Vector3 pos = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, offset).position;
+
+            // Play the sound
+            GameObject soundObj = Instantiate(SCPInstance.SoundObjectPrefab, pos, Quaternion.identity);
+            AudioSource source = soundObj.GetComponent<AudioSource>();
+            source.spatialBlend = is2D ? 0f : 1f;
+            source.clip = clip;
+            source.Play();
+
+            GameObject.Destroy(soundObj, clip.length);
         }
 
-        void ShowFakeShipLeavingDisplayTip()
+
+        void ShowFakeShipLeavingDisplayTip() // 1 4
         {
             logger.LogDebug("ShowFakeShipLeavingDisplayTip");
         }
 
-        void SpawnFakeBody()
+        void SpawnFakeBody() // 1 5
         {
             logger.LogDebug("SpawnFakeBody");
         }
 
-        void SlowWalkToPlayer() // Use arms crossed
+        void SlowWalkToPlayer() // Use arms crossed // 1 6
         {
             logger.LogDebug("SlowWalkToPlayer");
         }
 
-        void MimicEnemy()
+        void MimicEnemy() // 1 7
         {
             logger.LogDebug("MimicEnemy");
             // See MimicableEnemies.txt
@@ -356,40 +441,86 @@ namespace HeavyItemSCPs.Items.SCP513
 
         #region Rare
 
-        void MimicEnemyChase()
+        void MimicEnemyChase() // 2 0
         {
             // See MimicableEnemies.txt
             logger.LogDebug("MimicEnemyChase");
         }
 
-        void MimicPlayer()
+        void MimicPlayer() // 2 1
         {
             logger.LogDebug("MimicPlayer");
         }
 
-        void ChasePlayer() // Use arms down, faster
+        void ChasePlayer() // Use arms down, faster // 2 2
         {
             logger.LogDebug("ChasePlayer");
         }
 
-        void SpawnGhostGirl() // DressGirl
+        void SpawnGhostGirl() // DressGirl // 2 3
         {
             logger.LogDebug("SpawnGhostGirl");
         }
 
-        void TurnOffAllLights()
+        void TurnOffAllLights() // 2 4
         {
             logger.LogDebug("TurnOffAllLights");
         }
 
-        void SpawnFakeLandMineUnderPlayer()
+        void SpawnFakeLandMineUnderPlayer() // 2 5
         {
             logger.LogDebug("SpawnFakeLandMineUnderPlayer");
+        }
+
+        void SpawnMultipleFakeBodies() // 2 6
+        {
+            logger.LogDebug("SpawnMultipleFakeBodies");
         }
 
         #endregion
 
         #region Miscellaneous
+
+        public void PlaySoundAtPosition(Vector3 pos, AudioClip clip, bool randomize = true, bool spatial3D = true)
+        {
+            GameObject soundObj = Instantiate(SCPInstance.SoundObjectPrefab, pos, Quaternion.identity);
+            AudioSource source = soundObj.GetComponent<AudioSource>();
+
+            if (randomize)
+            {
+                source.pitch = UnityEngine.Random.Range(0.94f, 1.06f);
+            }
+
+            if (!spatial3D)
+            {
+                source.spatialBlend = 0f;
+            }
+
+            source.clip = clip;
+            source.Play();
+            GameObject.Destroy(soundObj, source.clip.length);
+        }
+
+        public void PlaySoundAtPosition(Vector3 pos, AudioClip[] clips, bool randomize = true, bool spatial3D = true)
+        {
+            GameObject soundObj = Instantiate(SCPInstance.SoundObjectPrefab, pos, Quaternion.identity);
+            AudioSource source = soundObj.GetComponent<AudioSource>();
+
+            if (randomize)
+            {
+                source.pitch = UnityEngine.Random.Range(0.94f, 1.06f);
+            }
+
+            if (!spatial3D)
+            {
+                source.spatialBlend = 0f;
+            }
+
+            int index = UnityEngine.Random.Range(0, clips.Length);
+            source.clip = clips[index];
+            source.Play();
+            GameObject.Destroy(soundObj, source.clip.length);
+        }
 
         public static List<DoorLock> GetDoorLocksNearbyPosition(Vector3 pos, float distance)
         {
