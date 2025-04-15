@@ -1177,9 +1177,9 @@ GameObject:
   - component: {fileID: 8653913138916151759}
   - component: {fileID: 7590834170620229891}
   - component: {fileID: 9087444249114832640}
-  m_Layer: 2
+  m_Layer: 19
   m_Name: AttackArea
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1193,7 +1193,7 @@ Transform:
   m_GameObject: {fileID: 1997114848533678400}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.902, z: 0.76500005}
+  m_LocalPosition: {x: 0, y: 0.902, z: 0.668}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

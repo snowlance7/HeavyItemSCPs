@@ -171,7 +171,7 @@ namespace HeavyItemSCPs.Items.SCP513
             // Once it's done, clear the tracking
             if (tier == currentCoroutineTier)
             {
-                //SwitchToBehavior(State.Active);
+                SwitchToBehavior(State.InActive);
                 activeCoroutine = null;
                 currentCoroutineTier = -1;
             }
@@ -190,18 +190,19 @@ namespace HeavyItemSCPs.Items.SCP513
         void Stare() // 0 1 // TODO: not teleporting behind player
         {
             logger.LogDebug("Stare");
-            Transform? outsideLOS = TryFindingHauntPosition(targetPlayer, SCPInstance.allAINodes, false);
-            if (outsideLOS == null) { logger.LogDebug("Unable to find position outside LOS"); return; }
+            Vector3 _outsideLOS = SCPInstance.TryFindingHauntPosition(false);
+            if (_outsideLOS == Vector3.zero) { logger.LogDebug("Unable to find position outside LOS"); return; }
 
 
-            IEnumerator StareCoroutine()
+            IEnumerator StareCoroutine(Vector3 outsideLOS)
             {
                 float stareTime = 15f;
 
                 yield return null;
 
-                SCPInstance.Teleport(outsideLOS.position);
+                SCPInstance.Teleport(outsideLOS);
                 SwitchToBehavior(State.Manifesting);
+                SCPInstance.facePlayer = true;
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 RoundManager.PlayRandomClip(SCPInstance.creatureSFX, SCPInstance.AmbientSFX);
 
@@ -221,7 +222,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 }
             }
 
-            TryStartCoroutine(StareCoroutine(), 0);
+            TryStartCoroutine(StareCoroutine(_outsideLOS), 0);
         }
 
         void PlayAmbientSFXNearby() // 0 2
@@ -290,7 +291,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("Jumpscare");
             IEnumerator JumpscareCoroutine()
             {
-                float runSpeed = 15f;
+                float runSpeed = 20f;
 
                 yield return null;
 
@@ -302,7 +303,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCPInstance.facePlayer = true;
                 SwitchToBehavior(State.Chasing);
 
-                yield return new WaitForSeconds(10f);
+                yield return new WaitForSeconds(5f);
             }
 
             TryStartCoroutine(JumpscareCoroutine(), 0);
@@ -369,7 +370,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * 1f))
                     {
                         yield return new WaitForSeconds(5f);
-                        RoundManager.Instance.FlickerPoweredLights(true, true);
+                        RoundManager.Instance.FlickerLights(true, true);
                         yield break;
                     }
                 }
@@ -536,32 +537,6 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             return doors;
-        }
-
-        public static Transform? TryFindingHauntPosition(PlayerControllerB targetPlayer, GameObject[] allAINodes, bool mustBeInLOS = true)
-        {
-            for (int i = 0; i < allAINodes.Length; i++)
-            {
-                if ((!mustBeInLOS || !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
-                {
-                    //Debug.DrawLine(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, Color.green, 2f);
-                    //Debug.Log($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
-                    return allAINodes[i].transform;
-                }
-            }
-            return null;
-        }
-
-        public static GameObject GetRandomAINode(List<GameObject> nodes)
-        {
-            int randIndex = UnityEngine.Random.Range(0, nodes.Count);
-            return nodes[randIndex];
-        }
-
-        public static Vector3 GetPositionBehindPlayer(PlayerControllerB player, float distance)
-        {
-            Vector3 pos = player.transform.position - player.transform.forward * distance;
-            return RoundManager.Instance.GetNavMeshPosition(pos);
         }
 
         #endregion

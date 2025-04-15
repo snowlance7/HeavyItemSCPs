@@ -52,18 +52,19 @@ namespace HeavyItemSCPs.Items.SCP513
         int previousFootstepClip;
 
         // Constants
+        int hashRunSpeed;
         const float maxInsanity = 50f;
         const float maxInsanityThreshold = 35;
         const float minCooldown = 0.5f;
         const float maxCooldown = 1f;
 
         // Configs
-        float commonEventMinCooldown = 10f;
-        float commonEventMaxCooldown = 20f;
-        float uncommonEventMinCooldown = 30f;
-        float uncommonEventMaxCooldown = 60f;
-        float rareEventMinCooldown = 180f;
-        float rareEventMaxCooldown = 240f;
+        float commonEventMinCooldown = 5f;
+        float commonEventMaxCooldown = 15f;
+        float uncommonEventMinCooldown = 15f;
+        float uncommonEventMaxCooldown = 30f;
+        float rareEventMinCooldown = 100f;
+        float rareEventMaxCooldown = 200f;
 
         public enum State
         {
@@ -78,6 +79,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("SCP-513-1 spawned");
             base.Start();
 
+            hashRunSpeed = Animator.StringToHash("runSpeed");
             currentBehaviourStateIndex = (int)State.InActive;
 
             nextCommonEventTime = commonEventMaxCooldown;
@@ -118,12 +120,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            if (facePlayer)
-            {
-                turnCompass.LookAt(localPlayer.gameplayCamera.transform.position);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
-            }
-
             //float newFear = targetPlayer.insanityLevel / maxInsanity;
             //targetPlayer.playersManager.fearLevel = Mathf.Max(targetPlayer.playersManager.fearLevel, newFear); // Change fear based on insanity
 
@@ -135,6 +131,17 @@ namespace HeavyItemSCPs.Items.SCP513
             timeSinceCommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceUncommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceRareEvent += Time.deltaTime * cooldownMultiplier;
+        }
+
+        public void LateUpdate()
+        {
+            creatureAnimator.SetFloat(hashRunSpeed, agent.velocity.magnitude / 2);
+
+            if (facePlayer)
+            {
+                turnCompass.LookAt(localPlayer.gameplayCamera.transform.position);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 30f * Time.deltaTime);
+            }
         }
 
         public override void DoAIInterval()
@@ -150,12 +157,14 @@ namespace HeavyItemSCPs.Items.SCP513
             switch (currentBehaviourStateIndex)
             {
                 case (int)State.InActive:
+                    agent.speed = 0f;
                     facePlayer = false;
                     creatureSFX.volume = 1f;
 
                     break;
 
                 case (int)State.Manifesting:
+                    agent.speed = 0f;
                     creatureSFX.volume = 1f;
 
                     break;
