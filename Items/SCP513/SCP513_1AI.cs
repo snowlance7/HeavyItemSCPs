@@ -171,15 +171,19 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 case (int)State.Chasing:
                     creatureSFX.volume = 1f;
-
-                    SetDestinationToPosition(targetPlayer.transform.position);
+                    
+                    if (!SetDestinationToPosition(targetPlayer.transform.position, true))
+                    {
+                        SwitchToBehaviourClientRpc((int)State.InActive);
+                        return;
+                    }
 
                     break;
 
                 case (int)State.Stalking:
                     creatureSFX.volume = 0.5f;
 
-                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * 1f))
+                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * HallucinationManager.LOSOffset))
                     {
                         return;
                     }

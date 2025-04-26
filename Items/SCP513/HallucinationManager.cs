@@ -39,7 +39,7 @@ namespace HeavyItemSCPs.Items.SCP513
         List<MethodDelegate> uncommonEvents = new List<MethodDelegate>();
         List<MethodDelegate> rareEvents = new List<MethodDelegate>();
 
-        const float LOSOffset = 1f;
+        public const float LOSOffset = 1f;
 
         public enum State
         {
@@ -94,13 +94,13 @@ namespace HeavyItemSCPs.Items.SCP513
                     commonEvents[eventIndex]?.Invoke();
                     break;
                 case 1:
-                    eventIndex = UnityEngine.Random.Range(0, commonEvents.Count);
+                    eventIndex = UnityEngine.Random.Range(0, uncommonEvents.Count);
                     logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
                     uncommonEvents[eventIndex]?.Invoke();
                     break;
                 case 2:
                     StopAllCoroutines();
-                    eventIndex = UnityEngine.Random.Range(0, commonEvents.Count);
+                    eventIndex = UnityEngine.Random.Range(0, rareEvents.Count);
                     logger.LogDebug("Running rare event 2 at index " + eventIndex);
                     rareEvents[eventIndex]?.Invoke();
                     break;
@@ -171,7 +171,7 @@ namespace HeavyItemSCPs.Items.SCP513
             // Once it's done, clear the tracking
             if (tier == currentCoroutineTier)
             {
-                SwitchToBehavior(State.InActive);
+                //SwitchToBehavior(State.InActive);
                 activeCoroutine = null;
                 currentCoroutineTier = -1;
             }
@@ -216,10 +216,11 @@ namespace HeavyItemSCPs.Items.SCP513
                     if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
                     {
                         FlickerLights();
-                        SwitchToBehavior(State.InActive);
-                        yield break;
+                        break;
                     }
                 }
+                
+                SwitchToBehavior(State.InActive);
             }
 
             TryStartCoroutine(StareCoroutine(_outsideLOS), 0);
@@ -289,24 +290,29 @@ namespace HeavyItemSCPs.Items.SCP513
         void Jumpscare() // 1 0
         {
             logger.LogDebug("Jumpscare");
-            IEnumerator JumpscareCoroutine()
+
+            Transform? posTransform = SCPInstance.ChoosePositionInFrontOfPlayer(5f);
+            if (posTransform == null) { return; }
+
+            IEnumerator JumpscareCoroutine(Vector3 pos)
             {
                 float runSpeed = 20f;
+                float disappearTime = 5f;
 
                 yield return null;
 
-                Transform? posTransform = SCPInstance.ChoosePositionInFrontOfPlayer(5f);
-                if (posTransform == null) { yield break; }
-                SCPInstance.Teleport(posTransform.position);
+                SwitchToBehavior(State.Chasing);
+                SCPInstance.Teleport(pos);
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
                 SCPInstance.agent.speed = runSpeed;
                 SCPInstance.facePlayer = true;
-                SwitchToBehavior(State.Chasing);
 
-                yield return new WaitForSeconds(5f);
+                yield return new WaitForSeconds(disappearTime);
+
+                SwitchToBehavior(State.InActive);
             }
 
-            TryStartCoroutine(JumpscareCoroutine(), 0);
+            TryStartCoroutine(JumpscareCoroutine(posTransform.position), 1);
         }
 
         void BlockDoor() // 1 1
@@ -316,7 +322,7 @@ namespace HeavyItemSCPs.Items.SCP513
             float blockPosOffset = 1f;
 
             DoorLock[] doorLocks = GetDoorLocksNearbyPosition(targetPlayer.transform.position, doorDistance).ToArray();
-            if (doorLocks.Length == 0) { return; }
+            if (doorLocks.Length == 0) { logger.LogDebug("Cant find any doors near player"); return; }
             int index = UnityEngine.Random.Range(0, doorLocks.Length);
             DoorLock doorLock = doorLocks[index];
 
@@ -330,9 +336,10 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 yield return null;
 
+                SwitchToBehavior(State.Manifesting);
                 SCPInstance.Teleport(blockPos);
                 SCPInstance.SetDestinationToPosition(blockPos);
-                SwitchToBehavior(State.Manifesting);
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 SCPInstance.facePlayer = true;
 
                 float elapsedTime = 0f;
@@ -342,8 +349,10 @@ namespace HeavyItemSCPs.Items.SCP513
                     elapsedTime += 0.2f;
                     if (Vector3.Distance(SCPInstance.transform.position, targetPlayer.transform.position) > disappearDistance)
                     {
-                        yield break;
+                        break;
                     }
+
+                    SwitchToBehavior(State.InActive);
                 }
             }
 
@@ -353,30 +362,38 @@ namespace HeavyItemSCPs.Items.SCP513
         void StalkPlayer() // 1 2
         {
             logger.LogDebug("StalkPlayer");
-            IEnumerator StalkCoroutine()
+
+            Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
+            if (teleportTransform == null) { logger.LogDebug("Cant find any node near player"); return; }
+
+            IEnumerator StalkCoroutine(Vector3 teleportPos)
             {
                 float playerDistanceToDisappear = 3f;
 
                 yield return null;
 
-                Vector3 teleportPos = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true).position;
-                SCPInstance.Teleport(teleportPos);
                 SwitchToBehavior(State.Stalking);
+                SCPInstance.Teleport(teleportPos);
+                SCPInstance.SetDestinationToPosition(teleportPos);
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
 
                 while (Vector3.Distance(targetPlayer.transform.position, SCPInstance.transform.position) > playerDistanceToDisappear)
                 {
                     yield return new WaitForSeconds(0.2f);
 
-                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * 1f))
+                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset))
                     {
-                        yield return new WaitForSeconds(5f);
-                        RoundManager.Instance.FlickerLights(true, true);
-                        yield break;
+                        logger.LogDebug("In LOS, disappearing...");
+                        yield return new WaitForSeconds(1f);
+                        FlickerLights();
+                        break;
                     }
                 }
+
+                SwitchToBehavior(State.InActive);
             }
 
-            TryStartCoroutine(StalkCoroutine(), 1);
+            TryStartCoroutine(StalkCoroutine(teleportTransform.position), 1);
         }
 
         void PlayFakeSoundEffectMajor() // 1 3
@@ -430,6 +447,35 @@ namespace HeavyItemSCPs.Items.SCP513
         void SlowWalkToPlayer() // Use arms crossed // 1 6
         {
             logger.LogDebug("SlowWalkToPlayer");
+
+            Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, 3);
+            if (teleportTransform == null) {logger.LogDebug("Cant find node to teleport to"); return; }
+
+            IEnumerator SlowWalkCoroutine(Vector3 teleportPos)
+            {
+                yield return null;
+
+                SCPInstance.Teleport(teleportPos);
+                SCPInstance.agent.speed = 1f;
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
+                SwitchToBehavior(State.Chasing);
+
+                while (true)
+                {
+                    yield return new WaitForSeconds(0.2f);
+
+                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset))
+                    {
+                        yield return new WaitForSeconds(3f);
+                        FlickerLights();
+                        break;
+                    }
+                }
+
+                SwitchToBehavior(State.InActive);
+            }
+
+            TryStartCoroutine(SlowWalkCoroutine(teleportTransform.position), 1);
         }
 
         void MimicEnemy() // 1 7

@@ -75,7 +75,7 @@
 
     <ItemGroup>
       <Reference Include="ProjectSCP.SCP500">
-        <HintPath>..\1Resources\1Assemblies\ProjectSCP.SCP500.dll</HintPath>
+        <HintPath>..\1Assemblies\ProjectSCP.SCP500.dll</HintPath>
       </Reference>
     </ItemGroup>
 
@@ -83,4 +83,5 @@
     <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
         <Exec Command="dotnet netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
     </Target>
+
 </Project>
