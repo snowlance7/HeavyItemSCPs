@@ -52,17 +52,17 @@ namespace HeavyItemSCPs.Items.SCP513
         public void Start()
         {
             commonEvents.Add(FlickerLights);
-            commonEvents.Add(Stare);
             commonEvents.Add(PlayAmbientSFXNearby);
             commonEvents.Add(PlayFakeSoundEffectMinor);
             commonEvents.Add(WallBloodMessage);
             commonEvents.Add(PlayBellSFX);
+            commonEvents.Add(Stare);
             logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
+            uncommonEvents.Add(FarStare);
             uncommonEvents.Add(Jumpscare);
             uncommonEvents.Add(BlockDoor);
             uncommonEvents.Add(StalkPlayer);
-            //uncommonEvents.Add(MimicHazard);
             uncommonEvents.Add(PlayFakeSoundEffectMajor);
             uncommonEvents.Add(ShowFakeShipLeavingDisplayTip);
             uncommonEvents.Add(SpawnFakeBody);
@@ -143,6 +143,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         Coroutine? activeCoroutine = null;
         int currentCoroutineTier = -1; // -1 = none, 0 = common, 1 = uncommon, 2 = rare
+        bool wasInterrupted = false;
 
         private bool TryStartCoroutine(IEnumerator coroutineMethod, int tier)
         {
@@ -150,16 +151,18 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 if (tier < currentCoroutineTier)
                 {
-                    // A higher priority coroutine is already running, don't start this one
+                    logger.LogDebug("A higher priority coroutine is already running, don't start this one");
                     return false;
                 }
 
-                // Cancel lower priority coroutine
+                // Interrupt current coroutine
+                wasInterrupted = true;
                 StopCoroutine(activeCoroutine);
                 activeCoroutine = null;
                 currentCoroutineTier = -1;
             }
 
+            wasInterrupted = false;
             activeCoroutine = StartCoroutine(WrapCoroutine(coroutineMethod, tier));
             currentCoroutineTier = tier;
             return true;
@@ -168,14 +171,16 @@ namespace HeavyItemSCPs.Items.SCP513
         private IEnumerator WrapCoroutine(IEnumerator coroutineMethod, int tier)
         {
             yield return StartCoroutine(coroutineMethod);
-            // Once it's done, clear the tracking
-            if (tier == currentCoroutineTier)
+
+            // Only clear and switch behavior if not interrupted
+            if (tier == currentCoroutineTier && !wasInterrupted)
             {
-                //SwitchToBehavior(State.InActive);
+                SwitchToBehavior(State.InActive);
                 activeCoroutine = null;
                 currentCoroutineTier = -1;
             }
         }
+
 
         #region Common
 
@@ -187,53 +192,14 @@ namespace HeavyItemSCPs.Items.SCP513
             GameNetworkManager.Instance.localPlayerController.JumpToFearLevel(0.9f);
         }
 
-        void Stare() // 0 1 // TODO: not teleporting behind player
-        {
-            logger.LogDebug("Stare");
-            Vector3 _outsideLOS = SCPInstance.TryFindingHauntPosition(false);
-            if (_outsideLOS == Vector3.zero) { logger.LogDebug("Unable to find position outside LOS"); return; }
-
-
-            IEnumerator StareCoroutine(Vector3 outsideLOS)
-            {
-                float stareTime = 15f;
-
-                yield return null;
-
-                SCPInstance.Teleport(outsideLOS);
-                SwitchToBehavior(State.Manifesting);
-                SCPInstance.facePlayer = true;
-                SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
-                RoundManager.PlayRandomClip(SCPInstance.creatureSFX, SCPInstance.AmbientSFX);
-
-                float elapsedTime = 0f;
-
-                while (elapsedTime < stareTime)
-                {
-                    yield return new WaitForSeconds(0.2f);
-                    elapsedTime += 0.2f;
-
-                    if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
-                    {
-                        FlickerLights();
-                        break;
-                    }
-                }
-                
-                SwitchToBehavior(State.InActive);
-            }
-
-            TryStartCoroutine(StareCoroutine(_outsideLOS), 0);
-        }
-
-        void PlayAmbientSFXNearby() // 0 2
+        void PlayAmbientSFXNearby() // 0 1
         {
             logger.LogDebug("PlayAmbientSFXNearby");
             Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
             PlaySoundAtPosition(pos, SCPInstance.AmbientSFX);
         }
 
-        void PlayFakeSoundEffectMinor() // 0 3
+        void PlayFakeSoundEffectMinor() // 0 2
         {
             logger.LogDebug("PlaySoundEffectMinor");
 
@@ -270,28 +236,106 @@ namespace HeavyItemSCPs.Items.SCP513
             GameObject.Destroy(soundObj, clip.length);
         }
 
-        void WallBloodMessage() // 0 4
+        void WallBloodMessage() // 0 3
         {
             logger.LogDebug("WallBloodMessage");
             throw new NotImplementedException();
         }
 
-        void PlayBellSFX() // 0 5
+        void PlayBellSFX() // 0 4
         {
             logger.LogDebug("PlayBellSFX");
             Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
             PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
+        void Stare() // 0 5
+        {
+            logger.LogDebug("Stare");
+            Transform? _outsideLOS = SCPInstance.TryFindingHauntPosition(false);
+            if (_outsideLOS == null) { logger.LogDebug("Unable to find stare position"); return; }
+
+
+            IEnumerator StareCoroutine(Vector3 outsideLOS)
+            {
+                float stareTime = 15f;
+
+                yield return null;
+
+                SwitchToBehavior(State.Manifesting);
+                SCPInstance.Teleport(outsideLOS);
+                SCPInstance.facePlayer = true;
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
+                RoundManager.PlayRandomClip(SCPInstance.creatureSFX, SCPInstance.AmbientSFX);
+
+                float elapsedTime = 0f;
+
+                while (elapsedTime < stareTime)
+                {
+                    yield return new WaitForSeconds(0.2f);
+                    elapsedTime += 0.2f;
+
+                    if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
+                    {
+                        yield return new WaitForSeconds(2.5f);
+                        FlickerLights();
+                        yield break;
+                    }
+                }
+            }
+
+            TryStartCoroutine(StareCoroutine(_outsideLOS.position), 0);
+        }
+
         #endregion
 
         #region UnCommon
 
-        void Jumpscare() // 1 0
+        void FarStare() // 1 0 // TODO: not teleporting behind player
+        {
+            logger.LogDebug("FarStare");
+            Transform? _outsideLOS = SCPInstance.TryFindingHauntPosition(false);
+            if (_outsideLOS == null) { logger.LogDebug("Unable to find stare position"); return; }
+
+
+            IEnumerator StareCoroutine(Vector3 outsideLOS)
+            {
+                float stareTime = 15f;
+
+                yield return null;
+
+                SwitchToBehavior(State.Manifesting);
+                SCPInstance.Teleport(outsideLOS);
+                SCPInstance.facePlayer = true;
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
+                RoundManager.PlayRandomClip(SCPInstance.creatureSFX, SCPInstance.AmbientSFX);
+
+                float elapsedTime = 0f;
+
+                while (elapsedTime < stareTime)
+                {
+                    yield return new WaitForSeconds(0.2f);
+                    elapsedTime += 0.2f;
+
+                    if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
+                    {
+                        yield return new WaitForSeconds(2.5f);
+                        FlickerLights();
+                        yield break;
+                    }
+                }
+                
+                SwitchToBehavior(State.InActive);
+            }
+
+            TryStartCoroutine(StareCoroutine(_outsideLOS.position), 1);
+        }
+
+        void Jumpscare() // 1 1
         {
             logger.LogDebug("Jumpscare");
 
-            Transform? posTransform = SCPInstance.ChoosePositionInFrontOfPlayer(5f);
+            Transform? posTransform = SCPInstance.ChoosePositionInFrontOfPlayer(1f);
             if (posTransform == null) { return; }
 
             IEnumerator JumpscareCoroutine(Vector3 pos)
@@ -315,7 +359,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(JumpscareCoroutine(posTransform.position), 1);
         }
 
-        void BlockDoor() // 1 1
+        void BlockDoor() // 1 2
         {
             logger.LogDebug("BlockDoor");
             float doorDistance = 10f;
@@ -359,7 +403,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(BlockDoorCoroutine(blockPos), 1);
         }
 
-        void StalkPlayer() // 1 2
+        void StalkPlayer() // 1 3
         {
             logger.LogDebug("StalkPlayer");
 
@@ -396,7 +440,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(StalkCoroutine(teleportTransform.position), 1);
         }
 
-        void PlayFakeSoundEffectMajor() // 1 3
+        void PlayFakeSoundEffectMajor() // 1 4
         {
             logger.LogDebug("PlayFakeSoundEffectMajor");
 
@@ -434,17 +478,17 @@ namespace HeavyItemSCPs.Items.SCP513
         }
 
 
-        void ShowFakeShipLeavingDisplayTip() // 1 4
+        void ShowFakeShipLeavingDisplayTip() // 1 5
         {
             logger.LogDebug("ShowFakeShipLeavingDisplayTip");
         }
 
-        void SpawnFakeBody() // 1 5
+        void SpawnFakeBody() // 1 6
         {
             logger.LogDebug("SpawnFakeBody");
         }
 
-        void SlowWalkToPlayer() // Use arms crossed // 1 6
+        void SlowWalkToPlayer() // 1 7
         {
             logger.LogDebug("SlowWalkToPlayer");
 
@@ -478,7 +522,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(SlowWalkCoroutine(teleportTransform.position), 1);
         }
 
-        void MimicEnemy() // 1 7
+        void MimicEnemy() // 1 8
         {
             logger.LogDebug("MimicEnemy");
             // See MimicableEnemies.txt

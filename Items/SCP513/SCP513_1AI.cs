@@ -240,6 +240,22 @@ namespace HeavyItemSCPs.Items.SCP513
                 UnityEngine.GameObject.Destroy(hallucManager.gameObject);
         }
 
+        public Transform? TryFindingHauntPosition(bool mustBeInLOS = true)
+        {
+            if (targetPlayer.isInsideFactory)
+            {
+                for (int i = 0; i < allAINodes.Length; i++)
+                {
+                    if ((!mustBeInLOS || !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
+                    {
+                        logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
+                        return allAINodes[i].transform;
+                    }
+                }
+            }
+            return null;
+        }
+
         public Transform? ChoosePositionInFrontOfPlayer(float minDistance)
         {
             logger.LogDebug("Choosing position in front of player");
@@ -252,7 +268,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 Vector3 playerPos = targetPlayer.gameplayCamera.transform.position;
                 float distance = Vector3.Distance(playerPos, nodePos);
                 if (distance < minDistance) { continue; }
-                if (Physics.Linecast(nodePos, playerPos, StartOfRound.Instance.collidersAndRoomMaskAndDefault/*, queryTriggerInteraction: QueryTriggerInteraction.Ignore*/)) { continue; }
+                if (Physics.Linecast(nodePos, playerPos, StartOfRound.Instance.collidersAndRoomMaskAndDefault, queryTriggerInteraction: QueryTriggerInteraction.Ignore)) { continue; }
                 if (!targetPlayer.HasLineOfSightToPosition(nodePos)) { continue; }
 
                 mostOptimalDistance = distance;
@@ -289,20 +305,6 @@ namespace HeavyItemSCPs.Items.SCP513
             return Vector3.zero;
         }
 
-        public Vector3 TryFindingHauntPosition(bool mustBeInLOS = true)
-        {
-            for (int i = 0; i < allAINodes.Length; i++)
-            {
-                if ((!mustBeInLOS || !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
-                {
-                    logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
-                    return allAINodes[i].transform.position;
-                }
-            }
-
-            return Vector3.zero;
-        }
-
         public override void SetEnemyOutside(bool outside = false)
         {
             if (isOutside == outside) { return; }
@@ -324,6 +326,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("Teleporting to " + position.ToString());
             position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit);
             agent.Warp(position);
+            transform.position = position;
         }
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with
