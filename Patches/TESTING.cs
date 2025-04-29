@@ -29,6 +29,7 @@ namespace HeavyItemSCPs.Patches
     internal class TESTING : MonoBehaviour
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
+        public static bool inTestRoom = StartOfRound.Instance.testRoom != null;
         public static bool testing = false;
         public static float drunkness = 0;
 
@@ -40,6 +41,7 @@ namespace HeavyItemSCPs.Patches
         {
             if (!testing) { return; }
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
+            logger.LogDebug("In Test Room: " + inTestRoom);
 
             /*Ray interactRay = new Ray(localPlayer.transform.position + Vector3.up, -Vector3.up);
             if (!Physics.Raycast(interactRay, out RaycastHit hit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore))

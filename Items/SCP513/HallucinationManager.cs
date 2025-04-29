@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HeavyItemSCPs.Patches;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -633,7 +634,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public Transform GetClosestNode(Vector3 pos, bool outside = true)
         {
             GameObject[] nodes;
-            if (outside)
+            if (outside || TESTING.inTestRoom)
             {
                 if (RoundManager.Instance.outsideAINodes == null)
                 {
@@ -650,6 +651,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 nodes = RoundManager.Instance.insideAINodes;
             }
 
+            logger.LogDebug("Node count: " + nodes.Length);
             float closestDistance = Mathf.Infinity;
             GameObject closestNode = null!;
             
