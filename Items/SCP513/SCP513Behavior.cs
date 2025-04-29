@@ -7,6 +7,7 @@ using Unity.Netcode;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
 using HeavyItemSCPs.Items.SCP513;
+using HeavyItemSCPs.Patches;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
@@ -163,7 +164,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     HauntedPlayers.Add(player.actualClientId);
 
-                    if (StartOfRound.Instance.inShipPhase || StartOfRound.Instance.shipIsLeaving) { continue; }
+                    if (!TESTING.testing && (StartOfRound.Instance.inShipPhase || StartOfRound.Instance.shipIsLeaving)) { continue; }
                     SpawnBellMan(player.actualClientId);
                 }
             }

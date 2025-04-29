@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.ProBuilder.Csg;
 using UnityEngine.UIElements;
 using static HeavyItemSCPs.Plugin;
 using static UnityEngine.VFX.VisualEffectControlTrackController;
@@ -189,13 +190,13 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("FlickerLights");
             if (!targetPlayer.isInsideFactory) { return; }
             RoundManager.Instance.FlickerLights(true, true);
-            GameNetworkManager.Instance.localPlayerController.JumpToFearLevel(0.9f);
+            localPlayer.JumpToFearLevel(0.9f);
         }
 
         void PlayAmbientSFXNearby() // 0 1
         {
             logger.LogDebug("PlayAmbientSFXNearby");
-            Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
+            Vector3 pos = GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
             PlaySoundAtPosition(pos, SCPInstance.AmbientSFX);
         }
 
@@ -245,7 +246,7 @@ namespace HeavyItemSCPs.Items.SCP513
         void PlayBellSFX() // 0 4
         {
             logger.LogDebug("PlayBellSFX");
-            Vector3 pos = RoundManager.Instance.GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
+            Vector3 pos = GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
             PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
@@ -627,6 +628,42 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             return doors;
+        }
+
+        public Transform GetClosestNode(Vector3 pos, bool outside = true)
+        {
+            GameObject[] nodes;
+            if (outside)
+            {
+                if (RoundManager.Instance.outsideAINodes == null)
+                {
+                    RoundManager.Instance.outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+                }
+                nodes = RoundManager.Instance.outsideAINodes;
+            }
+            else
+            {
+                if (RoundManager.Instance.insideAINodes == null)
+                {
+                    RoundManager.Instance.insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
+                }
+                nodes = RoundManager.Instance.insideAINodes;
+            }
+
+            float closestDistance = Mathf.Infinity;
+            GameObject closestNode = null!;
+            
+            foreach (var node in nodes)
+            {
+                float distance = Vector3.Distance(pos, node.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestNode = node;
+                }
+            }
+
+            return closestNode.transform;
         }
 
         #endregion

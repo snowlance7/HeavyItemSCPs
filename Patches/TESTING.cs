@@ -32,9 +32,13 @@ namespace HeavyItemSCPs.Patches
         public static bool testing = false;
         public static float drunkness = 0;
 
+        public static int setEventRarity;
+        public static int setEventIndex;
+
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
+            if (!testing) { return; }
             logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
 
             /*Ray interactRay = new Ray(localPlayer.transform.position + Vector3.up, -Vector3.up);
@@ -43,6 +47,9 @@ namespace HeavyItemSCPs.Patches
                 return;
             }
             logger.LogDebug(hit.collider.tag);*/
+
+            HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
+
         } // HoarderBug, BaboonHawk
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
@@ -54,6 +61,10 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/setEvent":
+                    setEventRarity = int.Parse(args[1]);
+                    setEventIndex = int.Parse(args[2]);
+                    break;
                 case "/event":
                     HallucinationManager.Instance.RunEvent(int.Parse(args[1]), int.Parse(args[2]));
                     break;
