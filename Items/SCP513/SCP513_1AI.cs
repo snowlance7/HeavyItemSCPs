@@ -240,23 +240,33 @@ namespace HeavyItemSCPs.Items.SCP513
                 UnityEngine.GameObject.Destroy(hallucManager.gameObject);
         }
 
-        public Transform? TryFindingHauntPosition(bool mustBeInLOS = true)
+        public Vector3 GetRandomPositionAroundPlayer(float distance = 10f)
         {
-            if (targetPlayer.isInsideFactory)
+            Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, distance);
+            
+            while (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, pos + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
             {
-                for (int i = 0; i < allAINodes.Length; i++)
+                logger.LogDebug("Reroll");
+                pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, distance);
+            }
+
+            return pos;
+        }
+
+        public Transform? TryFindingHauntPosition()
+        {
+            for (int i = 0; i < allAINodes.Length; i++)
+            {
+                if (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
                 {
-                    if ((!mustBeInLOS || !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault)) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
-                    {
-                        logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
-                        return allAINodes[i].transform;
-                    }
+                    logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
+                    return allAINodes[i].transform;
                 }
             }
             return null;
         }
 
-        public Transform? ChoosePositionInFrontOfPlayer(float minDistance)
+        public Transform? ChoosePositionInFrontOfPlayer(float minDistance, float maxDistance)
         {
             logger.LogDebug("Choosing position in front of player");
             Transform? result = null;
@@ -264,12 +274,12 @@ namespace HeavyItemSCPs.Items.SCP513
             foreach (var node in allAINodes)
             {
                 if (node == null) { continue; }
-                Vector3 nodePos = node.transform.position + Vector3.up * 0.5f;
+                Vector3 nodePos = node.transform.position + Vector3.up * HallucinationManager.LOSOffset;
                 Vector3 playerPos = targetPlayer.gameplayCamera.transform.position;
                 float distance = Vector3.Distance(playerPos, nodePos);
-                if (distance < minDistance) { continue; }
+                if (distance < minDistance || distance > maxDistance) { continue; }
                 if (Physics.Linecast(nodePos, playerPos, StartOfRound.Instance.collidersAndRoomMaskAndDefault, queryTriggerInteraction: QueryTriggerInteraction.Ignore)) { continue; }
-                if (!targetPlayer.HasLineOfSightToPosition(nodePos)) { continue; }
+                if (!targetPlayer.HasLineOfSightToPosition(nodePos, 80f, 100)) { continue; }
 
                 mostOptimalDistance = distance;
                 result = node.transform;

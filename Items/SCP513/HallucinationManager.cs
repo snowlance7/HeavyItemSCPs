@@ -58,6 +58,7 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(PlayFakeSoundEffectMinor);
             commonEvents.Add(WallBloodMessage);
             commonEvents.Add(PlayBellSFX);
+            commonEvents.Add(HideHazard);
             commonEvents.Add(Stare);
             logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
@@ -251,12 +252,61 @@ namespace HeavyItemSCPs.Items.SCP513
             PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
-        void Stare() // 0 5
+        void HideHazard() // 0 5
+        {
+            float hideTime = 15f;
+
+            switch (UnityEngine.Random.Range(0, 3))
+            {
+                case 0: // LandMine
+                Landmine[] landmines = GameObject.FindObjectsOfType<Landmine>();
+                if (landmines.Length <= 0) { return; }
+                
+                Landmine? landmine = Utils.GetClosestGameObjectOfType<Landmine>(targetPlayer.transform.position);
+                if (landmine == null) { return; }
+
+                IEnumerator HideLandmineCoroutine(Landmine landmine)
+                {
+                    try
+                    {
+                        yield return null;
+                        landmine.GetComponent<MeshRenderer>().forceRenderingOff = true;
+                        
+                        float elapsedTime = 0f;
+                        while (elapsedTime > hideTime)
+                        {
+                            yield return new WaitForSeconds(0.2f);
+                            elapsedTime += 0.2f;
+                            if (landmine.mineActivated) // TODO: Check this
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        landmine.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                    }
+                }
+
+                StartCoroutine(HideLandmineCoroutine(landmine));
+
+                break;
+                case 1: // Turret // TODO: Hide until turret activates
+
+                break;
+                case 2: // SpikeTrap // TODO
+
+                break;
+                default:
+                break;
+            }
+        }
+
+        void Stare() // 0 6 // TODO: Rework
         {
             logger.LogDebug("Stare");
-            Transform? _outsideLOS = SCPInstance.TryFindingHauntPosition(false);
-            if (_outsideLOS == null) { logger.LogDebug("Unable to find stare position"); return; }
-
+            Vector3 pos = SCPInstance.GetRandomPositionAroundPlayer();
 
             IEnumerator StareCoroutine(Vector3 outsideLOS)
             {
@@ -286,28 +336,32 @@ namespace HeavyItemSCPs.Items.SCP513
                 }
             }
 
-            TryStartCoroutine(StareCoroutine(_outsideLOS.position), 0);
+            TryStartCoroutine(StareCoroutine(pos), 0);
         }
 
         #endregion
 
         #region UnCommon
 
-        void FarStare() // 1 0 // TODO: not teleporting behind player
+        void FarStare() // 1 0
         {
             logger.LogDebug("FarStare");
-            Transform? _outsideLOS = SCPInstance.TryFindingHauntPosition(false);
-            if (_outsideLOS == null) { logger.LogDebug("Unable to find stare position"); return; }
 
-
-            IEnumerator StareCoroutine(Vector3 outsideLOS)
+            IEnumerator StareCoroutine()
             {
                 float stareTime = 15f;
 
                 yield return null;
 
+                Transform? pos = SCPInstance.TryFindingHauntPosition();
+                while (pos == null)
+                {
+                    yield return new WaitForSeconds(0.2f);
+                    pos = SCPInstance.TryFindingHauntPosition();
+                }
+
                 SwitchToBehavior(State.Manifesting);
-                SCPInstance.Teleport(outsideLOS);
+                SCPInstance.Teleport(pos.position);
                 SCPInstance.facePlayer = true;
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 RoundManager.PlayRandomClip(SCPInstance.creatureSFX, SCPInstance.AmbientSFX);
@@ -330,25 +384,29 @@ namespace HeavyItemSCPs.Items.SCP513
                 SwitchToBehavior(State.InActive);
             }
 
-            TryStartCoroutine(StareCoroutine(_outsideLOS.position), 1);
+            TryStartCoroutine(StareCoroutine(), 1);
         }
 
         void Jumpscare() // 1 1
         {
             logger.LogDebug("Jumpscare");
 
-            Transform? posTransform = SCPInstance.ChoosePositionInFrontOfPlayer(1f);
-            if (posTransform == null) { return; }
-
-            IEnumerator JumpscareCoroutine(Vector3 pos)
+            IEnumerator JumpscareCoroutine()
             {
                 float runSpeed = 20f;
                 float disappearTime = 5f;
 
                 yield return null;
 
+                Transform? pos = SCPInstance.ChoosePositionInFrontOfPlayer(1f, 5f);
+                while (pos == null)
+                {
+                    yield return new WaitForSeconds(0.2f);
+                    pos = SCPInstance.ChoosePositionInFrontOfPlayer(1f, 5f);
+                }
+
                 SwitchToBehavior(State.Chasing);
-                SCPInstance.Teleport(pos);
+                SCPInstance.Teleport(pos.position);
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
                 SCPInstance.agent.speed = runSpeed;
                 SCPInstance.facePlayer = true;
@@ -358,7 +416,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SwitchToBehavior(State.InActive);
             }
 
-            TryStartCoroutine(JumpscareCoroutine(posTransform.position), 1);
+            TryStartCoroutine(JumpscareCoroutine(), 1);
         }
 
         void BlockDoor() // 1 2
@@ -408,7 +466,7 @@ namespace HeavyItemSCPs.Items.SCP513
         void StalkPlayer() // 1 3
         {
             logger.LogDebug("StalkPlayer");
-
+            // TODO: Rework this like the other coroutines
             Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
             if (teleportTransform == null) { logger.LogDebug("Cant find any node near player"); return; }
 
@@ -634,19 +692,21 @@ namespace HeavyItemSCPs.Items.SCP513
         public Transform GetClosestNode(Vector3 pos, bool outside = true)
         {
             GameObject[] nodes;
-            if (outside || TESTING.inTestRoom)
+            if (outside && !TESTING.inTestRoom)
             {
-                if (RoundManager.Instance.outsideAINodes == null)
+                if (RoundManager.Instance.outsideAINodes == null || RoundManager.Instance.outsideAINodes.Length <= 0)
                 {
                     RoundManager.Instance.outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+                    logger.LogDebug("Found OutsideAINodes: " + RoundManager.Instance.outsideAINodes.Length);
                 }
                 nodes = RoundManager.Instance.outsideAINodes;
             }
             else
             {
-                if (RoundManager.Instance.insideAINodes == null)
+                if (RoundManager.Instance.insideAINodes == null || RoundManager.Instance.insideAINodes.Length <= 0)
                 {
                     RoundManager.Instance.insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
+                    logger.LogDebug("Found AINodes: " + RoundManager.Instance.insideAINodes.Length);
                 }
                 nodes = RoundManager.Instance.insideAINodes;
             }

@@ -176,5 +176,24 @@ namespace HeavyItemSCPs
             NavMeshPath path = new();
             return NavMesh.CalculatePath(from, to, -1, path) && Vector3.Distance(path.corners[path.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(to, RoundManager.Instance.navHit, 2.7f)) <= 1.55f; // TODO: Test this
         }
+
+        public static T? GetClosestGameObjectOfType<T>(Vector3 position) where T : Component
+        {
+            T[] objects = GameObject.FindObjectsOfType<T>();
+            T closest = null!;
+            float closestDistance = Mathf.Infinity;
+
+            foreach (T obj in objects)
+            {
+                float distance = Vector3.Distance(position, obj.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closest = obj;
+                }
+            }
+
+            return closest;
+        }
     }
 }
