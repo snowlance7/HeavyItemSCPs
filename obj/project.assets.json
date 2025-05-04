@@ -65,16 +65,20 @@
           "build/BepInEx.PluginInfoProps.props": {}
         }
       },
-      "Evaisa.LethalLib/0.16.2": {
+      "Evaisa.LethalLib/1.0.1": {
         "type": "package",
         "dependencies": {
           "BepInEx.Core": "5.4.21"
         },
         "compile": {
-          "lib/netstandard2.1/LethalLib.dll": {}
+          "lib/netstandard2.1/LethalLib.dll": {
+            "related": ".xml"
+          }
         },
         "runtime": {
-          "lib/netstandard2.1/LethalLib.dll": {}
+          "lib/netstandard2.1/LethalLib.dll": {
+            "related": ".xml"
+          }
         }
       },
       "HarmonyX/2.7.0": {
@@ -830,17 +834,18 @@
         "build/BepInEx.PluginInfoProps.props"
       ]
     },
-    "Evaisa.LethalLib/0.16.2": {
-      "sha512": "aV0e5tXlNxvpnt+31/eaPpMLMV+ROJSwWDfOkyUHSrO6vtq1tZyaeYcVBP+umfAGRFu9rXapydgsSkkZqUHxxA==",
+    "Evaisa.LethalLib/1.0.1": {
+      "sha512": "4Vo1wVEZfSA3FFB0skalc5xfRaVhITpZTMv7S/Q2DAehdA7Rf1uG/iK6SUmI4X1n+upRlXIJofCFsDTt6geHcg==",
       "type": "package",
-      "path": "evaisa.lethallib/0.16.2",
+      "path": "evaisa.lethallib/1.0.1",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
-        "evaisa.lethallib.0.16.2.nupkg.sha512",
+        "evaisa.lethallib.1.0.1.nupkg.sha512",
         "evaisa.lethallib.nuspec",
-        "lib/netstandard2.1/LethalLib.dll"
+        "lib/netstandard2.1/LethalLib.dll",
+        "lib/netstandard2.1/LethalLib.xml"
       ]
     },
     "HarmonyX/2.7.0": {
@@ -2947,32 +2952,40 @@
       "BepInEx.AssemblyPublicizer.MSBuild >= 0.4.1",
       "BepInEx.Core >= 5.*",
       "BepInEx.PluginInfoProps >= 2.*",
-      "Evaisa.LethalLib >= 0.16.2",
+      "Evaisa.LethalLib >= 1.0.1",
       "LethalCompany.GameLibs.Steam >= *-*",
       "UnityEngine.Modules >= 2022.3.9"
     ]
   },
   "packageFolders": {
-    "/home/snowlance/.nuget/packages/": {}
+    "C:\\Users\\snowl\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.4.0",
     "restore": {
-      "projectUniqueName": "/home/snowlance/repos/HeavyItemSCPs/HeavyItemSCPs.csproj",
+      "projectUniqueName": "C:\\Users\\snowl\\source\\repos\\HeavyItemSCPs\\HeavyItemSCPs.csproj",
       "projectName": "ProjectSCP.HeavyItemSCPs",
-      "projectPath": "/home/snowlance/repos/HeavyItemSCPs/HeavyItemSCPs.csproj",
-      "packagesPath": "/home/snowlance/.nuget/packages/",
-      "outputPath": "/home/snowlance/repos/HeavyItemSCPs/obj/",
+      "projectPath": "C:\\Users\\snowl\\source\\repos\\HeavyItemSCPs\\HeavyItemSCPs.csproj",
+      "packagesPath": "C:\\Users\\snowl\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\snowl\\source\\repos\\HeavyItemSCPs\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/home/snowlance/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\snowl\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "netstandard2.1"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {},
         "https://api.nuget.org/v3/index.json": {},
+        "https://nuget.bepinex.dev/v3/index.json": {},
         "https://nuget.bepinex.dev/v3/index.json": {}
       },
       "frameworks": {
@@ -2990,7 +3003,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "netstandard2.1": {
@@ -3018,7 +3032,7 @@
           },
           "Evaisa.LethalLib": {
             "target": "Package",
-            "version": "[0.16.2, )"
+            "version": "[1.0.1, )"
           },
           "LethalCompany.GameLibs.Steam": {
             "suppressParent": "All",
@@ -3048,7 +3062,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.408/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203\\RuntimeIdentifierGraph.json"
       }
     }
   }

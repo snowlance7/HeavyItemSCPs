@@ -10,3 +10,11 @@
 /home/snowlance/repos/HeavyItemSCPs/bin/Debug/netstandard2.1/ProjectSCP.SCP500.dll
 /home/snowlance/repos/HeavyItemSCPs/obj/Debug/netstandard2.1/HeavyIte.72EF5A4F.Up2Date
 /home/snowlance/repos/HeavyItemSCPs/obj/Debug/netstandard2.1/ProjectSCP.HeavyItemSCPs.dll
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.csproj.AssemblyReference.cache
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\MyPluginInfo.cs
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.AssemblyInfoInputs.cache
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.AssemblyInfo.cs
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.csproj.CoreCompileInputs.cache
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.sourcelink.json
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.dll

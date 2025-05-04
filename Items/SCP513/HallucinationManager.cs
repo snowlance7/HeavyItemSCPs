@@ -259,8 +259,6 @@ namespace HeavyItemSCPs.Items.SCP513
             switch (UnityEngine.Random.Range(0, 3))
             {
                 case 0: // LandMine
-                Landmine[] landmines = GameObject.FindObjectsOfType<Landmine>();
-                if (landmines.Length <= 0) { return; }
                 
                 Landmine? landmine = Utils.GetClosestGameObjectOfType<Landmine>(targetPlayer.transform.position);
                 if (landmine == null) { return; }
@@ -294,10 +292,68 @@ namespace HeavyItemSCPs.Items.SCP513
                 break;
                 case 1: // Turret // TODO: Hide until turret activates
 
-                break;
+                    Turret? turret = Utils.GetClosestGameObjectOfType<Turret>(targetPlayer.transform.position);
+                    if (turret == null) { return; }
+
+                    IEnumerator HideTurretCoroutine(Turret turret)
+                    {
+                        try
+                        {
+                            yield return null;
+                            turret.GetComponent<MeshRenderer>().forceRenderingOff = true;
+
+                            float elapsedTime = 0f;
+                            while (elapsedTime > hideTime)
+                            {
+                                yield return new WaitForSeconds(0.2f);
+                                elapsedTime += 0.2f;
+                                if (turret.turretActive) // TODO: Test this
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            turret.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                        }
+                    }
+
+                    StartCoroutine(HideTurretCoroutine(turret));
+
+                    break;
                 case 2: // SpikeTrap // TODO
 
-                break;
+                    SpikeRoofTrap? spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(targetPlayer.transform.position);
+                    if (spikeTrap == null) { return; }
+
+                    IEnumerator HideSpikeTrapCoroutine(SpikeRoofTrap spikeTrap)
+                    {
+                        try
+                        {
+                            yield return null;
+                            spikeTrap.GetComponent<MeshRenderer>().forceRenderingOff = true;
+
+                            float elapsedTime = 0f;
+                            while (elapsedTime > hideTime)
+                            {
+                                yield return new WaitForSeconds(0.2f);
+                                elapsedTime += 0.2f;
+                                if (spikeTrap.trapActive) // TODO: Test this
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            spikeTrap.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                        }
+                    }
+
+                    StartCoroutine(HideSpikeTrapCoroutine(spikeTrap));
+
+                    break;
                 default:
                 break;
             }

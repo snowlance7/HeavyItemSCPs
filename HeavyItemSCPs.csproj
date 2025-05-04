@@ -60,7 +60,7 @@
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
         <PackageReference Include="BepInEx.Core" Version="5.*" PrivateAssets="all" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" PrivateAssets="all" />
-        <PackageReference Include="Evaisa.LethalLib" Version="0.16.2" />
+        <PackageReference Include="Evaisa.LethalLib" Version="1.0.1" />
         <PackageReference Include="LethalCompany.GameLibs.Steam" Version="*-*" Publicize="true" PrivateAssets="all" />
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" PrivateAssets="all" />
     </ItemGroup>
@@ -71,12 +71,6 @@
 
     <ItemGroup>
       <Folder Include="ThunderStore\HeavyItemSCPs\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Reference Include="ProjectSCP.SCP500">
-        <HintPath>..\1Assemblies\ProjectSCP.SCP500.dll</HintPath>
-      </Reference>
     </ItemGroup>
 
     <!-- Netcode Patcher Post-Build Event -->

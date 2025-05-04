@@ -2,4 +2,29 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/Items/SCP427/SCP427Behavior.cs
+# Ignore VS and VS Code folders
+.vs/
+.vscode/
+
+# Ignore Unity generated files
+Library/
+Temp/
+Obj/
+Build/
+Logs/
+MemoryCaptures/
+
+# Ignore user-specific files
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Git ignore itself
+!.gitignore
