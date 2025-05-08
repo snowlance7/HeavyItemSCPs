@@ -56,7 +56,7 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(FlickerLights);
             commonEvents.Add(PlayAmbientSFXNearby);
             commonEvents.Add(PlayFakeSoundEffectMinor);
-            commonEvents.Add(WallBloodMessage);
+            //commonEvents.Add(WallBloodMessage);
             commonEvents.Add(PlayBellSFX);
             commonEvents.Add(HideHazard);
             commonEvents.Add(Stare);
@@ -237,12 +237,6 @@ namespace HeavyItemSCPs.Items.SCP513
             source.Play();
 
             GameObject.Destroy(soundObj, clip.length);
-        }
-
-        void WallBloodMessage() // 0 3
-        {
-            logger.LogDebug("WallBloodMessage");
-            throw new NotImplementedException();
         }
 
         void PlayBellSFX() // 0 4
@@ -597,11 +591,16 @@ namespace HeavyItemSCPs.Items.SCP513
         void ShowFakeShipLeavingDisplayTip() // 1 5
         {
             logger.LogDebug("ShowFakeShipLeavingDisplayTip");
+
+            TimeOfDay.Instance.shipLeavingEarlyDialogue[0].bodyText = "WARNING! Please return by " + GetClock(TimeOfDay.Instance.normalizedTimeOfDay + 0.1f, TimeOfDay.Instance.numberOfHours, createNewLine: false) + ". A vote has been cast, and the autopilot ship will leave early.";
+            HUDManager.Instance.ReadDialogue(TimeOfDay.Instance.shipLeavingEarlyDialogue);
         }
 
         void SpawnFakeBody() // 1 6
         {
             logger.LogDebug("SpawnFakeBody");
+
+            localPlayer.SpawnDeadBody((int)localPlayer.actualClientId, Vector3.zero, 0, localPlayer); // TODO: Test this
         }
 
         void SlowWalkToPlayer() // 1 7
@@ -609,7 +608,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("SlowWalkToPlayer");
 
             Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, 3);
-            if (teleportTransform == null) {logger.LogDebug("Cant find node to teleport to"); return; }
+            if (teleportTransform == null) { logger.LogDebug("Cant find node to teleport to"); return; }
 
             IEnumerator SlowWalkCoroutine(Vector3 teleportPos)
             {
@@ -667,6 +666,16 @@ namespace HeavyItemSCPs.Items.SCP513
         void SpawnGhostGirl() // DressGirl // 2 3
         {
             logger.LogDebug("SpawnGhostGirl");
+
+            foreach (var girl in FindObjectsOfType<DressGirlAI>())
+            {
+                if (girl.hauntingPlayer == targetPlayer)
+                {
+                    return;
+                }
+            }
+
+            Utils.GetEnemies();
         }
 
         void TurnOffAllLights() // 2 4
@@ -782,6 +791,41 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             return closestNode.transform;
+        }
+
+        public string GetClock(float timeNormalized, float numberOfHours, bool createNewLine = true)
+        {
+            string newLine;
+            int num = (int)(timeNormalized * (60f * numberOfHours)) + 360;
+            int num2 = (int)Mathf.Floor(num / 60);
+            if (!createNewLine)
+            {
+                newLine = " ";
+            }
+            else
+            {
+                newLine = "\n";
+            }
+            string amPM = newLine + "AM";
+            if (num2 >= 24)
+            {
+                return "12:00\nAM";
+            }
+            if (num2 < 12)
+            {
+                amPM = newLine + "AM";
+            }
+            else
+            {
+                amPM = newLine + "PM";
+            }
+            if (num2 > 12)
+            {
+                num2 %= 12;
+            }
+            int num3 = num % 60;
+            string text = $"{num2:00}:{num3:00}".TrimStart('0') + amPM;
+            return text;
         }
 
         #endregion

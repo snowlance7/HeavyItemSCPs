@@ -51,7 +51,10 @@ namespace HeavyItemSCPs.Patches
             logger.LogDebug(hit.collider.tag);*/
 
             HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
-
+            foreach (var enemy in Utils.GetEnemies())
+            {
+                logger.LogDebug(enemy.enemyType.name);
+            }
         } // HoarderBug, BaboonHawk
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]

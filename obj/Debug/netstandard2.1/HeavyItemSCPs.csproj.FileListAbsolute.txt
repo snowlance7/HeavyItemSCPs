@@ -18,3 +18,5 @@ C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs
 C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.csproj.CoreCompileInputs.cache
 C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs.sourcelink.json
 C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.dll
+C:\Users\snowl\source\repos\HeavyItemSCPs\bin\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.deps.json
+C:\Users\snowl\source\repos\HeavyItemSCPs\bin\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.dll

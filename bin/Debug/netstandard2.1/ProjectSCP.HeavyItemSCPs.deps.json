@@ -13,10 +13,9 @@
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.1",
           "BepInEx.Core": "5.4.21",
           "BepInEx.PluginInfoProps": "2.1.0",
-          "Evaisa.LethalLib": "0.16.2",
+          "Evaisa.LethalLib": "1.0.1",
           "LethalCompany.GameLibs.Steam": "69.0.1-ngd.0",
-          "UnityEngine.Modules": "2022.3.9",
-          "ProjectSCP.SCP500": "1.0.0.0"
+          "UnityEngine.Modules": "2022.3.9"
         },
         "runtime": {
           "ProjectSCP.HeavyItemSCPs.dll": {}
@@ -66,14 +65,14 @@
         }
       },
       "BepInEx.PluginInfoProps/2.1.0": {},
-      "Evaisa.LethalLib/0.16.2": {
+      "Evaisa.LethalLib/1.0.1": {
         "dependencies": {
           "BepInEx.Core": "5.4.21"
         },
         "runtime": {
           "lib/netstandard2.1/LethalLib.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.16.2.0"
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.1.0"
           }
         }
       },
@@ -408,15 +407,7 @@
           "System.Runtime": "4.3.0"
         }
       },
-      "UnityEngine.Modules/2022.3.9": {},
-      "ProjectSCP.SCP500/1.0.0.0": {
-        "runtime": {
-          "ProjectSCP.SCP500.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      }
+      "UnityEngine.Modules/2022.3.9": {}
     }
   },
   "libraries": {
@@ -460,12 +451,12 @@
       "path": "bepinex.plugininfoprops/2.1.0",
       "hashPath": "bepinex.plugininfoprops.2.1.0.nupkg.sha512"
     },
-    "Evaisa.LethalLib/0.16.2": {
+    "Evaisa.LethalLib/1.0.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-aV0e5tXlNxvpnt+31/eaPpMLMV+ROJSwWDfOkyUHSrO6vtq1tZyaeYcVBP+umfAGRFu9rXapydgsSkkZqUHxxA==",
-      "path": "evaisa.lethallib/0.16.2",
-      "hashPath": "evaisa.lethallib.0.16.2.nupkg.sha512"
+      "sha512": "sha512-4Vo1wVEZfSA3FFB0skalc5xfRaVhITpZTMv7S/Q2DAehdA7Rf1uG/iK6SUmI4X1n+upRlXIJofCFsDTt6geHcg==",
+      "path": "evaisa.lethallib/1.0.1",
+      "hashPath": "evaisa.lethallib.1.0.1.nupkg.sha512"
     },
     "HarmonyX/2.7.0": {
       "type": "package",
@@ -718,11 +709,6 @@
       "sha512": "sha512-sSxqZjd05U0NWlX+eappdlsEuXFvDRHkUaClDVTocGRzCmIwNvgGJIPh22lGklIpNZ3cJZneYJkIUnEIazR8VA==",
       "path": "unityengine.modules/2022.3.9",
       "hashPath": "unityengine.modules.2022.3.9.nupkg.sha512"
-    },
-    "ProjectSCP.SCP500/1.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
     }
   }
 }
