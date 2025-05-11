@@ -30,8 +30,6 @@ namespace HeavyItemSCPs.Items.SCP513
         List<MethodDelegate> uncommonEvents = new List<MethodDelegate>();
         List<MethodDelegate> rareEvents = new List<MethodDelegate>();
 
-        public const float LOSOffset = 1f;
-
         public enum State
         {
             InActive,
@@ -67,7 +65,7 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(ChasePlayer);
             rareEvents.Add(SpawnGhostGirl);
             rareEvents.Add(TurnOffAllLights);
-            rareEvents.Add(SpawnFakeLandMineUnderPlayer);
+            rareEvents.Add(SpawnFakeLandMinesAroundPlayer);
             rareEvents.Add(SpawnMultipleFakeBodies);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
@@ -181,7 +179,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("FlickerLights");
             if (!targetPlayer.isInsideFactory) { return; }
             RoundManager.Instance.FlickerLights(true, true);
-            localPlayer.JumpToFearLevel(1f);
+            localPlayer.JumpToFearLevel(0.9f);
         }
 
         void PlayAmbientSFXNearby() // 0 1
@@ -370,7 +368,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     yield return new WaitForSeconds(0.2f);
                     elapsedTime += 0.2f;
 
-                    if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
+                    if (SCPInstance.playerHasLOS)
                     {
                         yield return new WaitForSeconds(2.5f);
                         FlickerLights();
@@ -416,7 +414,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     yield return new WaitForSeconds(0.2f);
                     elapsedTime += 0.2f;
 
-                    if (targetPlayer.HasLineOfSightToPosition(SCPInstance.transform.position + Vector3.up * LOSOffset, 70f, 100))
+                    if (SCPInstance.playerHasLOS)
                     {
                         yield return new WaitForSeconds(2.5f);
                         FlickerLights();
@@ -527,7 +525,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCPInstance.SetDestinationToPosition(teleportPos);
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
 
-                while (SCPInstance.currentBehaviourStateIndex == (int)State.Stalking)
+                while (SCPInstance.currentBehaviourStateIndex == (int)State.Stalking && targetPlayer.isInsideFactory != SCPInstance.isOutside)
                 {
                     yield return new WaitForSeconds(1f);
                 }
@@ -588,17 +586,23 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("SpawnFakeBody");
 
-            localPlayer.SpawnDeadBody((int)localPlayer.actualClientId, Vector3.zero, 0, localPlayer); // TODO: Test this
+            float radius = 3f;
+
+            int deathAnimation = UnityEngine.Random.Range(0, 8);
+
+            Vector2 offset2D = UnityEngine.Random.insideUnitCircle * radius;
+            Vector3 randomOffset = new Vector3(offset2D.x, 0f, offset2D.y);
+
+            GameObject bodyObj = SpawnDeadBody(targetPlayer, targetPlayer.transform.position, 0, deathAnimation, randomOffset); // TODO: Test this
+            GameObject.Destroy(bodyObj, 30f);
         }
 
-        void SlowWalkToPlayer() // 1 7
+        void SlowWalkToPlayer() // 1 7 // TODO: Not working
         {
             logger.LogDebug("SlowWalkToPlayer");
 
             IEnumerator SlowWalkCoroutine()
             {
-                float maxDistance = 20f;
-
                 yield return null;
 
                 Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, 3);
@@ -611,16 +615,15 @@ namespace HeavyItemSCPs.Items.SCP513
                 Vector3 teleportPos = teleportTransform.position;
 
                 SCPInstance.Teleport(teleportPos);
-                SCPInstance.agent.speed = 1f;
+                SCPInstance.agent.speed = 3.5f;
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 SwitchToBehavior(State.Chasing);
 
-                while (Vector3.Distance(transform.position, targetPlayer.transform.position) < maxDistance)
+                while (SCPInstance.currentBehaviourStateIndex == (int)State.Chasing && targetPlayer.isInsideFactory != SCPInstance.isOutside)
                 {
-                    yield return new WaitForSeconds(1f);
+                    yield return new WaitForSeconds(5f);
+                    FlickerLights();
                 }
-
-                FlickerLights();
             }
 
             TryStartCoroutine(SlowWalkCoroutine(), 1);
@@ -650,6 +653,26 @@ namespace HeavyItemSCPs.Items.SCP513
         void ChasePlayer() // Use arms down, faster // 2 2
         {
             logger.LogDebug("ChasePlayer");
+
+            IEnumerator ChaseCoroutine()
+            {
+                yield return null;
+
+                Vector3 teleportPos = SCPInstance.ChooseFarthestNodeFromPosition(targetPlayer.transform.position).position;
+
+                SCPInstance.Teleport(teleportPos);
+                SCPInstance.agent.speed = 7f;
+                SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
+                SwitchToBehavior(State.Chasing);
+
+                while (SCPInstance.currentBehaviourStateIndex == (int)State.Chasing && targetPlayer.isInsideFactory != SCPInstance.isOutside)
+                {
+                    yield return new WaitForSeconds(2.5f);
+                    FlickerLights();
+                }
+            }
+
+            TryStartCoroutine(ChaseCoroutine(), 2);
         }
 
         void SpawnGhostGirl() // DressGirl // 2 3
@@ -662,10 +685,11 @@ namespace HeavyItemSCPs.Items.SCP513
         void TurnOffAllLights() // 2 4
         {
             logger.LogDebug("TurnOffAllLights");
+            FlickerLights();
             RoundManager.Instance.TurnOnAllLights(false);
         }
 
-        void SpawnFakeLandMineUnderPlayer() // 2 5
+        void SpawnFakeLandMinesAroundPlayer() // 2 5
         {
             logger.LogDebug("SpawnFakeLandMineUnderPlayer");
         }
@@ -673,6 +697,23 @@ namespace HeavyItemSCPs.Items.SCP513
         void SpawnMultipleFakeBodies() // 2 6
         {
             logger.LogDebug("SpawnMultipleFakeBodies");
+
+            float radius = 3f;
+            int minBodies = 5;
+            int maxBodies = 10;
+
+            int amount = UnityEngine.Random.Range(minBodies, maxBodies + 1);
+
+            for (int i = 0; i < amount; i++)
+            {
+                int deathAnimation = UnityEngine.Random.Range(0, 8);
+
+                Vector2 offset2D = UnityEngine.Random.insideUnitCircle * radius;
+                Vector3 randomOffset = new Vector3(offset2D.x, 0f, offset2D.y);
+
+                GameObject bodyObj = SpawnDeadBody(targetPlayer, targetPlayer.transform.position, 0, deathAnimation, randomOffset); // TODO: Test this
+                GameObject.Destroy(bodyObj, 30f);
+            }
         }
 
         #endregion
@@ -808,6 +849,38 @@ namespace HeavyItemSCPs.Items.SCP513
             int num3 = num % 60;
             string text = $"{num2:00}:{num3:00}".TrimStart('0') + amPM;
             return text;
+        }
+
+        public static GameObject SpawnDeadBody(PlayerControllerB deadPlayerController, Vector3 spawnPosition, int causeOfDeath = 0, int deathAnimation = 0, Vector3 positionOffset = default(Vector3))
+        {
+            float num = 1.32f;
+            /*if (positionOffset != Vector3.zero)
+            {
+                num = 0f;
+            }*/
+            GameObject bodyObj = GameObject.Instantiate(deadPlayerController.playersManager.playerRagdolls[deathAnimation], spawnPosition + Vector3.up * num + positionOffset, Quaternion.identity);
+            DeadBodyInfo deadBody = bodyObj.GetComponent<DeadBodyInfo>();
+            deadBody.overrideSpawnPosition = true;
+            if (deadPlayerController.physicsParent != null)
+            {
+                deadBody.SetPhysicsParent(deadPlayerController.physicsParent);
+            }
+            deadBody.parentedToShip = false;
+            deadBody.playerObjectId = (int)deadPlayerController.actualClientId;
+            for (int j = 0; j < deadPlayerController.bodyBloodDecals.Length; j++)
+            {
+                deadBody.bodyBloodDecals[j].SetActive(deadPlayerController.bodyBloodDecals[j].activeSelf);
+            }
+            ScanNodeProperties componentInChildren = deadBody.gameObject.GetComponentInChildren<ScanNodeProperties>();
+            componentInChildren.headerText = "Body of " + deadPlayerController.playerUsername;
+            CauseOfDeath causeOfDeath2 = (CauseOfDeath)causeOfDeath;
+            componentInChildren.subText = "Cause of death: " + causeOfDeath2;
+            deadBody.causeOfDeath = causeOfDeath2;
+            if (causeOfDeath2 == CauseOfDeath.Bludgeoning || causeOfDeath2 == CauseOfDeath.Mauling || causeOfDeath2 == CauseOfDeath.Gunshots)
+            {
+                deadBody.MakeCorpseBloody();
+            }
+            return bodyObj;
         }
 
         #endregion

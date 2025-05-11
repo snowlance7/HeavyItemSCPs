@@ -53,6 +53,15 @@ namespace HeavyItemSCPs.Items.SCP513
         int previousFootstepClip;
 
         float stareTime;
+        public bool playerHasLOS;
+
+        Transform? farthestNodeFromTargetPlayer;
+        bool gettingFarthestNodeFromPlayerAsync;
+        int maxAsync;
+        bool stalkRetreating;
+        float evadeStealthTimer;
+        bool wasInEvadeMode;
+        List<Transform> ignoredNodes = [];
 
         // Constants
         int hashRunSpeed;
@@ -60,6 +69,8 @@ namespace HeavyItemSCPs.Items.SCP513
         const float maxInsanityThreshold = 35;
         const float minCooldown = 0.5f;
         const float maxCooldown = 1f;
+        public const float LOSAngle = 45f;
+        public const float LOSOffset = 1f;
 
         // Configs
         float commonEventMinCooldown = 5f;
@@ -134,6 +145,101 @@ namespace HeavyItemSCPs.Items.SCP513
             timeSinceCommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceUncommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceRareEvent += Time.deltaTime * cooldownMultiplier;
+
+            playerHasLOS = targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset, LOSAngle);
+
+            if (playerHasLOS)
+            {
+                stareTime += Time.deltaTime;
+            }
+            else
+            {
+                stareTime = 0f;
+            }
+
+            switch (currentBehaviourStateIndex)
+            {
+                case (int)State.InActive:
+
+                    break;
+
+                case (int)State.Manifesting:
+
+                    break;
+
+                case (int)State.Chasing:
+
+                    break;
+
+                case (int)State.Stalking: // TODO: Figure out how to get this to work like the Flowerman/Braken or have him teleport after staring for too long
+
+                    if (gettingFarthestNodeFromPlayerAsync && targetPlayer != null)
+                    {
+                        float distanceFromPlayer = Vector3.Distance(base.transform.position, targetPlayer.transform.position);
+                        if (distanceFromPlayer < 16f)
+                        {
+                            maxAsync = 100;
+                        }
+                        else if (distanceFromPlayer < 40f)
+                        {
+                            maxAsync = 25;
+                        }
+                        else
+                        {
+                            maxAsync = 4;
+                        }
+                        Transform transform = ChooseFarthestNodeFromPosition(targetPlayer.transform.position, avoidLineOfSight: true, 0, doAsync: true, maxAsync, capDistance: true);
+                        if (!gotFarthestNodeAsync)
+                        {
+                            return;
+                        }
+                        farthestNodeFromTargetPlayer = transform;
+                        gettingFarthestNodeFromPlayerAsync = false;
+                    }
+                    if (playerHasLOS)
+                    {
+                        if (!stalkRetreating)
+                        {
+                            stalkRetreating = true;
+                            agent.speed = 0f;
+                            evadeStealthTimer = 0f;
+                        }
+                        else if (evadeStealthTimer > 0.5f)
+                        {
+                            ResetStealthTimerServerRpc();
+                        }
+                    }
+
+                    if (stalkRetreating)
+                    {
+                        if (!wasInEvadeMode)
+                        {
+                            RoundManager.Instance.PlayAudibleNoise(base.transform.position, 7f, 0.8f);
+                            wasInEvadeMode = true;
+                        }
+                        evadeStealthTimer += Time.deltaTime;
+                        if (thisNetworkObject.IsOwner)
+                        {
+                            if (evadeStealthTimer > 5f)
+                            {
+                                evadeStealthTimer = 0f;
+                                stalkRetreating = false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (wasInEvadeMode)
+                        {
+                            wasInEvadeMode = false;
+                            evadeStealthTimer = 0f;
+                        }
+                    }
+
+                    break;
+                default:
+                    break;
+            }
         }
 
         public void LateUpdate()
@@ -174,33 +280,30 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 case (int)State.Chasing:
                     creatureSFX.volume = 1f;
-                    
-                    if (!SetDestinationToPosition(targetPlayer.transform.position, true))
-                    {
-                        SwitchToBehaviourClientRpc((int)State.InActive);
-                        return;
-                    }
+
+                    SetDestinationToPosition(targetPlayer.transform.position);
 
                     break;
 
                 case (int)State.Stalking: // TODO: Figure out how to get this to work like the Flowerman/Braken or have him teleport after staring for too long
                     creatureSFX.volume = 0.5f;
 
-                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * HallucinationManager.LOSOffset, 80f, 2000))
+                    if (stalkRetreating)
                     {
                         agent.speed = 15f;
                         creatureAnimator.SetBool("armsCrossed", true);
                         facePlayer = true;
+
+                        StalkingAvoidPlayer();
                     }
                     else
                     {
-                        agent.speed = Vector3.Distance(transform.position, targetPlayer.transform.position)/* / 2f*/; // TODO: Test this
+                        agent.speed = Vector3.Distance(transform.position, targetPlayer.transform.position); // TODO: Test this
                         creatureAnimator.SetBool("armsCrossed", false);
                         facePlayer = false;
-                    }
 
-                    Vector3 pos = ChooseStalkPosition(targetPlayer.transform.position, 3f).position;
-                    SetDestinationToPosition(pos);
+                        StalkingChooseClosestNodeToPlayer();
+                    }
 
                     break;
 
@@ -253,7 +356,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
             
-            while (Physics.Linecast(targetPlayer.gameplayCamera.transform.position, pos + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(targetPlayer.transform.position, pos) < minDistance)
+            while (Physics.Linecast(targetPlayer.gameplayCamera.transform.position, pos + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(targetPlayer.transform.position, pos) < minDistance)
             {
                 logger.LogDebug("Reroll");
                 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
@@ -266,7 +369,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             for (int i = 0; i < allAINodes.Length; i++)
             {
-                if (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100))
+                if (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !playerHasLOS)
                 {
                     logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
                     return allAINodes[i].transform;
@@ -283,12 +386,12 @@ namespace HeavyItemSCPs.Items.SCP513
             foreach (var node in allAINodes)
             {
                 if (node == null) { continue; }
-                Vector3 nodePos = node.transform.position + Vector3.up * HallucinationManager.LOSOffset;
+                Vector3 nodePos = node.transform.position + Vector3.up * LOSOffset;
                 Vector3 playerPos = targetPlayer.gameplayCamera.transform.position;
                 float distance = Vector3.Distance(playerPos, nodePos);
                 if (distance < minDistance || distance > maxDistance) { continue; }
                 if (Physics.Linecast(nodePos, playerPos, StartOfRound.Instance.collidersAndRoomMaskAndDefault, queryTriggerInteraction: QueryTriggerInteraction.Ignore)) { continue; }
-                if (!targetPlayer.HasLineOfSightToPosition(nodePos, 80f, 100)) { continue; }
+                if (!targetPlayer.HasLineOfSightToPosition(nodePos, LOSAngle)) { continue; }
 
                 mostOptimalDistance = distance;
                 result = node.transform;
@@ -304,7 +407,7 @@ namespace HeavyItemSCPs.Items.SCP513
             Transform? result = null;
             for (int i = 0; i < nodesTempArray.Length; i++)
             {
-                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: true, avoidLineOfSight: true, checkLOSToTargetPlayer: false) && !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, nodesTempArray[i].transform.position + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: true, avoidLineOfSight: true, checkLOSToTargetPlayer: false) && !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, nodesTempArray[i].transform.position + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
                 {
                     float distance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
                     if (distance < minDistance) { continue; }
@@ -329,6 +432,64 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             return ChooseFarthestNodeFromPosition(pos);
+        }
+
+        public void StalkingChooseClosestNodeToPlayer()
+        {
+            if (targetNode == null)
+            {
+                targetNode = allAINodes[0].transform;
+            }
+            Transform transform = ChooseClosestNodeToPosition(targetPlayer.transform.position, avoidLineOfSight: true);
+            if (transform != null)
+            {
+                targetNode = transform;
+            }
+            float num = Vector3.Distance(targetPlayer.transform.position, base.transform.position);
+            if (num - mostOptimalDistance < 0.1f && (!PathIsIntersectedByLineOfSight(targetPlayer.transform.position, calculatePathDistance: true) || num < 3f))
+            {
+                if (pathDistance > 10f && !ignoredNodes.Contains(targetNode) && ignoredNodes.Count < 4)
+                {
+                    ignoredNodes.Add(targetNode);
+                }
+                movingTowardsTargetPlayer = true;
+            }
+            else
+            {
+                SetDestinationToPosition(targetNode.position);
+            }
+        }
+
+        public void StalkingAvoidPlayer()
+        {
+            if (farthestNodeFromTargetPlayer == null)
+            {
+                gettingFarthestNodeFromPlayerAsync = true;
+                return;
+            }
+            Transform transform = farthestNodeFromTargetPlayer;
+            farthestNodeFromTargetPlayer = null;
+            if (transform != null && mostOptimalDistance > 5f && Physics.Linecast(transform.transform.position, targetPlayer.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault, QueryTriggerInteraction.Ignore))
+            {
+                targetNode = transform;
+                SetDestinationToPosition(targetNode.position);
+                return;
+            }
+
+            if (stareTime > 3f)
+            {
+                stareTime = 0f;
+                if (farthestNodeFromTargetPlayer == null)
+                {
+                    farthestNodeFromTargetPlayer = ChooseFarthestNodeFromPosition(targetPlayer.transform.position);
+                }
+
+                Teleport(farthestNodeFromTargetPlayer.position);
+                hallucManager?.FlickerLights();
+                RoundManager.PlayRandomClip(creatureVoice, BellSFX);
+            }
+
+            agent.speed = 0f;
         }
 
         public override void SetEnemyOutside(bool outside = false)
@@ -360,6 +521,7 @@ namespace HeavyItemSCPs.Items.SCP513
             base.HitEnemy(force, playerWhoHit, playHitSFX, hitID);
             RoundManager.PlayRandomClip(creatureSFX, BellSFX);
             SwitchToBehaviourServerRpc((int)State.InActive);
+            targetPlayer.insanityLevel = 0f;
         }
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with
@@ -373,7 +535,9 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
             player.insanityLevel = 50f;
             player.JumpToFearLevel(1f);
-            StunGrenadeItem.StunExplosion(transform.position, false, 5f, 0f);
+            StunGrenadeItem.StunExplosion(transform.position, false, 1f, 0f);
+            targetPlayer.sprintMeter = 0f;
+            targetPlayer.DropAllHeldItemsAndSync();
             SwitchToBehaviourServerRpc((int)State.InActive);
         }
 
@@ -400,7 +564,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             int index;
 
-            if (currentBehaviourStateIndex == (int)State.Chasing)
+            if (currentBehaviourStateIndex == (int)State.Chasing || stalkRetreating)
             {
                 creatureSFX.pitch = Random.Range(0.93f, 1.07f);
                 index = UnityEngine.Random.Range(0, StepChaseSFX.Length);
@@ -551,6 +715,19 @@ namespace HeavyItemSCPs.Items.SCP513
                 enemy.creatureSFX.enabled = false;
                 enemy.creatureVoice.enabled = false;
             }
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void ResetStealthTimerServerRpc()
+        {
+            if (!IsServerOrHost) { return; }
+            ResetStealthTimerClientRpc();
+        }
+
+        [ClientRpc]
+        public void ResetStealthTimerClientRpc()
+        {
+            evadeStealthTimer = 0f;
         }
     }
 }
