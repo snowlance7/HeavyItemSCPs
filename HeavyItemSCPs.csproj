@@ -73,6 +73,12 @@
       <Folder Include="ThunderStore\HeavyItemSCPs\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="ProjectSCP.SCP500">
+        <HintPath>..\1Resources\1Assemblies\ProjectSCP.SCP500.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
     <!-- Netcode Patcher Post-Build Event -->
     <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
         <Exec Command="dotnet netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />

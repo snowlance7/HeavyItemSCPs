@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 using static HeavyItemSCPs.Plugin;
 using static HeavyItemSCPs.Utils;
 
@@ -51,6 +52,8 @@ namespace HeavyItemSCPs.Items.SCP513
         int currentFootstepSurfaceIndex;
         int previousFootstepClip;
 
+        float stareTime;
+
         // Constants
         int hashRunSpeed;
         const float maxInsanity = 50f;
@@ -79,7 +82,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("SCP-513-1 spawned");
             base.Start();
 
-            hashRunSpeed = Animator.StringToHash("runSpeed");
+            hashRunSpeed = Animator.StringToHash("speed");
             currentBehaviourStateIndex = (int)State.InActive;
 
             nextCommonEventTime = commonEventMaxCooldown;
@@ -180,17 +183,23 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     break;
 
-                case (int)State.Stalking:
+                case (int)State.Stalking: // TODO: Figure out how to get this to work like the Flowerman/Braken or have him teleport after staring for too long
                     creatureSFX.volume = 0.5f;
 
-                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * HallucinationManager.LOSOffset))
+                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * HallucinationManager.LOSOffset, 80f, 2000))
                     {
-                        return;
+                        agent.speed = 15f;
+                        creatureAnimator.SetBool("armsCrossed", true);
+                        facePlayer = true;
+                    }
+                    else
+                    {
+                        agent.speed = Vector3.Distance(transform.position, targetPlayer.transform.position)/* / 2f*/; // TODO: Test this
+                        creatureAnimator.SetBool("armsCrossed", false);
+                        facePlayer = false;
                     }
 
-                    agent.speed = Vector3.Distance(transform.position, targetPlayer.transform.position) / 2f; // TODO: Test this
-
-                    Vector3 pos = ChooseClosestNodeToPosition(targetPlayer.transform.position, true, 1).position;
+                    Vector3 pos = ChooseStalkPosition(targetPlayer.transform.position, 3f).position;
                     SetDestinationToPosition(pos);
 
                     break;
@@ -240,14 +249,14 @@ namespace HeavyItemSCPs.Items.SCP513
                 UnityEngine.GameObject.Destroy(hallucManager.gameObject);
         }
 
-        public Vector3 GetRandomPositionAroundPlayer(float distance = 10f)
+        public Vector3 GetRandomPositionAroundPlayer(float minDistance, float maxDistance)
         {
-            Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, distance);
+            Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
             
-            while (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, pos + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+            while (Physics.Linecast(targetPlayer.gameplayCamera.transform.position, pos + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(targetPlayer.transform.position, pos) < minDistance)
             {
                 logger.LogDebug("Reroll");
-                pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, distance);
+                pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
             }
 
             return pos;
@@ -257,7 +266,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             for (int i = 0; i < allAINodes.Length; i++)
             {
-                if (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100, 8f))
+                if (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !targetPlayer.HasLineOfSightToPosition(allAINodes[i].transform.position, 80f, 100))
                 {
                     logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
                     return allAINodes[i].transform;
@@ -289,30 +298,37 @@ namespace HeavyItemSCPs.Items.SCP513
             return result;
         }
 
-        public Vector3 FindPositionOutOfLOS()
+        public Transform ChooseStalkPosition(Vector3 pos, float minDistance)
         {
-            Vector3 vector = base.transform.right;
-            float num = Vector3.Distance(base.transform.position, targetPlayer.transform.position);
-            for (int i = 0; i < 8; i++)
+            nodesTempArray = allAINodes.OrderBy((GameObject x) => Vector3.Distance(pos, x.transform.position)).ToArray();
+            Transform? result = null;
+            for (int i = 0; i < nodesTempArray.Length; i++)
             {
-                Ray ray = new Ray(base.transform.position + Vector3.up * 0.4f, vector);
-                if (Physics.Raycast(ray, out var hitInfo, 8f, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && Vector3.Distance(hitInfo.point, targetPlayer.transform.position) - num > -1f && Physics.Linecast(targetPlayer.gameplayCamera.transform.position, ray.GetPoint(hitInfo.distance - 0.1f), StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: true, avoidLineOfSight: true, checkLOSToTargetPlayer: false) && !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, nodesTempArray[i].transform.position + Vector3.up * HallucinationManager.LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
                 {
-                    logger.LogDebug("Found hide position with raycast");
-                    return RoundManager.Instance.GetNavMeshPosition(hitInfo.point, RoundManager.Instance.navHit);
-                }
-                vector = Quaternion.Euler(0f, 45f, 0f) * vector;
-            }
-            for (int j = 0; j < allAINodes.Length; j++)
-            {
-                if (Vector3.Distance(allAINodes[j].transform.position, base.transform.position) < 7f && Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[j].transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
-                {
-                    logger.LogDebug("Found hide position with AI nodes");
-                    return RoundManager.Instance.GetNavMeshPosition(allAINodes[j].transform.position, RoundManager.Instance.navHit);
+                    float distance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
+                    if (distance < minDistance) { continue; }
+
+                    mostOptimalDistance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
+                    result = nodesTempArray[i].transform;
+                    return result;
                 }
             }
-            logger.LogDebug("Unable to find a location to hide away; vanishing instead");
-            return Vector3.zero;
+
+            for (int i = 0; i < nodesTempArray.Length; i++)
+            {
+                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: true, avoidLineOfSight: true, checkLOSToTargetPlayer: true))
+                {
+                    float distance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
+                    if (distance < minDistance) { continue; }
+
+                    mostOptimalDistance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
+                    result = nodesTempArray[i].transform;
+                    return result;
+                }
+            }
+
+            return ChooseFarthestNodeFromPosition(pos);
         }
 
         public override void SetEnemyOutside(bool outside = false)
@@ -337,6 +353,13 @@ namespace HeavyItemSCPs.Items.SCP513
             position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit);
             agent.Warp(position);
             transform.position = position;
+        }
+
+        public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
+        {
+            base.HitEnemy(force, playerWhoHit, playHitSFX, hitID);
+            RoundManager.PlayRandomClip(creatureSFX, BellSFX);
+            SwitchToBehaviourServerRpc((int)State.InActive);
         }
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with
@@ -397,6 +420,26 @@ namespace HeavyItemSCPs.Items.SCP513
         }
 
         // RPC's
+
+        [ServerRpc(RequireOwnership = false)]
+        public void SpawnGhostGirlServerRpc(ulong clientId)
+        {
+            if (!IsServerOrHost) { return; }
+
+            foreach (var girl in FindObjectsOfType<DressGirlAI>())
+            {
+                if (girl.hauntingPlayer == targetPlayer)
+                {
+                    return;
+                }
+            }
+
+            List<SpawnableEnemyWithRarity> enemies = Utils.GetEnemies();
+            SpawnableEnemyWithRarity? ghostGirl = enemies.Where(x => x.enemyType.name == "DressGirl").FirstOrDefault();
+            if (ghostGirl == null) { logger.LogError("Ghost girl could not be found"); return; }
+
+            RoundManager.Instance.SpawnEnemyGameObject(Vector3.zero, 0, -1, ghostGirl.enemyType);
+        }
 
         [ServerRpc(RequireOwnership = false)]
         public void ChangeTargetPlayerServerRpc(ulong clientId)

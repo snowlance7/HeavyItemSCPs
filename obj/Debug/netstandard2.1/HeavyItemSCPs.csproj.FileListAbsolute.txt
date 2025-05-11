@@ -20,3 +20,5 @@ C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyItemSCPs
 C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.dll
 C:\Users\snowl\source\repos\HeavyItemSCPs\bin\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.deps.json
 C:\Users\snowl\source\repos\HeavyItemSCPs\bin\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.dll
+C:\Users\snowl\source\repos\HeavyItemSCPs\bin\Debug\netstandard2.1\ProjectSCP.SCP500.dll
+C:\Users\snowl\source\repos\HeavyItemSCPs\obj\Debug\netstandard2.1\HeavyIte.72EF5A4F.Up2Date

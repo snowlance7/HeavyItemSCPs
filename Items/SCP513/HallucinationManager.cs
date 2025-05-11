@@ -14,17 +14,6 @@ using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    /*
-     Status effects
-
-    - Ears ringing
-    - Fear
-    - Bleeding
-    - Encumbered
-    - Insanity
-    - 
-     */
-
     internal class HallucinationManager : MonoBehaviour
     {
         private static ManualLogSource logger = LoggerInstance;
@@ -187,12 +176,12 @@ namespace HeavyItemSCPs.Items.SCP513
 
         #region Common
 
-        void FlickerLights() // 0 0
+        public void FlickerLights() // 0 0
         {
             logger.LogDebug("FlickerLights");
             if (!targetPlayer.isInsideFactory) { return; }
             RoundManager.Instance.FlickerLights(true, true);
-            localPlayer.JumpToFearLevel(0.9f);
+            localPlayer.JumpToFearLevel(1f);
         }
 
         void PlayAmbientSFXNearby() // 0 1
@@ -239,18 +228,22 @@ namespace HeavyItemSCPs.Items.SCP513
             GameObject.Destroy(soundObj, clip.length);
         }
 
-        void PlayBellSFX() // 0 4
+        void PlayBellSFX() // 0 3
         {
             logger.LogDebug("PlayBellSFX");
             Vector3 pos = GetClosestNode(targetPlayer.transform.position, !targetPlayer.isInsideFactory).position;
             PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
-        void HideHazard() // 0 5
+        void HideHazard() // 0 4 TODO: Not working
         {
-            float hideTime = 15f;
+            logger.LogDebug("HideHazard");
 
-            switch (UnityEngine.Random.Range(0, 3))
+            float hideTime = 15f;
+            int index = UnityEngine.Random.Range(0, 3);
+            index = 0;
+
+            switch (index)
             {
                 case 0: // LandMine
                 
@@ -261,6 +254,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     try
                     {
+                        logger.LogDebug("Hiding landmine");
                         yield return null;
                         landmine.GetComponent<MeshRenderer>().forceRenderingOff = true;
                         
@@ -269,7 +263,7 @@ namespace HeavyItemSCPs.Items.SCP513
                         {
                             yield return new WaitForSeconds(0.2f);
                             elapsedTime += 0.2f;
-                            if (landmine.mineActivated) // TODO: Check this
+                            if (landmine.pressMineDebounceTimer > 0f) // TODO: Check this
                             {
                                 break;
                             }
@@ -293,6 +287,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     {
                         try
                         {
+                            logger.LogDebug("Hiding turret");
                             yield return null;
                             turret.GetComponent<MeshRenderer>().forceRenderingOff = true;
 
@@ -301,7 +296,7 @@ namespace HeavyItemSCPs.Items.SCP513
                             {
                                 yield return new WaitForSeconds(0.2f);
                                 elapsedTime += 0.2f;
-                                if (turret.turretActive) // TODO: Test this
+                                if (turret.turretMode == TurretMode.Charging) // TODO: Test this
                                 {
                                     break;
                                 }
@@ -325,6 +320,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     {
                         try
                         {
+                            logger.LogDebug("Hiding spike trap");
                             yield return null;
                             spikeTrap.GetComponent<MeshRenderer>().forceRenderingOff = true;
 
@@ -333,10 +329,6 @@ namespace HeavyItemSCPs.Items.SCP513
                             {
                                 yield return new WaitForSeconds(0.2f);
                                 elapsedTime += 0.2f;
-                                if (spikeTrap.trapActive) // TODO: Test this
-                                {
-                                    break;
-                                }
                             }
                         }
                         finally
@@ -353,16 +345,17 @@ namespace HeavyItemSCPs.Items.SCP513
             }
         }
 
-        void Stare() // 0 6 // TODO: Rework
+        void Stare() // 0 5
         {
             logger.LogDebug("Stare");
-            Vector3 pos = SCPInstance.GetRandomPositionAroundPlayer();
 
-            IEnumerator StareCoroutine(Vector3 outsideLOS)
+            IEnumerator StareCoroutine()
             {
                 float stareTime = 15f;
 
                 yield return null;
+
+                Vector3 outsideLOS = SCPInstance.GetRandomPositionAroundPlayer(5f, 15f);
 
                 SwitchToBehavior(State.Manifesting);
                 SCPInstance.Teleport(outsideLOS);
@@ -386,7 +379,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 }
             }
 
-            TryStartCoroutine(StareCoroutine(pos), 0);
+            TryStartCoroutine(StareCoroutine(), 0);
         }
 
         #endregion
@@ -430,8 +423,6 @@ namespace HeavyItemSCPs.Items.SCP513
                         yield break;
                     }
                 }
-                
-                SwitchToBehavior(State.InActive);
             }
 
             TryStartCoroutine(StareCoroutine(), 1);
@@ -462,8 +453,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCPInstance.facePlayer = true;
 
                 yield return new WaitForSeconds(disappearTime);
-
-                SwitchToBehavior(State.InActive);
             }
 
             TryStartCoroutine(JumpscareCoroutine(), 1);
@@ -472,23 +461,28 @@ namespace HeavyItemSCPs.Items.SCP513
         void BlockDoor() // 1 2
         {
             logger.LogDebug("BlockDoor");
-            float doorDistance = 10f;
-            float blockPosOffset = 1f;
 
-            DoorLock[] doorLocks = GetDoorLocksNearbyPosition(targetPlayer.transform.position, doorDistance).ToArray();
-            if (doorLocks.Length == 0) { logger.LogDebug("Cant find any doors near player"); return; }
-            int index = UnityEngine.Random.Range(0, doorLocks.Length);
-            DoorLock doorLock = doorLocks[index];
-
-            var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
-            Vector3 blockPos = RoundManager.Instance.GetNavMeshPosition(steelDoorObj.transform.position + Vector3.forward * blockPosOffset);
-
-            IEnumerator BlockDoorCoroutine(Vector3 blockPos)
+            IEnumerator BlockDoorCoroutine()
             {
+                float doorDistance = 10f;
+                float blockPosOffset = 1f;
                 float disappearDistance = 15f;
                 float disappearTime = 15f;
 
                 yield return null;
+
+                DoorLock[] doorLocks = GetDoorLocksNearbyPosition(targetPlayer.transform.position, doorDistance).ToArray();
+                while (doorLocks.Length == 0)
+                {
+                    yield return new WaitForSeconds(1f);
+                    doorLocks = GetDoorLocksNearbyPosition(targetPlayer.transform.position, doorDistance).ToArray();
+                }
+
+                int index = UnityEngine.Random.Range(0, doorLocks.Length);
+                DoorLock doorLock = doorLocks[index];
+
+                var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
+                Vector3 blockPos = RoundManager.Instance.GetNavMeshPosition(steelDoorObj.transform.position + Vector3.forward * blockPosOffset);
 
                 SwitchToBehavior(State.Manifesting);
                 SCPInstance.Teleport(blockPos);
@@ -501,53 +495,47 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     yield return new WaitForSeconds(0.2f);
                     elapsedTime += 0.2f;
-                    if (Vector3.Distance(SCPInstance.transform.position, targetPlayer.transform.position) > disappearDistance)
+                    if (Vector3.Distance(SCPInstance.transform.position, targetPlayer.transform.position) > disappearDistance || SCPInstance.currentBehaviourStateIndex != (int)State.Manifesting)
                     {
                         break;
                     }
-
-                    SwitchToBehavior(State.InActive);
                 }
             }
 
-            TryStartCoroutine(BlockDoorCoroutine(blockPos), 1);
+            TryStartCoroutine(BlockDoorCoroutine(), 1);
         }
 
         void StalkPlayer() // 1 3
         {
             logger.LogDebug("StalkPlayer");
-            // TODO: Rework this like the other coroutines
-            Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
-            if (teleportTransform == null) { logger.LogDebug("Cant find any node near player"); return; }
 
-            IEnumerator StalkCoroutine(Vector3 teleportPos)
+            IEnumerator StalkCoroutine()
             {
-                float playerDistanceToDisappear = 3f;
-
                 yield return null;
+
+                Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
+                while (teleportTransform == null)
+                {
+                    yield return new WaitForSeconds(1f);
+                    teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, true);
+                }
+
+                Vector3 teleportPos = teleportTransform.position;
 
                 SwitchToBehavior(State.Stalking);
                 SCPInstance.Teleport(teleportPos);
                 SCPInstance.SetDestinationToPosition(teleportPos);
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
 
-                while (Vector3.Distance(targetPlayer.transform.position, SCPInstance.transform.position) > playerDistanceToDisappear)
+                while (SCPInstance.currentBehaviourStateIndex == (int)State.Stalking)
                 {
-                    yield return new WaitForSeconds(0.2f);
-
-                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset))
-                    {
-                        logger.LogDebug("In LOS, disappearing...");
-                        yield return new WaitForSeconds(1f);
-                        FlickerLights();
-                        break;
-                    }
+                    yield return new WaitForSeconds(1f);
                 }
 
-                SwitchToBehavior(State.InActive);
+                FlickerLights();
             }
 
-            TryStartCoroutine(StalkCoroutine(teleportTransform.position), 1);
+            TryStartCoroutine(StalkCoroutine(), 1);
         }
 
         void PlayFakeSoundEffectMajor() // 1 4
@@ -607,34 +595,35 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("SlowWalkToPlayer");
 
-            Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, 3);
-            if (teleportTransform == null) { logger.LogDebug("Cant find node to teleport to"); return; }
-
-            IEnumerator SlowWalkCoroutine(Vector3 teleportPos)
+            IEnumerator SlowWalkCoroutine()
             {
+                float maxDistance = 20f;
+
                 yield return null;
+
+                Transform? teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, 3);
+                while (teleportTransform == null)
+                {
+                    yield return new WaitForSeconds(1f);
+                    teleportTransform = SCPInstance.ChooseClosestNodeToPosition(targetPlayer.transform.position, false, 3);
+                }
+
+                Vector3 teleportPos = teleportTransform.position;
 
                 SCPInstance.Teleport(teleportPos);
                 SCPInstance.agent.speed = 1f;
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 SwitchToBehavior(State.Chasing);
 
-                while (true)
+                while (Vector3.Distance(transform.position, targetPlayer.transform.position) < maxDistance)
                 {
-                    yield return new WaitForSeconds(0.2f);
-
-                    if (targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset))
-                    {
-                        yield return new WaitForSeconds(3f);
-                        FlickerLights();
-                        break;
-                    }
+                    yield return new WaitForSeconds(1f);
                 }
 
-                SwitchToBehavior(State.InActive);
+                FlickerLights();
             }
 
-            TryStartCoroutine(SlowWalkCoroutine(teleportTransform.position), 1);
+            TryStartCoroutine(SlowWalkCoroutine(), 1);
         }
 
         void MimicEnemy() // 1 8
@@ -667,20 +656,13 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("SpawnGhostGirl");
 
-            foreach (var girl in FindObjectsOfType<DressGirlAI>())
-            {
-                if (girl.hauntingPlayer == targetPlayer)
-                {
-                    return;
-                }
-            }
-
-            Utils.GetEnemies();
+            SCPInstance.SpawnGhostGirlServerRpc(targetPlayer.actualClientId);
         }
 
         void TurnOffAllLights() // 2 4
         {
             logger.LogDebug("TurnOffAllLights");
+            RoundManager.Instance.TurnOnAllLights(false);
         }
 
         void SpawnFakeLandMineUnderPlayer() // 2 5
@@ -831,3 +813,14 @@ namespace HeavyItemSCPs.Items.SCP513
         #endregion
     }
 }
+
+/*
+ Status effects
+
+- Ears ringing
+- Fear
+- Bleeding
+- Encumbered
+- Insanity
+- 
+ */

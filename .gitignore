@@ -28,3 +28,4 @@ Thumbs.db
 
 # Git ignore itself
 !.gitignore
+/HeavyItemSCPs.csproj.user

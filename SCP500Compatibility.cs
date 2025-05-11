@@ -42,7 +42,7 @@ namespace SCPItems
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static bool LocalPlayerAffectedBySCP500()
         {
-            return false;//SCP500.SCP500Controller.LocalPlayerAffectedBySCP500; // TODO: fix this
+            return SCP500.SCP500Controller.LocalPlayerAffectedBySCP500;
         }
     }
 }
