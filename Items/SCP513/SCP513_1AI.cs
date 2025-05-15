@@ -99,6 +99,12 @@ namespace HeavyItemSCPs.Items.SCP513
             nextCommonEventTime = commonEventMaxCooldown;
             nextUncommonEventTime = uncommonEventMaxCooldown;
             nextRareEventTime = rareEventMaxCooldown;
+
+            if (TESTING.testing && IsServerOrHost)
+            {
+                targetPlayer = StartOfRound.Instance.allPlayerScripts.Where(x => x.isPlayerControlled).FirstOrDefault();
+                ChangeTargetPlayerClientRpc(targetPlayer.actualClientId);
+            }
         }
 
         public override void Update()
@@ -728,6 +734,76 @@ namespace HeavyItemSCPs.Items.SCP513
         public void ResetStealthTimerClientRpc()
         {
             evadeStealthTimer = 0f;
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void ShotgunSuicideServerRpc(NetworkObjectReference netRef, float duration)
+        {
+            if (!IsServerOrHost) { return; }
+            ShotgunSuicideClientRpc(netRef, duration);
+        }
+
+        [ClientRpc]
+        public void ShotgunSuicideClientRpc(NetworkObjectReference netRef, float duration)
+        {
+            IEnumerator RotateShotgunCoroutine(ShotgunItem shotgun, float duration)
+            {
+                try
+                {
+                    HallucinationManager.overrideShotguns.Add(shotgun);
+
+                    float elapsedTime = 0f;
+                    Vector3 startRot = shotgun.itemProperties.rotationOffset;
+                    Vector3 endRot = new Vector3(105f, -50f, -50f);
+                    Vector3 startPos = shotgun.itemProperties.positionOffset;
+                    Vector3 endPos = new Vector3(0f, 0.7f, -0.1f);
+
+                    while (elapsedTime < duration)
+                    {
+                        float t = elapsedTime / duration;
+
+                        Vector3 _rotOffset = Vector3.Lerp(startRot, endRot, t);
+                        Vector3 _posOffset = Vector3.Lerp(startPos, endPos, t);
+
+                        if (shotgun.parentObject != null) // TODO: Figure this out
+                        {
+                            shotgun.transform.rotation = shotgun.parentObject.rotation;
+                            shotgun.transform.Rotate(shotgun.itemProperties.rotationOffset);
+                            shotgun.transform.position = shotgun.parentObject.position;
+                            Vector3 positionOffset = shotgun.itemProperties.positionOffset;
+                            positionOffset = shotgun.parentObject.rotation * positionOffset;
+                            base.transform.position += positionOffset;
+                        }
+
+                        //shotgun.transform.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(endRot), t);
+                        //shotgun.transform.localPosition = Vector3.Lerp(Vector3.zero, endPos, t);
+
+                        elapsedTime += Time.deltaTime;
+                        yield return null;
+                    }
+
+                    yield return new WaitForSeconds(3f);
+
+                    targetPlayer.activatingItem = false;
+                    Utils.FreezePlayer(targetPlayer, false);
+                    if (localPlayer == targetPlayer) { shotgun.ShootGunAndSync(false); }
+                    yield return null;
+                    targetPlayer.DamagePlayer(100, hasDamageSFX: true, callRPC: false, CauseOfDeath.Gunshots, 0, fallDamage: false, shotgun.shotgunRayPoint.forward * 30f);
+
+                    yield return new WaitForSeconds(1f);
+                }
+                finally
+                {
+                    targetPlayer.activatingItem = false;
+                    Utils.FreezePlayer(targetPlayer, false);
+                    HallucinationManager.overrideShotguns.Remove(shotgun);
+                }
+            }
+
+            if (!netRef.TryGet(out NetworkObject netObj)) { logger.LogError("Cant get netObj"); return; }
+            if (!netObj.TryGetComponent(out ShotgunItem shotgun)) { logger.LogError("Cant get ShotgunItem"); return; }
+
+            StartCoroutine(RotateShotgunCoroutine(shotgun, duration));
         }
     }
 }

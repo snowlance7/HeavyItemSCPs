@@ -6,8 +6,6 @@ Fake Enemies
 [Debug  :HeavyItemSCPs] Blob
 [Debug  :HeavyItemSCPs] MouthDog
 [Debug  :HeavyItemSCPs] ForestGiant
-[Debug  :HeavyItemSCPs] ClaySurgeon
-[Debug  :HeavyItemSCPs] CaveDweller		???
 [Debug  :HeavyItemSCPs] BaboonHawk
 [Debug  :HeavyItemSCPs] SpringMan
 [Debug  :HeavyItemSCPs] Jester
@@ -22,3 +20,7 @@ Chase Fake Enemies
 [Debug  :HeavyItemSCPs] SpringMan
 [Debug  :HeavyItemSCPs] Jester
 [Debug  :HeavyItemSCPs] MaskedPlayerEnemy
+
+Shotgun
+posOffset 0 0.7 -0.1
+rotOffset 105 -50 -50

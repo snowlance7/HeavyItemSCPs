@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HarmonyLib;
 using HeavyItemSCPs.Patches;
 using System;
 using System.Collections;
@@ -23,6 +24,8 @@ namespace HeavyItemSCPs.Items.SCP513
         public SCP513_1AI SCPInstance {  get; set; }
         public PlayerControllerB targetPlayer;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+        public static HashSet<GrabbableObject> overrideShotguns = [];
 
         delegate void MethodDelegate();
 
@@ -65,8 +68,9 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(ChasePlayer);
             rareEvents.Add(SpawnGhostGirl);
             rareEvents.Add(TurnOffAllLights);
-            rareEvents.Add(SpawnFakeLandMinesAroundPlayer);
+            rareEvents.Add(SpawnFakeHazardsAroundPlayer);
             rareEvents.Add(SpawnMultipleFakeBodies);
+            rareEvents.Add(ForceSuicide);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
             Instance = this;
@@ -463,7 +467,7 @@ namespace HeavyItemSCPs.Items.SCP513
             IEnumerator BlockDoorCoroutine()
             {
                 float doorDistance = 10f;
-                float blockPosOffset = 1f;
+                float blockPosOffset = 0f;
                 float disappearDistance = 15f;
                 float disappearTime = 15f;
 
@@ -615,7 +619,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 Vector3 teleportPos = teleportTransform.position;
 
                 SCPInstance.Teleport(teleportPos);
-                SCPInstance.agent.speed = 3.5f;
+                SCPInstance.agent.speed = 5f;
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 SwitchToBehavior(State.Chasing);
 
@@ -661,7 +665,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 Vector3 teleportPos = SCPInstance.ChooseFarthestNodeFromPosition(targetPlayer.transform.position).position;
 
                 SCPInstance.Teleport(teleportPos);
-                SCPInstance.agent.speed = 7f;
+                SCPInstance.agent.speed = 10f;
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
                 SwitchToBehavior(State.Chasing);
 
@@ -689,9 +693,9 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.Instance.TurnOnAllLights(false);
         }
 
-        void SpawnFakeLandMinesAroundPlayer() // 2 5
+        void SpawnFakeHazardsAroundPlayer() // 2 5
         {
-            logger.LogDebug("SpawnFakeLandMineUnderPlayer");
+            logger.LogDebug("SpawnFakeHazardsAroundPlayer");
         }
 
         void SpawnMultipleFakeBodies() // 2 6
@@ -714,6 +718,77 @@ namespace HeavyItemSCPs.Items.SCP513
                 GameObject bodyObj = SpawnDeadBody(targetPlayer, targetPlayer.transform.position, 0, deathAnimation, randomOffset); // TODO: Test this
                 GameObject.Destroy(bodyObj, 30f);
             }
+        }
+
+        void ForceSuicide() // 2 7
+        {
+            logger.LogDebug("ForceSuicide");
+
+            bool playerHasShotgun = false;
+            bool playerHasKnife = false;
+            bool playerHasMask = false;
+
+            foreach (var slot in targetPlayer.ItemSlots)
+            {
+                if (slot == null) { continue; }
+                if (slot.itemProperties.name == "Shotgun")
+                {
+                    playerHasShotgun = true;
+                }
+                if (slot.itemProperties.name == "Knife")
+                {
+                    playerHasKnife = true;
+                }
+                if (slot.itemProperties.name == "HauntedMask")
+                {
+                    playerHasMask = true;
+                }
+            }
+
+            if (!playerHasKnife && !playerHasShotgun && !playerHasMask)
+            {
+                RunRandomEvent(2);
+                return;
+            }
+
+            IEnumerator ForceSuicideCoroutine(bool hasShotgun, bool hasMask)
+            {
+                yield return null;
+
+                if (hasShotgun) // Shotgun
+                {
+                    Utils.FreezePlayer(targetPlayer, true);
+                    targetPlayer.activatingItem = true;
+                    ShotgunItem? shotgun = null;
+
+                    foreach (var slot in targetPlayer.ItemSlots)
+                    {
+                        if (slot == null) { continue; }
+                        if (slot.itemProperties.name == "Shotgun")
+                        {
+                            shotgun = (ShotgunItem)slot;
+                        }
+                    }
+
+                    if (shotgun == null) { logger.LogError("Couldnt find shotgun"); yield break; }
+
+                    targetPlayer.SwitchToItemSlot(0, shotgun);
+
+                    float duration = 5f;
+
+                    SCPInstance.ShotgunSuicideServerRpc(shotgun.NetworkObject, duration);
+                }
+                else if (playerHasMask) // Mask
+                {
+
+                }
+                else // Knife
+                {
+
+                }
+            }
+
+            TryStartCoroutine(ForceSuicideCoroutine(playerHasShotgun, playerHasMask), 2);
         }
 
         #endregion
@@ -885,15 +960,14 @@ namespace HeavyItemSCPs.Items.SCP513
 
         #endregion
     }
+
+    [HarmonyPatch]
+    public class HallucinationManagerPatches
+    {
+        [HarmonyPrefix, HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.LateUpdate))]
+        public static bool LateUpdatePrefix(GrabbableObject __instance)
+        {
+            return !HallucinationManager.overrideShotguns.Contains(__instance);
+        }
+    }
 }
-
-/*
- Status effects
-
-- Ears ringing
-- Fear
-- Bleeding
-- Encumbered
-- Insanity
-- 
- */
