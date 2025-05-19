@@ -30,11 +30,11 @@ namespace HeavyItemSCPs.Patches
     {
         private static ManualLogSource logger = Plugin.LoggerInstance;
         public static bool inTestRoom = StartOfRound.Instance.testRoom != null;
-        public static bool testing = false;
+        public static bool testing = true;
         public static float drunkness = 0;
 
-        public static int setEventRarity;
-        public static int setEventIndex;
+        public static int setEventRarity = 2;
+        public static int setEventIndex = 7;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()

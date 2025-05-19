@@ -750,6 +750,8 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 try
                 {
+                    if (!HallucinationManager.overrideShotgunsRotOffsets.ContainsKey(shotgun)) { HallucinationManager.overrideShotgunsRotOffsets.Add(shotgun, shotgun.itemProperties.rotationOffset); }
+                    if (!HallucinationManager.overrideShotgunsPosOffsets.ContainsKey(shotgun)) { HallucinationManager.overrideShotgunsPosOffsets.Add(shotgun, shotgun.itemProperties.positionOffset); }
                     HallucinationManager.overrideShotguns.Add(shotgun);
 
                     float elapsedTime = 0f;
@@ -765,18 +767,8 @@ namespace HeavyItemSCPs.Items.SCP513
                         Vector3 _rotOffset = Vector3.Lerp(startRot, endRot, t);
                         Vector3 _posOffset = Vector3.Lerp(startPos, endPos, t);
 
-                        if (shotgun.parentObject != null) // TODO: Figure this out
-                        {
-                            shotgun.transform.rotation = shotgun.parentObject.rotation;
-                            shotgun.transform.Rotate(shotgun.itemProperties.rotationOffset);
-                            shotgun.transform.position = shotgun.parentObject.position;
-                            Vector3 positionOffset = shotgun.itemProperties.positionOffset;
-                            positionOffset = shotgun.parentObject.rotation * positionOffset;
-                            base.transform.position += positionOffset;
-                        }
-
-                        //shotgun.transform.localRotation = Quaternion.Lerp(Quaternion.identity, Quaternion.Euler(endRot), t);
-                        //shotgun.transform.localPosition = Vector3.Lerp(Vector3.zero, endPos, t);
+                        HallucinationManager.overrideShotgunsRotOffsets[shotgun] = _rotOffset;
+                        HallucinationManager.overrideShotgunsPosOffsets[shotgun] = _posOffset;
 
                         elapsedTime += Time.deltaTime;
                         yield return null;
@@ -794,9 +786,9 @@ namespace HeavyItemSCPs.Items.SCP513
                 }
                 finally
                 {
+                    HallucinationManager.overrideShotguns.Remove(shotgun);
                     targetPlayer.activatingItem = false;
                     Utils.FreezePlayer(targetPlayer, false);
-                    HallucinationManager.overrideShotguns.Remove(shotgun);
                 }
             }
 

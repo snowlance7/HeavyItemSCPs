@@ -26,6 +26,8 @@ namespace HeavyItemSCPs.Items.SCP513
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         public static HashSet<GrabbableObject> overrideShotguns = [];
+        public static Dictionary<GrabbableObject, Vector3> overrideShotgunsPosOffsets = [];
+        public static Dictionary<GrabbableObject, Vector3> overrideShotgunsRotOffsets = [];
 
         delegate void MethodDelegate();
 
@@ -739,7 +741,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     playerHasKnife = true;
                 }
-                if (slot.itemProperties.name == "HauntedMask")
+                if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
                 {
                     playerHasMask = true;
                 }
@@ -778,9 +780,28 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     SCPInstance.ShotgunSuicideServerRpc(shotgun.NetworkObject, duration);
                 }
-                else if (playerHasMask) // Mask
+                else if (hasMask) // Mask
                 {
+                    Utils.FreezePlayer(targetPlayer, true);
+                    targetPlayer.activatingItem = true;
+                    HauntedMaskItem? mask = null;
 
+                    foreach (var slot in targetPlayer.ItemSlots)
+                    {
+                        if (slot == null) { continue; }
+                        if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
+                        {
+                            mask = (HauntedMaskItem)slot;
+                        }
+                    }
+
+                    if (mask == null) { logger.LogError("Couldnt find mask"); yield break; }
+
+                    targetPlayer.SwitchToItemSlot(0, mask);
+
+                    yield return new WaitForSeconds(1f);
+
+                    mask.UseItemOnClient(true);  // TODO: Figure out how to make player unable to use the item anymore so they cant take it off
                 }
                 else // Knife
                 {
@@ -967,7 +988,35 @@ namespace HeavyItemSCPs.Items.SCP513
         [HarmonyPrefix, HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.LateUpdate))]
         public static bool LateUpdatePrefix(GrabbableObject __instance)
         {
-            return !HallucinationManager.overrideShotguns.Contains(__instance);
+            try
+            {
+                if (HallucinationManager.overrideShotguns.Contains(__instance))
+                {
+                    if (__instance.parentObject != null)
+                    {
+                        Vector3 rotOffset = HallucinationManager.overrideShotgunsRotOffsets[__instance];
+                        Vector3 posOffset = HallucinationManager.overrideShotgunsPosOffsets[__instance];
+
+                        __instance.transform.rotation = __instance.parentObject.rotation;
+                        __instance.transform.Rotate(rotOffset);
+                        __instance.transform.position = __instance.parentObject.position;
+                        Vector3 positionOffset = posOffset;
+                        positionOffset = __instance.parentObject.rotation * positionOffset;
+                        __instance.transform.position += positionOffset;
+                    }
+                    if (__instance.radarIcon != null)
+                    {
+                        __instance.radarIcon.position = __instance.transform.position;
+                    }
+                    return false;
+                }
+
+                return true;
+            }
+            catch
+            {
+                return true;
+            }
         }
     }
 }
