@@ -16,9 +16,9 @@ namespace HeavyItemSCPs.Items.SCP178
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GameObject SCP1781Prefab;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-        public static SCP178Behavior? Instance { get; private set; }
+        public static SCP178Behavior Instance { get; private set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         public List<SCP1781AI> SCP1781Instances = [];
         public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
@@ -26,8 +26,15 @@ namespace HeavyItemSCPs.Items.SCP178
         readonly Vector3 posOffsetWearing = new Vector3(-0.275f, -0.15f, -0.05f);
         readonly Vector3 rotOffsetWearing = new Vector3(-55f, -60f, 0f);
 
-        public bool wearing;
+        public PlayerControllerB? lastPlayerHeldBy;
+
         float despawnTimer;
+        Coroutine? spawnCoroutine;
+
+        public bool wearing;
+        public bool wearingOnLocalClient;
+        float timeSpawned;
+        bool isOutside;
 
         public override void OnNetworkSpawn()
         {
@@ -35,8 +42,6 @@ namespace HeavyItemSCPs.Items.SCP178
             if (Instance != null && Instance != this)
             {
                 logger.LogDebug("There is already a SCP-178 in the scene. Removing this one.");
-                if (!IsServerOrHost) { return; }
-                NetworkObject.Despawn(true);
                 return;
             }
             Instance = this;
@@ -50,11 +55,26 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 Instance = null;
             }
+            if (IsServerOrHost)
+            {
+                DespawnEntities();
+            }
         }
 
         public override void Update()
         {
             base.Update();
+
+            timeSpawned += Time.deltaTime;
+            
+            if (Instance != this)
+            {
+                if (IsServerOrHost && timeSpawned > 3f)
+                {
+                    NetworkObject.Despawn(true);
+                }
+                return;
+            }
 
             if (wearing)
             {
@@ -63,10 +83,42 @@ namespace HeavyItemSCPs.Items.SCP178
             else
             {
                 despawnTimer -= Time.deltaTime;
-                if (despawnTimer <= 0)
+                if (despawnTimer <= 0 && spawnCoroutine == null)
                 {
                     DespawnEntities();
                 }
+            }
+
+            if (playerHeldBy != null)
+            {
+                lastPlayerHeldBy = playerHeldBy;
+            }
+
+            if (lastPlayerHeldBy == null || despawnTimer <= 0) { return; }
+            
+            if (!lastPlayerHeldBy.isInsideFactory != isOutside)
+            {
+                SetOutside(!lastPlayerHeldBy.isInsideFactory);
+            }
+        }
+
+        public override void LateUpdate()
+        {
+            Vector3 rotOffset = wearing ? rotOffsetWearing : itemProperties.rotationOffset;
+            Vector3 posOffset = wearing ? posOffsetWearing : itemProperties.positionOffset;
+
+            if (parentObject != null)
+            {
+                base.transform.rotation = parentObject.rotation;
+                base.transform.Rotate(rotOffset);
+                base.transform.position = parentObject.position;
+                Vector3 positionOffset = posOffset;
+                positionOffset = parentObject.rotation * positionOffset;
+                base.transform.position += positionOffset;
+            }
+            if (radarIcon != null)
+            {
+                radarIcon.position = base.transform.position;
             }
         }
 
@@ -80,79 +132,96 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (playerHeldBy == localPlayer)
             {
-                SCP1783DVision.Instance.Enable3DVision(buttonDown);
+                wearingOnLocalClient = wearing;
+                SCP1783DVision.Instance.Enable3DVision(wearing);
             }
 
             if (buttonDown)
             {
                 if (playerHeldBy.drunkness < 0.2f) { playerHeldBy.drunkness = 0.2f; }
-                SpawnEntities();
+                SpawnEntities(!playerHeldBy.isInsideFactory);
             }
         }
 
-        void SpawnEntities()
+        void SetOutside(bool outside)
         {
             if (!IsServerOrHost) { return; }
+            if (spawnCoroutine != null) { return; }
+            DespawnEntities();
+            if (SCP1781Instances.Count <= 0)
+            {
+                SpawnEntities(outside);
+                isOutside = outside;
+            }
+        }
+
+        void SpawnEntities(bool outside)
+        {
+            if (!IsServerOrHost) { return; }
+            if (spawnCoroutine != null) { return; }
             if (StartOfRound.Instance.inShipPhase || !StartOfRound.Instance.shipHasLanded || StartOfRound.Instance.shipIsLeaving) { return; }
             if (SCP1781Instances.Count > 0) { return; }
 
-            StartCoroutine(SpawnEntitiesCoroutine());
-        }
-
-        IEnumerator SpawnEntitiesCoroutine()
-        {
-            yield return null;
-            logger.LogDebug("Spawning SCP-178-1 Instances");
-
-            int maxCountOutside = GetMaxCount(true);
-            int count = 0;
-            foreach (var node in RoundManager.Instance.outsideAINodes)
+            IEnumerator SpawnEntitiesCoroutine(bool outside)
             {
-                yield return null;
-                if (count >= maxCountOutside && maxCountOutside != -1) { break; }
-                GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
-                SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
-                scp.NetworkObject.Spawn(destroyWithScene: true);
-                RoundManager.Instance.SpawnedEnemies.Add(scp);
-                SCP1781Instances.Add(scp);
-                count++;
+                try
+                {
+                    yield return null;
+                    logger.LogDebug("Spawning SCP-178-1 Instances");
+
+                    int maxCount = GetMaxCount(outside);
+                    int count = 0;
+                    List<GameObject> nodes = outside ? RoundManager.Instance.outsideAINodes.ToList() : RoundManager.Instance.insideAINodes.ToList();
+                    nodes.Shuffle();
+                    foreach (var node in nodes)
+                    {
+                        yield return null;
+                        if (count >= maxCount && maxCount != -1) { break; }
+                        GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
+                        SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
+                        scp.NetworkObject.Spawn(destroyWithScene: true);
+                        scp.SetEnemyOutside(outside);
+                        SCP1781Instances.Add(scp);
+                        count++;
+                    }
+
+                    logger.LogDebug($"Spawned {SCP1781Instances.Count} SCP-178-1 instances");
+                }
+                finally
+                {
+                    spawnCoroutine = null;
+                }
             }
 
-            int maxCountInside = GetMaxCount(false);
-            count = 0;
-            foreach (var node in RoundManager.Instance.insideAINodes)
-            {
-                yield return null;
-                if (count >= maxCountInside && maxCountInside != -1) { break; }
-                GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
-                SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
-                scp.NetworkObject.Spawn(destroyWithScene: true);
-                RoundManager.Instance.SpawnedEnemies.Add(scp);
-                SCP1781Instances.Add(scp);
-                count++;
-            }
-
-            logger.LogDebug($"Spawned {SCP1781Instances.Count} SCP-178-1 instances");
+            spawnCoroutine = StartCoroutine(SpawnEntitiesCoroutine(outside));
         }
 
         void DespawnEntities()
         {
             if (!IsServerOrHost) { return; }
             if (SCP1781Instances.Count <= 0) { return; }
+            if (spawnCoroutine != null) { return; }
 
-            StartCoroutine(DespawnEntitiesCoroutine());
-        }
-
-        IEnumerator DespawnEntitiesCoroutine()
-        {
-            yield return null;
-            logger.LogDebug("Despawning SCP-178-1 Instances");
-            foreach (var entity in SCP1781Instances.ToList())
+            IEnumerator DespawnEntitiesCoroutine()
             {
-                yield return null;
-                if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
-                RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
+                try
+                {
+                    yield return null;
+                    logger.LogDebug("Despawning SCP-178-1 Instances");
+                    foreach (var entity in SCP1781Instances.ToList())
+                    {
+                        yield return null;
+                        if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
+                        RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
+                    }
+                }
+                finally
+                {
+                    spawnCoroutine = null;
+                }
             }
+
+            spawnCoroutine = StartCoroutine(DespawnEntitiesCoroutine());
         }
 
         public void AddAngerToPlayer(PlayerControllerB player, int anger)
@@ -215,6 +284,23 @@ namespace HeavyItemSCPs.Items.SCP178
             if (SCP178Behavior.Instance != null)
             {
                 SCP178Behavior.Instance.PlayersAngerLevels.Clear();
+            }
+        }
+    }
+
+    public static class ListExtensions
+    {
+        public static void Shuffle<T>(this IList<T> list)
+        {
+            int n = list.Count;
+
+            while (n > 1)
+            {
+                n--;
+                int k = UnityEngine.Random.Range(0, n + 1);
+                T temp = list[k];
+                list[k] = list[n];
+                list[n] = temp;
             }
         }
     }

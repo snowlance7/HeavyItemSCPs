@@ -755,57 +755,106 @@ namespace HeavyItemSCPs.Items.SCP513
 
             IEnumerator ForceSuicideCoroutine(bool hasShotgun, bool hasMask)
             {
-                yield return null;
-
-                if (hasShotgun) // Shotgun
+                try
                 {
-                    Utils.FreezePlayer(targetPlayer, true);
-                    targetPlayer.activatingItem = true;
-                    ShotgunItem? shotgun = null;
+                    yield return null;
 
-                    foreach (var slot in targetPlayer.ItemSlots)
+                    if (hasShotgun) // Shotgun
                     {
-                        if (slot == null) { continue; }
-                        if (slot.itemProperties.name == "Shotgun")
+                        Utils.FreezePlayer(targetPlayer, true);
+                        targetPlayer.activatingItem = true;
+                        ShotgunItem? shotgun = null;
+
+                        foreach (var slot in targetPlayer.ItemSlots)
                         {
-                            shotgun = (ShotgunItem)slot;
+                            if (slot == null) { continue; }
+                            if (slot.itemProperties.name == "Shotgun")
+                            {
+                                shotgun = (ShotgunItem)slot;
+                            }
+                        }
+
+                        if (shotgun == null) { logger.LogError("Couldnt find shotgun"); yield break; }
+
+                        targetPlayer.SwitchToItemSlot(0, shotgun);
+
+                        SCPInstance.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
+
+                        yield return new WaitForSeconds(10f);
+                    }
+                    else if (hasMask) // Mask
+                    {
+                        Utils.FreezePlayer(targetPlayer, true);
+                        targetPlayer.activatingItem = true;
+                        HauntedMaskItem? mask = null;
+
+                        foreach (var slot in targetPlayer.ItemSlots)
+                        {
+                            if (slot == null) { continue; }
+                            if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
+                            {
+                                mask = (HauntedMaskItem)slot;
+                            }
+                        }
+
+                        if (mask == null) { logger.LogError("Couldnt find mask"); yield break; }
+
+                        targetPlayer.SwitchToItemSlot(0, mask);
+
+                        yield return new WaitForSeconds(1f);
+
+                        mask.maskOn = true;
+                        targetPlayer.activatingItem = true;
+                        mask.BeginAttachment();
+
+                        yield return new WaitForSeconds(1f);
+                    }
+                    else // Knife
+                    {
+                        Utils.FreezePlayer(targetPlayer, true);
+                        targetPlayer.activatingItem = true;
+                        KnifeItem? knife = null;
+
+                        foreach (var slot in targetPlayer.ItemSlots)
+                        {
+                            if (slot == null) { continue; }
+                            if (slot.itemProperties.name == "Knife")
+                            {
+                                knife = (KnifeItem)slot;
+                            }
+                        }
+
+                        if (knife == null) { logger.LogError("Couldnt find knife"); yield break; }
+
+                        targetPlayer.SwitchToItemSlot(0, knife);
+
+                        float elapsedTime = 0f;
+
+                        while (!targetPlayer.isPlayerDead)
+                        {
+                            yield return null;
+                            elapsedTime += Time.deltaTime;
+
+                            Transform camTransform = targetPlayer.gameplayCamera.transform;
+                            Vector3 currentAngles = camTransform.localEulerAngles;
+                            float targetX = 90f;
+                            float smoothedX = Mathf.LerpAngle(currentAngles.x, targetX, Time.deltaTime * 5f);
+                            camTransform.localEulerAngles = new Vector3(smoothedX, currentAngles.y, 0f);
+
+                            if (elapsedTime > 1f)
+                            {
+                                elapsedTime = 0f;
+                                knife.UseItemOnClient();
+                                targetPlayer.activatingItem = true;
+                                yield return new WaitForSeconds(0.25f);
+                                targetPlayer.DamagePlayer(25, true, true, CauseOfDeath.Stabbing);
+                            }
                         }
                     }
-
-                    if (shotgun == null) { logger.LogError("Couldnt find shotgun"); yield break; }
-
-                    targetPlayer.SwitchToItemSlot(0, shotgun);
-
-                    float duration = 5f;
-
-                    SCPInstance.ShotgunSuicideServerRpc(shotgun.NetworkObject, duration);
                 }
-                else if (hasMask) // Mask
+                finally
                 {
-                    Utils.FreezePlayer(targetPlayer, true);
-                    targetPlayer.activatingItem = true;
-                    HauntedMaskItem? mask = null;
-
-                    foreach (var slot in targetPlayer.ItemSlots)
-                    {
-                        if (slot == null) { continue; }
-                        if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
-                        {
-                            mask = (HauntedMaskItem)slot;
-                        }
-                    }
-
-                    if (mask == null) { logger.LogError("Couldnt find mask"); yield break; }
-
-                    targetPlayer.SwitchToItemSlot(0, mask);
-
-                    yield return new WaitForSeconds(1f);
-
-                    mask.UseItemOnClient(true);  // TODO: Figure out how to make player unable to use the item anymore so they cant take it off
-                }
-                else // Knife
-                {
-
+                    Utils.FreezePlayer(targetPlayer, false);
                 }
             }
 

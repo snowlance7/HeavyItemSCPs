@@ -44,9 +44,13 @@ namespace HeavyItemSCPs.Items.SCP513
 
             timeSpawned += Time.deltaTime;
 
-            if (IsServerOrHost && Instance != this && timeSpawned > 3f)
+            if (Instance != this)
             {
-                NetworkObject.Despawn(true);
+                if (IsServerOrHost && timeSpawned > 3f)
+                {
+                    NetworkObject.Despawn(true);
+                }
+                return;
             }
 
             if (playerHeldBy == null || localPlayer != playerHeldBy)
@@ -73,9 +77,6 @@ namespace HeavyItemSCPs.Items.SCP513
             if (Instance != null && Instance != this)
             {
                 logger.LogDebug("There is already a SCP-513 in the scene. Removing this one.");
-                if (!IsServerOrHost) { return; }
-                //NetworkObject.Despawn(true);
-                
                 return;
             }
             Instance = this;
