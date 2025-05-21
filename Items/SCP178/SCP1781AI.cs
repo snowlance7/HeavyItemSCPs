@@ -29,7 +29,7 @@ namespace HeavyItemSCPs.Items.SCP178
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         PlayerControllerB lastPlayerHeldBy { get { return SCP178Behavior.Instance!.lastPlayerHeldBy!; } }
-        bool walking;
+
         public bool meshEnabledOnClient;
         public Vector3 spawnPosition;
 
@@ -148,6 +148,16 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             base.DoAIInterval();
 
+            if (!IsNearbyPlayer(lastPlayerHeldBy, renderDistance))
+            {
+                if (wanderingRoutine != null)
+                {
+                    StopCoroutine(wanderingRoutine);
+                    wanderingRoutine = null;
+                }
+                return;
+            }
+
             if (currentBehaviourStateIndex != (int)State.Chasing && TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
             {
                 if (wanderingRoutine != null)
@@ -219,11 +229,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void LateUpdate()
         {
-            bool wearing178 = SCP178Behavior.Instance!.wearing;
-            if (meshEnabledOnClient != wearing178)
-            {
-                EnableMesh(wearing178);
-            }
+            EnableMesh(SCP178Behavior.Instance.wearing && lastPlayerHeldBy == localPlayer);
 
             creatureAnimator.SetFloat(hashSpeed, agent.velocity.magnitude / 2);
             creatureAnimator.SetBool(hashAngryIdle, isBeingObserved);
@@ -339,11 +345,6 @@ namespace HeavyItemSCPs.Items.SCP178
             SCP178Behavior.Instance.AddAngerToPlayer(lastPlayerHeldBy, anger);
         }
 
-        public bool IsNearbySCP178(PlayerControllerB player)
-        {
-            return Vector3.Distance(player.transform.position, SCP178Behavior.Instance!.transform.position) < distanceToAddAnger;
-        }
-
         public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet)
         {
             return;
@@ -351,6 +352,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void EnableMesh(bool enable)
         {
+            if (meshEnabledOnClient == enable) { return; }
             Mesh.SetActive(enable);
             ScanNode.gameObject.SetActive(enable);
             meshEnabledOnClient = enable;
