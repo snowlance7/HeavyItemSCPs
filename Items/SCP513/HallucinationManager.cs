@@ -48,10 +48,10 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(FlickerLights);
             commonEvents.Add(PlayAmbientSFXNearby);
             commonEvents.Add(PlayFakeSoundEffectMinor);
-            //commonEvents.Add(WallBloodMessage);
             commonEvents.Add(PlayBellSFX);
             commonEvents.Add(HideHazard);
             commonEvents.Add(Stare);
+            commonEvents.Add(FakePlayerMessage);
             logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
             uncommonEvents.Add(FarStare);
@@ -243,16 +243,36 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("HideHazard");
 
-            float hideTime = 15f;
-            int index = UnityEngine.Random.Range(0, 3);
-            index = 0;
+            float hideTime = 30f;
 
-            switch (index)
+            Landmine? landmine = Utils.GetClosestGameObjectOfType<Landmine>(targetPlayer.transform.position);
+            Turret? turret = Utils.GetClosestGameObjectOfType<Turret>(targetPlayer.transform.position);
+            SpikeRoofTrap? spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(targetPlayer.transform.position);
+
+            var hazards = new List<(GameObject obj, float distance, string type)>();
+
+            if (landmine != null)
+                hazards.Add((landmine.gameObject, Vector3.Distance(targetPlayer.transform.position, landmine.transform.position), "Landmine"));
+
+            if (turret != null)
+                hazards.Add((turret.gameObject, Vector3.Distance(targetPlayer.transform.position, turret.transform.position), "Turret"));
+
+            if (spikeTrap != null)
+                hazards.Add((spikeTrap.gameObject, Vector3.Distance(targetPlayer.transform.position, spikeTrap.transform.position), "SpikeTrap"));
+
+            // If none found, return
+            if (hazards.Count == 0)
             {
-                case 0: // LandMine
-                
-                Landmine? landmine = Utils.GetClosestGameObjectOfType<Landmine>(targetPlayer.transform.position);
-                if (landmine == null) { return; }
+                RunRandomEvent(0);
+                return;
+            }
+
+            // Get the closest
+            var closest = hazards.OrderBy(h => h.distance).First();
+
+            switch (closest.type)
+            {
+                case "Landmine": // Landmine
 
                 IEnumerator HideLandmineCoroutine(Landmine landmine)
                 {
@@ -263,11 +283,11 @@ namespace HeavyItemSCPs.Items.SCP513
                         landmine.GetComponent<MeshRenderer>().forceRenderingOff = true;
                         
                         float elapsedTime = 0f;
-                        while (elapsedTime > hideTime)
+                        while (elapsedTime < hideTime)
                         {
                             yield return new WaitForSeconds(0.2f);
                             elapsedTime += 0.2f;
-                            if (landmine.pressMineDebounceTimer > 0f) // TODO: Check this
+                            if (landmine.localPlayerOnMine) // TODO: Check this
                             {
                                 break;
                             }
@@ -282,10 +302,9 @@ namespace HeavyItemSCPs.Items.SCP513
                 StartCoroutine(HideLandmineCoroutine(landmine));
 
                 break;
-                case 1: // Turret // TODO: Hide until turret activates
+                case "Turret": // Turret // TODO: Hide until turret activates
 
-                    Turret? turret = Utils.GetClosestGameObjectOfType<Turret>(targetPlayer.transform.position);
-                    if (turret == null) { return; }
+                    GameObject turretMesh = turret!.gameObject.transform.root.Find("MeshContainer").gameObject;
 
                     IEnumerator HideTurretCoroutine(Turret turret)
                     {
@@ -293,10 +312,10 @@ namespace HeavyItemSCPs.Items.SCP513
                         {
                             logger.LogDebug("Hiding turret");
                             yield return null;
-                            turret.GetComponent<MeshRenderer>().forceRenderingOff = true;
+                            turretMesh.SetActive(false);
 
                             float elapsedTime = 0f;
-                            while (elapsedTime > hideTime)
+                            while (elapsedTime < hideTime)
                             {
                                 yield return new WaitForSeconds(0.2f);
                                 elapsedTime += 0.2f;
@@ -308,17 +327,17 @@ namespace HeavyItemSCPs.Items.SCP513
                         }
                         finally
                         {
-                            turret.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                            turretMesh.SetActive(true);
                         }
                     }
 
                     StartCoroutine(HideTurretCoroutine(turret));
 
                     break;
-                case 2: // SpikeTrap // TODO
+                case "SpikeTrap": // SpikeTrap
 
-                    SpikeRoofTrap? spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(targetPlayer.transform.position);
-                    if (spikeTrap == null) { return; }
+                    GameObject stMesh1 = spikeTrap!.gameObject.transform.root.Find("BaseSupport").gameObject; // TODO: not working, giving error
+                    GameObject stMesh2 = spikeTrap.gameObject.transform.root.Find("SpikeRoof").gameObject;
 
                     IEnumerator HideSpikeTrapCoroutine(SpikeRoofTrap spikeTrap)
                     {
@@ -326,18 +345,25 @@ namespace HeavyItemSCPs.Items.SCP513
                         {
                             logger.LogDebug("Hiding spike trap");
                             yield return null;
-                            spikeTrap.GetComponent<MeshRenderer>().forceRenderingOff = true;
+                            stMesh1.SetActive(false);
+                            stMesh2.SetActive(false);
 
                             float elapsedTime = 0f;
-                            while (elapsedTime > hideTime)
+                            while (elapsedTime < hideTime)
                             {
                                 yield return new WaitForSeconds(0.2f);
                                 elapsedTime += 0.2f;
+
+                                if (targetPlayer.isPlayerDead)
+                                {
+                                    break;
+                                }
                             }
                         }
                         finally
                         {
-                            spikeTrap.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                            stMesh1.SetActive(true);
+                            stMesh2.SetActive(true);
                         }
                     }
 
@@ -384,6 +410,22 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             TryStartCoroutine(StareCoroutine(), 0);
+        }
+
+        void FakePlayerMessage() // 0 6
+        {
+            logger.LogDebug("FakePlayerMessage");
+            string[] messages = new string[]
+            {
+                "I think I heard something...",
+                "Did you hear that?",
+                "I don't like this place...",
+                "I feel like I'm being watched...",
+                "Is someone there?",
+                "I need to get out of here..."
+            };
+
+
         }
 
         #endregion
@@ -462,7 +504,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(JumpscareCoroutine(), 1);
         }
 
-        void BlockDoor() // 1 2
+        void BlockDoor() // 1 2 // TODO: Test and adjust
         {
             logger.LogDebug("BlockDoor");
 
