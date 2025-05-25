@@ -1,19 +1,19 @@
-﻿using DunGen.Tags;
+﻿using BepInEx.Logging;
 using GameNetcodeStuff;
 using LethalLib.Modules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.AI;
 using static HeavyItemSCPs.Plugin;
-using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs
 {
     public static class Utils
     {
+        private static ManualLogSource logger = LoggerInstance;
+
         public static void RegisterItem(string itemPath, string levelRarities = "", string customLevelRarities = "", int minValue = 0, int maxValue = 0)
         {
             Item item = ModAssets!.LoadAsset<Item>(itemPath);
@@ -195,5 +195,103 @@ namespace HeavyItemSCPs
 
             return closest;
         }
+
+        public static Dictionary<string, GameObject> GetAllHazards()
+        {
+            Dictionary<string, GameObject> hazards = new Dictionary<string, GameObject>();
+            List<SpawnableMapObject> spawnableMapObjects = (from x in StartOfRound.Instance.levels.SelectMany((SelectableLevel level) => level.spawnableMapObjects)
+                                              group x by ((UnityEngine.Object)x.prefabToSpawn).name into g
+                                              select g.First()).ToList();
+            foreach (SpawnableMapObject item in spawnableMapObjects)
+            {
+                hazards.Add(item.prefabToSpawn.name, item.prefabToSpawn);
+            }
+            return hazards;
+        }
+
+        public static Vector3 GetRandomNavMeshPositionInAnnulus(Vector3 center, float minRadius, float maxRadius, int sampleCount = 10)
+        {
+            Vector3 randomDirection;
+            float y = center.y;
+
+            // Make sure minRadius is less than maxRadius
+            if (minRadius >= maxRadius)
+            {
+                logger.LogWarning("minRadius should be less than maxRadius. Returning original position.");
+                return center;
+            }
+
+            // Try a few times to get a valid point
+            for (int i = 0; i < sampleCount; i++)
+            {
+                // Get a random direction
+                randomDirection = UnityEngine.Random.insideUnitSphere;
+                randomDirection.y = 0f;
+                randomDirection.Normalize();
+
+                // Random distance between min and max radius
+                float distance = UnityEngine.Random.Range(minRadius, maxRadius);
+
+                // Calculate the new position
+                Vector3 pos = center + randomDirection * distance;
+                pos.y = y;
+
+                // Check if it's on the NavMesh
+                if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+                {
+                    return hit.position;
+                }
+            }
+
+            logger.LogWarning("Unable to find valid NavMesh position in annulus. Returning original position.");
+            return center;
+        }
+
+
+        public static List<Vector3> GetEvenlySpacedNavMeshPositions(Vector3 center, int count, float minRadius, float maxRadius)
+        {
+            List<Vector3> positions = new List<Vector3>();
+
+            // Validate
+            if (count <= 0 || minRadius > maxRadius)
+            {
+                logger.LogWarning("Invalid parameters for turret spawn positions.");
+                return positions;
+            }
+
+            float y = center.y;
+            float angleStep = 360f / count;
+
+            for (int i = 0; i < count; i++)
+            {
+                // Angle in degrees
+                float angle = i * angleStep;
+
+                // Convert angle to radians
+                float radians = angle * Mathf.Deg2Rad;
+
+                // Use random radius between min and max for some variation (optional)
+                float radius = UnityEngine.Random.Range(minRadius, maxRadius);
+
+                // Direction on XZ plane
+                float x = Mathf.Cos(radians) * radius;
+                float z = Mathf.Sin(radians) * radius;
+
+                Vector3 pos = new Vector3(center.x + x, y, center.z + z);
+
+                // Try to snap to NavMesh
+                if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+                {
+                    positions.Add(hit.position);
+                }
+                else
+                {
+                    logger.LogWarning($"Could not find valid NavMesh position for turret {i}. Skipping.");
+                }
+            }
+
+            return positions;
+        }
+
     }
 }

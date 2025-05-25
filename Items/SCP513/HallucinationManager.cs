@@ -239,7 +239,7 @@ namespace HeavyItemSCPs.Items.SCP513
             PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
-        void HideHazard() // 0 4 TODO: Not working
+        void HideHazard() // 0 4 TODO: Add null checks in finally
         {
             logger.LogDebug("HideHazard");
 
@@ -317,9 +317,9 @@ namespace HeavyItemSCPs.Items.SCP513
                             float elapsedTime = 0f;
                             while (elapsedTime < hideTime)
                             {
-                                yield return new WaitForSeconds(0.2f);
-                                elapsedTime += 0.2f;
-                                if (turret.turretMode == TurretMode.Charging) // TODO: Test this
+                                yield return null;
+                                elapsedTime += Time.deltaTime;
+                                if (turret.turretMode != TurretMode.Detection) // TODO: Test this
                                 {
                                     break;
                                 }
@@ -336,8 +336,9 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
                 case "SpikeTrap": // SpikeTrap
 
-                    GameObject stMesh1 = spikeTrap!.gameObject.transform.root.Find("BaseSupport").gameObject; // TODO: not working, giving error
-                    GameObject stMesh2 = spikeTrap.gameObject.transform.root.Find("SpikeRoof").gameObject;
+                    //GameObject stMesh1 = spikeTrap!.gameObject.transform.root.Find("BaseSupport").gameObject; // TODO: not working, giving error
+                    //GameObject stMesh2 = spikeTrap.gameObject.transform.root.Find("SpikeRoof").gameObject;
+                    MeshRenderer[] renderers = spikeTrap.transform.root.GetComponentsInChildren<MeshRenderer>();
 
                     IEnumerator HideSpikeTrapCoroutine(SpikeRoofTrap spikeTrap)
                     {
@@ -345,8 +346,12 @@ namespace HeavyItemSCPs.Items.SCP513
                         {
                             logger.LogDebug("Hiding spike trap");
                             yield return null;
-                            stMesh1.SetActive(false);
-                            stMesh2.SetActive(false);
+                            //stMesh1.SetActive(false);
+                            //stMesh2.SetActive(false);
+                            foreach (var renderer in renderers)
+                            {
+                                renderer.forceRenderingOff = true;
+                            }
 
                             float elapsedTime = 0f;
                             while (elapsedTime < hideTime)
@@ -362,8 +367,13 @@ namespace HeavyItemSCPs.Items.SCP513
                         }
                         finally
                         {
-                            stMesh1.SetActive(true);
-                            stMesh2.SetActive(true);
+                            //stMesh1.SetActive(true);
+                            //stMesh2.SetActive(true);
+                            foreach (var renderer in renderers)
+                            {
+                                if (renderer == null) { continue; }
+                                renderer.forceRenderingOff = false;
+                            }
                         }
                     }
 
@@ -681,6 +691,25 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("MimicEnemy");
             // See MimicableEnemies.txt
+
+            string[] enemies = new string[]
+            {
+                "SandSpider",
+                "HoarderBug",
+                "Flowerman",
+                "Crawler",
+                "Blob",
+                "MouthDog",
+                "ForestGiant",
+                "BaboonHawk",
+                "SpringMan",
+                "Jester",
+                "Butler"
+            };
+
+            int randomIndex = UnityEngine.Random.Range(0, enemies.Length);
+
+            SCPInstance.MimicEnemyServerRpc(enemies[randomIndex], false);
         }
 
         #endregion
@@ -689,13 +718,36 @@ namespace HeavyItemSCPs.Items.SCP513
 
         void MimicEnemyChase() // 2 0
         {
-            // See MimicableEnemies.txt
             logger.LogDebug("MimicEnemyChase");
+            // See MimicableEnemies.txt
+            string[] enemies = new string[]
+            {
+                "Flowerman",
+                "RedLocustBees",
+                "MouthDog",
+                "ForestGiant",
+                "SandWorm",
+                "SpringMan",
+                "Jester",
+                "MaskedPlayerEnemy"
+            };
+
+            int randomIndex = UnityEngine.Random.Range(0, enemies.Length);
+
+            SCPInstance.MimicEnemyServerRpc(enemies[randomIndex], true);
         }
 
         void MimicPlayer() // 2 1
         {
             logger.LogDebug("MimicPlayer");
+
+            if (!targetPlayer.NearOtherPlayers(targetPlayer))
+            {
+                RunRandomEvent(2);
+                return;
+            }
+
+            // TODO
         }
 
         void ChasePlayer() // Use arms down, faster // 2 2
@@ -737,9 +789,83 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.Instance.TurnOnAllLights(false);
         }
 
-        void SpawnFakeHazardsAroundPlayer() // 2 5
+        void SpawnFakeHazardsAroundPlayer() // 2 5 // TODO: Test this
         {
             logger.LogDebug("SpawnFakeHazardsAroundPlayer");
+            /*
+            [Debug  :HeavyItemSCPs] [Landmine, Landmine (UnityEngine.GameObject)]
+            [Debug  :HeavyItemSCPs] [TurretContainer, TurretContainer (UnityEngine.GameObject)]
+            [Debug  :HeavyItemSCPs] [SpikeRoofTrapHazard, SpikeRoofTrapHazard (UnityEngine.GameObject)]
+            */
+
+            // Configs
+            float spawnTime = 10f;
+
+            Dictionary<string, GameObject> hazards = Utils.GetAllHazards();
+
+            int hazardType = UnityEngine.Random.Range(0, 3);
+            hazardType = 0; // TODO: For testing, remove later
+
+            switch (hazardType)
+            {
+                case 0: // Landmine
+
+                    IEnumerator SpawnLandminesAroundPlayerCoroutine()
+                    {
+                        int minToSpawn = 5;
+                        int maxToSpawn = 20;
+
+                        int spawnAmount = UnityEngine.Random.Range(minToSpawn, maxToSpawn + 1);
+                        List<Vector3> positions = Utils.GetEvenlySpacedNavMeshPositions(targetPlayer.transform.position, spawnAmount, 3f, 5f);
+
+                        foreach (Vector3 position in positions)
+                        {
+                            yield return null;
+
+                            GameObject landmineObj = GameObject.Instantiate(hazards["Landmine"], position, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform); // TODO: Test this, may not work without network object and another player steps on it
+                            Landmine landmine = landmineObj.GetComponentInChildren<Landmine>();
+                            landmine.mineActivated = true;
+
+                            IEnumerator DespawnLandmineConditionCoroutine(Landmine landmine)
+                            {
+                                try
+                                {
+                                    yield return null;
+                                    float elapsedTime = 0f;
+
+                                    while (elapsedTime < spawnTime)
+                                    {
+                                        yield return null;
+                                        elapsedTime += Time.deltaTime;
+
+                                        if (landmine.localPlayerOnMine)
+                                        {
+                                            break;
+                                        }
+                                    }
+                                }
+                                finally
+                                {
+                                    GameObject.Destroy(landmine.gameObject);
+                                }
+                            }
+
+                            StartCoroutine(DespawnLandmineConditionCoroutine(landmine));
+                        }
+                    }
+
+                    StartCoroutine(SpawnLandminesAroundPlayerCoroutine());
+
+                    break;
+                case 1: // Turret
+
+                    break;
+                case 2: // SpikeTrap
+
+                    break;
+                default:
+                    break;
+            }
         }
 
         void SpawnMultipleFakeBodies() // 2 6

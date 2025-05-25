@@ -34,26 +34,26 @@ namespace HeavyItemSCPs.Patches
         public static bool trailerMode = false;
         public static float drunkness = 0;
 
-        public static int setEventRarity = 0;
-        public static int setEventIndex = 4;
+        public static int setEventRarity = 2;
+        public static int setEventIndex = 5;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
             if (!testing) { return; }
-            //logger.LogDebug("Insanity: " + localPlayer.insanityLevel);
-            //logger.LogDebug("In Test Room: " + inTestRoom);
 
-            /*Ray interactRay = new Ray(localPlayer.transform.position + Vector3.up, -Vector3.up);
-            if (!Physics.Raycast(interactRay, out RaycastHit hit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore))
-            {
-                return;
-            }
-            logger.LogDebug(hit.collider.tag);*/
+            /*SpikeRoofTrap spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(localPlayer.transform.position);
+            logger.LogDebug(spikeTrap.name);
+            logger.LogDebug(spikeTrap.gameObject.name);
+            logger.LogDebug(spikeTrap.transform.name);
+            logger.LogDebug(spikeTrap.gameObject.transform.name);
+            logger.LogDebug(spikeTrap.gameObject.transform.root.name);
+            logger.LogDebug(spikeTrap.transform.root.gameObject.name);*/
+
 
             if (HallucinationManager.Instance == null) { return; }
             HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
-        } // HoarderBug, BaboonHawk
+        }
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
@@ -64,6 +64,14 @@ namespace HeavyItemSCPs.Patches
 
             switch (args[0])
             {
+                case "/hazards":
+                    Dictionary<string, GameObject> hazards = Utils.GetAllHazards();
+
+                    foreach (var hazard in hazards)
+                    {
+                        logger.LogDebug(hazard);
+                    }
+                    break;
                 case "/setEvent":
                     setEventRarity = int.Parse(args[1]);
                     setEventIndex = int.Parse(args[2]);
