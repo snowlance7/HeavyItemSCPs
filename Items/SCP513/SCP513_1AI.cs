@@ -3,6 +3,7 @@ using GameNetcodeStuff;
 using HeavyItemSCPs.Patches;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
@@ -36,6 +37,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         EnemyAI? mimicEnemy;
         //Coroutine? mimicEnemyCoroutine;
+        public PlayerControllerB? mimicPlayer;
 
         bool enemyMeshEnabled;
         public bool facePlayer;
@@ -85,7 +87,8 @@ namespace HeavyItemSCPs.Items.SCP513
             InActive,
             Manifesting,
             Chasing,
-            Stalking
+            Stalking,
+            MimicPlayer
         }
 
         public override void Start()
@@ -313,6 +316,27 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     break;
 
+                case (int)State.MimicPlayer:
+
+                    if (mimicPlayer == null)
+                    {
+                        SwitchToBehaviourServerRpc((int)State.MimicPlayer);
+                        return;
+                    }
+
+                    if (!mimicPlayer.isPlayerControlled)
+                    {
+                        Utils.MakePlayerInvisible(mimicPlayer, false);
+                        mimicPlayer = null;
+                        SwitchToBehaviourServerRpc((int)State.MimicPlayer);
+                        return;
+                    }
+
+                    transform.position = mimicPlayer.transform.position;
+                    SetDestinationToPosition(mimicPlayer.transform.position);
+
+                    break;
+
                 default:
                     logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
                     break;
@@ -525,6 +549,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
         {
             base.HitEnemy(force, playerWhoHit, playHitSFX, hitID);
+            if (currentBehaviourStateIndex == (int)State.MimicPlayer) { return; }
             RoundManager.PlayRandomClip(creatureSFX, BellSFX);
             SwitchToBehaviourServerRpc((int)State.InActive);
             targetPlayer.insanityLevel = 0f;

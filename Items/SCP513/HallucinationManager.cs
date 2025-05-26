@@ -40,7 +40,8 @@ namespace HeavyItemSCPs.Items.SCP513
             InActive,
             Manifesting,
             Chasing,
-            Stalking
+            Stalking,
+            MimicPlayer
         }
 
         public void Start()
@@ -70,7 +71,7 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(ChasePlayer);
             rareEvents.Add(SpawnGhostGirl);
             rareEvents.Add(TurnOffAllLights);
-            rareEvents.Add(SpawnFakeHazardsAroundPlayer);
+            rareEvents.Add(SpawnFakeLandminesAroundPlayer);
             rareEvents.Add(SpawnMultipleFakeBodies);
             rareEvents.Add(ForceSuicide);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
@@ -687,7 +688,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(SlowWalkCoroutine(), 1);
         }
 
-        void MimicEnemy() // 1 8
+        void MimicEnemy() // 1 8 // TODO: Test this
         {
             logger.LogDebug("MimicEnemy");
             // See MimicableEnemies.txt
@@ -716,7 +717,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         #region Rare
 
-        void MimicEnemyChase() // 2 0
+        void MimicEnemyChase() // 2 0 // TODO: Test this
         {
             logger.LogDebug("MimicEnemyChase");
             // See MimicableEnemies.txt
@@ -737,7 +738,7 @@ namespace HeavyItemSCPs.Items.SCP513
             SCPInstance.MimicEnemyServerRpc(enemies[randomIndex], true);
         }
 
-        void MimicPlayer() // 2 1
+        void MimicPlayer() // 2 1 // TODO: Test this
         {
             logger.LogDebug("MimicPlayer");
 
@@ -747,7 +748,29 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            // TODO
+            int index = UnityEngine.Random.Range(0, targetPlayer.nearByPlayers.Length);
+            PlayerControllerB mimicPlayer = targetPlayer.nearByPlayers[index].gameObject.GetComponent<PlayerControllerB>();
+            if (mimicPlayer == null)
+            {
+                RunRandomEvent(2);
+                return;
+            }
+
+            IEnumerator MimicPlayerCoroutine(PlayerControllerB mimicPlayer)
+            {
+                yield return null;
+
+                Utils.MakePlayerInvisible(mimicPlayer, true);
+
+                yield return null;
+
+                SCPInstance.mimicPlayer = mimicPlayer;
+                SCPInstance.SwitchToBehaviourServerRpc((int)State.MimicPlayer);
+
+                yield return new WaitForSeconds(30f);
+            }
+
+            TryStartCoroutine(MimicPlayerCoroutine(mimicPlayer), 2);
         }
 
         void ChasePlayer() // Use arms down, faster // 2 2
@@ -789,7 +812,7 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.Instance.TurnOnAllLights(false);
         }
 
-        void SpawnFakeHazardsAroundPlayer() // 2 5 // TODO: Test this
+        void SpawnFakeLandminesAroundPlayer() // 2 5 // TODO: Test this
         {
             logger.LogDebug("SpawnFakeHazardsAroundPlayer");
             /*
@@ -803,69 +826,52 @@ namespace HeavyItemSCPs.Items.SCP513
 
             Dictionary<string, GameObject> hazards = Utils.GetAllHazards();
 
-            int hazardType = UnityEngine.Random.Range(0, 3);
-            hazardType = 0; // TODO: For testing, remove later
-
-            switch (hazardType)
+            IEnumerator SpawnLandminesAroundPlayerCoroutine()
             {
-                case 0: // Landmine
+                int minToSpawn = 5;
+                int maxToSpawn = 20;
 
-                    IEnumerator SpawnLandminesAroundPlayerCoroutine()
+                int spawnAmount = UnityEngine.Random.Range(minToSpawn, maxToSpawn + 1);
+                List<Vector3> positions = Utils.GetEvenlySpacedNavMeshPositions(targetPlayer.transform.position, spawnAmount, 3f, 5f);
+
+                foreach (Vector3 position in positions)
+                {
+                    yield return null;
+
+                    GameObject landmineObj = GameObject.Instantiate(hazards["Landmine"], position, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform); // TODO: Test this, may not work without network object and another player steps on it
+                    Landmine landmine = landmineObj.GetComponentInChildren<Landmine>();
+                    landmine.mineActivated = true;
+                    landmine.mineAudio.PlayOneShot(landmine.mineDeactivate);
+
+                    IEnumerator DespawnLandmineConditionCoroutine(Landmine landmine)
                     {
-                        int minToSpawn = 5;
-                        int maxToSpawn = 20;
-
-                        int spawnAmount = UnityEngine.Random.Range(minToSpawn, maxToSpawn + 1);
-                        List<Vector3> positions = Utils.GetEvenlySpacedNavMeshPositions(targetPlayer.transform.position, spawnAmount, 3f, 5f);
-
-                        foreach (Vector3 position in positions)
+                        try
                         {
                             yield return null;
+                            float elapsedTime = 0f;
 
-                            GameObject landmineObj = GameObject.Instantiate(hazards["Landmine"], position, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform); // TODO: Test this, may not work without network object and another player steps on it
-                            Landmine landmine = landmineObj.GetComponentInChildren<Landmine>();
-                            landmine.mineActivated = true;
-
-                            IEnumerator DespawnLandmineConditionCoroutine(Landmine landmine)
+                            while (elapsedTime < spawnTime)
                             {
-                                try
-                                {
-                                    yield return null;
-                                    float elapsedTime = 0f;
+                                yield return null;
+                                elapsedTime += Time.deltaTime;
 
-                                    while (elapsedTime < spawnTime)
-                                    {
-                                        yield return null;
-                                        elapsedTime += Time.deltaTime;
-
-                                        if (landmine.localPlayerOnMine)
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
-                                finally
+                                if (landmine.localPlayerOnMine)
                                 {
-                                    GameObject.Destroy(landmine.gameObject);
+                                    break;
                                 }
                             }
-
-                            StartCoroutine(DespawnLandmineConditionCoroutine(landmine));
+                        }
+                        finally
+                        {
+                            GameObject.Destroy(landmine.gameObject);
                         }
                     }
 
-                    StartCoroutine(SpawnLandminesAroundPlayerCoroutine());
-
-                    break;
-                case 1: // Turret
-
-                    break;
-                case 2: // SpikeTrap
-
-                    break;
-                default:
-                    break;
+                    StartCoroutine(DespawnLandmineConditionCoroutine(landmine));
+                }
             }
+
+            StartCoroutine(SpawnLandminesAroundPlayerCoroutine());
         }
 
         void SpawnMultipleFakeBodies() // 2 6
