@@ -682,10 +682,8 @@ namespace HeavyItemSCPs.Items.SCP513
             if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
 
             EnemyVent vent = Utils.GetClosestVentToPosition(targetPlayer.transform.position);
-            NetworkObjectReference netRef = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
-            if (!netRef.TryGet(out NetworkObject netObj)) { logger.LogError("Couldnt get netRef in MimicEnemyClientRpc"); return; }
+            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
             if (!netObj.TryGetComponent<EnemyAI>(out mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-            mimicEnemy.NetworkObject.Spawn(true);
             MimicEnemyClientRpc(mimicEnemy.NetworkObject);
 
             IEnumerator MimicEnemyCoroutine()

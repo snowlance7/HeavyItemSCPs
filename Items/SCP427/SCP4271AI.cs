@@ -683,11 +683,6 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        public override void DetectNoise(Vector3 noisePosition, float noiseLoudness, int timesPlayedInOneSpot = 0, int noiseID = 0)
-        {
-            base.DetectNoise(noisePosition, noiseLoudness, timesPlayedInOneSpot, noiseID);
-        }
-
         public override void ReachedNodeInSearch()
         {
             base.ReachedNodeInSearch();

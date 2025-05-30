@@ -34,8 +34,8 @@ namespace HeavyItemSCPs.Patches
         public static bool trailerMode = false;
         public static float drunkness = 0;
 
-        public static int setEventRarity = 2;
-        public static int setEventIndex = 5;
+        public static int setEventRarity = 1;
+        public static int setEventIndex = 8;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
