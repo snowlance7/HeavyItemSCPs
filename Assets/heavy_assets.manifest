@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 2848892731
+CRC: 2684383319
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 079a9945ffdbb857af3fbc12571c085f
+    Hash: 13a0e6b5cc84f29600ef1fc28938869a
   TypeTreeHash:
     serializedVersion: 2
-    Hash: 13d60a4c49add46c4591e49c2cc37999
+    Hash: b951ad08d7872b92719fb7dea5406059
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 079a9945ffdbb857af3fbc12571c085f
+    Hash: 13a0e6b5cc84f29600ef1fc28938869a
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -65,6 +65,8 @@ ClassTypes:
 - Class: 114
   Script: {fileID: -2099154595, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
+  Script: {fileID: 1682531532, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
   Script: {fileID: 1969256421, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: 11500000, guid: c30496d6ae6d6f907456e10a94e01ec6, type: 3}
@@ -114,7 +116,9 @@ SerializeReferenceClassIdentifiers:
 Assets:
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
 - Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset
+- Assets/ModAssets/SCP178/SCP1781Part_3.asset
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset
+- Assets/ModAssets/SCP178/SCP1781Part_2.asset
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset
 - Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset
@@ -124,6 +128,7 @@ Assets:
 - Assets/ModAssets/SCP178/SCP1781Enemy.asset
 - Assets/ModAssets/SCP323/SCP323Item.asset
 - Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset
+- Assets/ModAssets/SCP178/SCP1781Part_1.asset
 - Assets/ModAssets/SCP513/Bestiary/SCP5131TN.asset
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TN.asset
 - Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset

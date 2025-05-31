@@ -362,7 +362,7 @@ MonoBehaviour:
   m_Script: {fileID: 1682531532, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  grabbable: 0
+  grabbable: 1
   isHeld: 0
   isHeldByEnemy: 0
   deactivated: 0
@@ -382,7 +382,7 @@ MonoBehaviour:
   isInFactory: 0
   useCooldown: 0
   currentUseCooldown: 0
-  itemProperties: {fileID: 0}
+  itemProperties: {fileID: 11400000, guid: 788b9496d2f349f4fb1f38bf56599a91, type: 2}
   insertedBattery:
     empty: 0
     charge: 0
@@ -391,12 +391,12 @@ MonoBehaviour:
   propColliders: []
   originalScale: {x: 0, y: 0, z: 0}
   wasOwnerLastFrame: 0
-  mainObjectRenderer: {fileID: 0}
+  mainObjectRenderer: {fileID: 1296641816564897619}
   scrapPersistedThroughRounds: 0
   heldByPlayerOnServer: 0
   radarIcon: {fileID: 0}
   reachedFloorTarget: 0
   grabbableToEnemies: 0
   hasBeenHeld: 0
-  PartMesh: {fileID: 0}
-  ScanNode: {fileID: 0}
+  PartMesh: {fileID: 2756688020449521122}
+  ScanNode: {fileID: 2324496513024220594}

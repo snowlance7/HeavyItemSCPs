@@ -1813,7 +1813,9 @@ MonoBehaviour:
     type: 3}
   SCP513Script: {fileID: 0}
   hallucManager: {fileID: 0}
+  mimicPlayer: {fileID: 0}
   facePlayer: 0
+  playerHasLOS: 0
 --- !u!1 &2525098024950143557
 GameObject:
   m_ObjectHideFlags: 0
@@ -3196,7 +3198,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5554614227939916705
 Transform:
   m_ObjectHideFlags: 0

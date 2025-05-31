@@ -63,7 +63,6 @@ namespace HeavyItemSCPs.Items.SCP513
             uncommonEvents.Add(ShowFakeShipLeavingDisplayTip);
             uncommonEvents.Add(SpawnFakeBody);
             uncommonEvents.Add(SlowWalkToPlayer);
-            uncommonEvents.Add(MimicEnemy);
             logger.LogDebug("UncommonEvents: " + uncommonEvents.Count);
 
             rareEvents.Add(MimicEnemyChase);
@@ -74,6 +73,7 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(SpawnFakeLandminesAroundPlayer);
             rareEvents.Add(SpawnMultipleFakeBodies);
             rareEvents.Add(ForceSuicide);
+            rareEvents.Add(MimicJester);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
             Instance = this;
@@ -240,7 +240,7 @@ namespace HeavyItemSCPs.Items.SCP513
             PlaySoundAtPosition(pos, SCPInstance.BellSFX);
         }
 
-        void HideHazard() // 0 4 TODO: Add null checks in finally
+        void HideHazard() // 0 4
         {
             logger.LogDebug("HideHazard");
 
@@ -288,7 +288,7 @@ namespace HeavyItemSCPs.Items.SCP513
                         {
                             yield return new WaitForSeconds(0.2f);
                             elapsedTime += 0.2f;
-                            if (landmine.localPlayerOnMine) // TODO: Check this
+                            if (landmine.localPlayerOnMine)
                             {
                                 break;
                             }
@@ -296,14 +296,15 @@ namespace HeavyItemSCPs.Items.SCP513
                     }
                     finally
                     {
-                        landmine.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                        if (landmine != null)
+                                landmine.GetComponent<MeshRenderer>().forceRenderingOff = false;
                     }
                 }
 
                 StartCoroutine(HideLandmineCoroutine(landmine));
 
                 break;
-                case "Turret": // Turret // TODO: Hide until turret activates
+                case "Turret": // Turret
 
                     GameObject turretMesh = turret!.gameObject.transform.root.Find("MeshContainer").gameObject;
 
@@ -320,7 +321,7 @@ namespace HeavyItemSCPs.Items.SCP513
                             {
                                 yield return null;
                                 elapsedTime += Time.deltaTime;
-                                if (turret.turretMode != TurretMode.Detection) // TODO: Test this
+                                if (turret.turretMode != TurretMode.Detection)
                                 {
                                     break;
                                 }
@@ -328,7 +329,8 @@ namespace HeavyItemSCPs.Items.SCP513
                         }
                         finally
                         {
-                            turretMesh.SetActive(true);
+                            if (turretMesh != null)
+                                turretMesh.SetActive(true);
                         }
                     }
 
@@ -337,8 +339,6 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
                 case "SpikeTrap": // SpikeTrap
 
-                    //GameObject stMesh1 = spikeTrap!.gameObject.transform.root.Find("BaseSupport").gameObject; // TODO: not working, giving error
-                    //GameObject stMesh2 = spikeTrap.gameObject.transform.root.Find("SpikeRoof").gameObject;
                     MeshRenderer[] renderers = spikeTrap.transform.root.GetComponentsInChildren<MeshRenderer>();
 
                     IEnumerator HideSpikeTrapCoroutine(SpikeRoofTrap spikeTrap)
@@ -347,8 +347,6 @@ namespace HeavyItemSCPs.Items.SCP513
                         {
                             logger.LogDebug("Hiding spike trap");
                             yield return null;
-                            //stMesh1.SetActive(false);
-                            //stMesh2.SetActive(false);
                             foreach (var renderer in renderers)
                             {
                                 renderer.forceRenderingOff = true;
@@ -368,8 +366,6 @@ namespace HeavyItemSCPs.Items.SCP513
                         }
                         finally
                         {
-                            //stMesh1.SetActive(true);
-                            //stMesh2.SetActive(true);
                             foreach (var renderer in renderers)
                             {
                                 if (renderer == null) { continue; }
@@ -385,7 +381,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 break;
             }
         }
-
+        
         void Stare() // 0 5
         {
             logger.LogDebug("Stare");
@@ -423,7 +419,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(StareCoroutine(), 0);
         }
 
-        void FakePlayerMessage() // 0 6
+        void FakePlayerMessage() // 0 6 // TODO
         {
             logger.LogDebug("FakePlayerMessage");
             string[] messages = new string[]
@@ -688,54 +684,27 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(SlowWalkCoroutine(), 1);
         }
 
-        void MimicEnemy() // 1 8 // TODO: Test this
-        {
-            logger.LogDebug("MimicEnemy");
-            // See MimicableEnemies.txt
-
-            string[] enemies = new string[]
-            {
-                "SandSpider",
-                "HoarderBug",
-                "Flowerman",
-                "Crawler",
-                "Blob",
-                "MouthDog",
-                "ForestGiant",
-                "BaboonHawk",
-                "SpringMan",
-                "Jester",
-                "Butler"
-            };
-
-            int randomIndex = UnityEngine.Random.Range(0, enemies.Length);
-
-            SCPInstance.MimicEnemyServerRpc(enemies[randomIndex], false);
-        }
-
         #endregion
 
         #region Rare
 
-        void MimicEnemyChase() // 2 0 // TODO: Test this
+        void MimicEnemyChase() // 2 0
         {
             logger.LogDebug("MimicEnemyChase");
             // See MimicableEnemies.txt
             string[] enemies = new string[]
             {
                 "Flowerman",
-                "RedLocustBees",
-                "MouthDog",
-                "ForestGiant",
-                "SandWorm",
                 "SpringMan",
-                "Jester",
-                "MaskedPlayerEnemy"
+                "MaskedPlayerEnemy",
+                "SandSpider",
+                "Crawler",
+                "Butler"
             };
 
             int randomIndex = UnityEngine.Random.Range(0, enemies.Length);
 
-            SCPInstance.MimicEnemyServerRpc(enemies[randomIndex], true);
+            SCPInstance.MimicEnemyServerRpc(enemies[randomIndex]);
         }
 
         void MimicPlayer() // 2 1 // TODO: Test this
@@ -773,7 +742,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(MimicPlayerCoroutine(mimicPlayer), 2);
         }
 
-        void ChasePlayer() // Use arms down, faster // 2 2
+        void ChasePlayer() // 2 2
         {
             logger.LogDebug("ChasePlayer");
 
@@ -1033,6 +1002,13 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             TryStartCoroutine(ForceSuicideCoroutine(playerHasShotgun, playerHasMask), 2);
+        }
+
+        void MimicJester() // 2 8
+        {
+            logger.LogDebug("MimicJester");
+
+            SCPInstance.MimicJesterServerRpc();
         }
 
         #endregion

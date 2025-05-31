@@ -33,10 +33,7 @@ namespace HeavyItemSCPs.Items.SCP427
         float lootBugTransformTime;
         float birdTransformTime;
         float otherEnemyTransformTime;
-        float timeToSpawnSCP4271;
-        int maxSpawns;
 
-        float timeOnGround = 0f;
         float timeSinceLastHeal = 0f;
 
         bool playedPassiveTransformationSound = false;
@@ -63,8 +60,6 @@ namespace HeavyItemSCPs.Items.SCP427
             lootBugTransformTime = configHoarderBugTransformTime.Value;
             birdTransformTime = configBaboonHawkTransformTime.Value;
             otherEnemyTransformTime = configOtherEnemyTransformTime.Value;
-            timeToSpawnSCP4271 = configTimeToSpawnSCP4271.Value;
-            maxSpawns = configMaxSpawns.Value;
         }
 
         public override void Update()
@@ -170,25 +165,6 @@ namespace HeavyItemSCPs.Items.SCP427
                             logger.LogDebug("Transforming enemy");
                             TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.None);
                         }
-                    }
-                }
-            }
-            else if (hasHitGround) // On ground
-            {
-                if (!IsServerOrHost) { return; }
-                if (timeToSpawnSCP4271 != -1)
-                {
-                    if (hasBeenHeld) { return; }
-
-                    timeOnGround += Time.deltaTime;
-                    //logger.LogDebug($"Time on ground: {timeOnGround}");
-
-                    if (timeOnGround >= timeToSpawnSCP4271)
-                    {
-                        if (FindObjectsOfType<SCP4271AI>().Count() >= maxSpawns) { return; }
-                        logger.LogDebug("Spawning SCP-427-1");
-                        timeToSpawnSCP4271 += timeToSpawnSCP4271;
-                        SpawnSCP4271ServerRpc(transform.position, SCP4271AI.MaterialVariants.None);
                     }
                 }
             }

@@ -74,7 +74,6 @@ SCP-323-1's metabolism will experience a dramatic increase, requiring a constant
 
 ## Planned SCP's
 
-- SCP-513
 - SCP-019
 - SCP-963
 - SCP-662

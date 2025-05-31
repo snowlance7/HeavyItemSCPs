@@ -48,8 +48,6 @@ namespace HeavyItemSCPs
         public static ConfigEntry<float> configHoarderBugTransformTime;
         public static ConfigEntry<float> configBaboonHawkTransformTime;
         public static ConfigEntry<float> configOtherEnemyTransformTime;
-        public static ConfigEntry<float>? configTimeToSpawnSCP4271;
-        public static ConfigEntry<int> configMaxSpawns;
         public static ConfigEntry<bool> config427_500Compatibility;
 
         // SCP-427-1 Enemy Configs
@@ -62,10 +60,13 @@ namespace HeavyItemSCPs
         public static ConfigEntry<bool> configEnableSCP178;
         public static ConfigEntry<int> config178MinValue;
         public static ConfigEntry<int> config178MaxValue;
+        public static ConfigEntry<int> config178PartMinValue;
+        public static ConfigEntry<int> config178PartMaxValue;
 
         public static ConfigEntry<string> config178LevelRarities;
         public static ConfigEntry<string> config178CustomLevelRarities;
-        public static ConfigEntry<int> config178SCPDungeonRarity;
+        public static ConfigEntry<string> config178PartLevelRarities;
+        public static ConfigEntry<string> config178PartCustomLevelRarities;
 
         public static ConfigEntry<float> config178LensDistortion;
         public static ConfigEntry<float> config178ChromaticAberration;
@@ -95,12 +96,10 @@ namespace HeavyItemSCPs
         public static ConfigEntry<string> config323CustomLevelRarities;
 
         public static ConfigEntry<float> config323DistanceToIncreaseInsanity;
-        public static ConfigEntry<int> config323InsanityNearby;
         public static ConfigEntry<int> config323InsanityHolding;
         public static ConfigEntry<int> config323InsanityWearing;
         public static ConfigEntry<int> config323InsanityToTransform;
         public static ConfigEntry<bool> config323ShowInsanity;
-        public static ConfigEntry<bool> config323BlurVisionWhenAddingInsanity;
 
         // SCP-323-1
         public static ConfigEntry<string> config3231LevelRarities;
@@ -151,21 +150,19 @@ namespace HeavyItemSCPs
             configEnableSCP427 = Config.Bind("SCP-427", "Enable SCP-427", true, "Whether or not SCP-427 can spawn as scrap.");
             config427MinValue = Config.Bind("SCP-427", "Minimum value", 100, "The minimum value of SCP-427.");
             config427MaxValue = Config.Bind("SCP-427", "Maximum value", 300, "The maximum value of SCP-427.");
-            config427LevelRarities = Config.Bind("SCP-427 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
-            config427CustomLevelRarities = Config.Bind("SCP-427 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
+            config427LevelRarities = Config.Bind("SCP-427 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
+            config427CustomLevelRarities = Config.Bind("SCP-427 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
 
             configTimeToTransform = Config.Bind("SCP-427", "Time to transform", 30f, "How long a player can hold the necklace before they transform into SCP-427-1. Set to -1 to disable transforming.");
             configHealthPerSecondOpen = Config.Bind("SCP-427", "Health per second open", 5, "The health gained per second while opening SCP-427.");
             configHoarderBugTransformTime = Config.Bind("SCP-427", "Hoarder bug transform time", 5f, "The time it takes for the hoarder bug to transform into SCP-427-1. Set to -1 to disable transforming.");
             configBaboonHawkTransformTime = Config.Bind("SCP-427", "Baboon hawk transform time", 5f, "The time it takes for the baboon hawk to transform into SCP-427-1. Set to -1 to disable transforming.");
             configOtherEnemyTransformTime = Config.Bind("SCP-427", "Other enemy transform time", 10f, "The time it takes for the other enemies to transform into SCP-427-1. Set to -1 to disable transforming.");
-            configTimeToSpawnSCP4271 = Config.Bind("SCP-427", "Time to spawn SCP-427-1", 300f, "The time it takes for SCP-427 to spawn SCP-427-1 when on the ground. Set to -1 to disable spawning from necklace.");
-            configMaxSpawns = Config.Bind("SCP-427", "Max spawns", 1, "The maximum number of SCP-427-1 instances that can be spawned when SCP-427 is on the ground.");
             config427_500Compatibility = Config.Bind("SCP-427", "SCP-500 compatibility", true, "Whether or not SCP-427 should be compatible with the SCP-500 mod. This will only work if you have the SCP-500 mod installed. If enabled, it will temporarily halt the transformation timer when holding or using SCP-427 when you take SCP-500.");
             
             // SCP-427-1
-            config4271LevelRarities = Config.Bind("SCP-427-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
-            config4271CustomLevelRarities = Config.Bind("SCP-427-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:0", "Rarities for modded levels. Same formatting as level rarities.");
+            config4271LevelRarities = Config.Bind("SCP-427-1 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
+            config4271CustomLevelRarities = Config.Bind("SCP-427-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
             config4271DropMethod = Config.Bind("SCP-427-1", "Drop method", SCP4271AI.DropMethod.DropAllItems, "When the player is grabbed by SCP-427-1, they should drop: 0 = Drop nothing, 1 = Drop held item, 2 = Drop two-handed item, 3 = Drop all items.");
             config4271MaxHealth = Config.Bind("SCP-427-1", "Max health", 50, "The maximum health of SCP-427-1.");
 
@@ -173,9 +170,12 @@ namespace HeavyItemSCPs
             configEnableSCP178 = Config.Bind("SCP-178", "Enable SCP-178", true, "Whether or not SCP-178 can spawn as scrap.");
             config178MinValue = Config.Bind("SCP-178", "Minimum value", 100, "The minimum value of SCP-178.");
             config178MaxValue = Config.Bind("SCP-178", "Maximum value", 150, "The maximum value of SCP-178.");
-            config178LevelRarities = Config.Bind("SCP-178 Rarities", "Level Rarities", "ExperimentationLevel:10, AssuranceLevel:15, VowLevel:15, OffenseLevel:20, AdamanceLevel:30, MarchLevel:20, RendLevel:50, DineLevel:55, TitanLevel:60, ArtificeLevel:60, EmbrionLevel:65, Modded:20", "Rarities for each level. See default for formatting.");
-            config178CustomLevelRarities = Config.Bind("SCP-178 Rarities", "Custom Level Rarities", "Secret LabsLevel:75", "Rarities for modded levels. Same formatting as level rarities.");
-            config178SCPDungeonRarity = Config.Bind("SCP-178 Rarities", "SCP Dungeon Rarity", 100, "The rarity of SCP-178 in the SCP Dungeon. Set to -1 to use level rarities.");
+            config178LevelRarities = Config.Bind("SCP-178 Rarities", "Level Rarities", "All:10, Modded:10", "Rarities for each level. See default for formatting.");
+            config178CustomLevelRarities = Config.Bind("SCP-178 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
+            config178PartMinValue = Config.Bind("SCP-178", "Minimum value", 250, "The minimum value of SCP-178 Parts.");
+            config178PartMaxValue = Config.Bind("SCP-178", "Maximum value", 500, "The maximum value of SCP-178 Parts.");
+            config178PartLevelRarities = Config.Bind("SCP-178 Parts Rarities", "Level Rarities", "All:30, Modded:30", "Rarities for each level. See default for formatting.");
+            config178PartCustomLevelRarities = Config.Bind("SCP-178 Parts Rarities", "Custom Level Rarities", "Secret LabsLevel:150", "Rarities for modded levels. Same formatting as level rarities.");
 
             config178LensDistortion = Config.Bind("SCP-178 3D Effects", "Lens Distortion", -0.2f, "Changes the lens distortion effect of the 3D glasses.");
             config178ChromaticAberration = Config.Bind("SCP-178 3D Effects", "Chromatic Aberration", 3f, "Changes the chromatic aberration effect of the 3D glasses.");
@@ -201,20 +201,18 @@ namespace HeavyItemSCPs
             configEnableSCP323 = Config.Bind("SCP-323", "Enable SCP-323", true, "Whether or not SCP-323 can spawn as scrap.");
             config323MinValue = Config.Bind("SCP-323", "Minimum value", 100, "The minimum value of SCP-323.");
             config323MaxValue = Config.Bind("SCP-323", "Maximum value", 150, "The maximum value of SCP-323.");
-            config323LevelRarities = Config.Bind("SCP-323 Rarities", "Level Rarities", "ExperimentationLevel:5, AssuranceLevel:7, VowLevel:10, OffenseLevel:15, AdamanceLevel:25, MarchLevel:15, RendLevel:30, DineLevel:35, TitanLevel:45, ArtificeLevel:25, EmbrionLevel:50, Modded:15", "Rarities for each level. See default for formatting.");
-            config323CustomLevelRarities = Config.Bind("SCP-323 Rarities", "Custom Level Rarities", "Secret LabsLevel:50", "Rarities for modded levels. Same formatting as level rarities.");
+            config323LevelRarities = Config.Bind("SCP-323 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
+            config323CustomLevelRarities = Config.Bind("SCP-323 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
 
             config323DistanceToIncreaseInsanity = Config.Bind("SCP-323", "Distance to increase insanity", 10f, "The distance you need to be from SCP-323 for it to start decreasing your insanity.");
-            config323InsanityNearby = Config.Bind("SCP-323", "Insanity nearby", 5, "The amount of insanity you will gain every 10 seconds of being near SCP-323.");
             config323InsanityHolding = Config.Bind("SCP-323", "Insanity holding", 10, "The amount of insanity you will gain every 10 seconds when you are holding SCP-323.");
             config323InsanityWearing = Config.Bind("SCP-323", "Insanity wearing", 10, "The amount of insanity you will gain every 10 seconds when you are wearing SCP-323.");
             config323InsanityToTransform = Config.Bind("SCP-323", "Insanity to transform", 50, "You will be forced to transform when you reach this insanity value. It cannot be stopped.");
             config323ShowInsanity = Config.Bind("SCP-323", "Show insanity", false, "Blur the players vision when they are near SCP-323 based on their insanity.");
-            config323BlurVisionWhenAddingInsanity = Config.Bind("SCP-323", "Blur vision when adding insanity", true, "When adding sanity, the players vision will blur.");
 
             // SCP-323-1
-            config3231LevelRarities = Config.Bind("SCP-323-1 Rarities", "Level Rarities", "ExperimentationLevel:0, AssuranceLevel:0, VowLevel:0, OffenseLevel:0, AdamanceLevel:0, MarchLevel:0, RendLevel:0, DineLevel:0, TitanLevel:0, ArtificeLevel:0, EmbrionLevel:0, Modded:0", "Rarities for each level. See default for formatting.");
-            config3231CustomLevelRarities = Config.Bind("SCP-323-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:0", "Rarities for modded levels. Same formatting as level rarities.");
+            config3231LevelRarities = Config.Bind("SCP-323-1 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
+            config3231CustomLevelRarities = Config.Bind("SCP-323-1 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
 
             config3231PlayerBloodSenseRange = Config.Bind("SCP-323-1", "Player blood sense range", 75f, "When the player takes damage, SCP-323-1 will enter BloodSearch phase if the player is in this range.");
             config3231MaskedBloodSenseRange = Config.Bind("SCP-323-1", "Masked blood sense range", 75f, "When a masked enemy takes damage, SCP-323-1 will enter BloodSearch phase if a masked is in this range.");
@@ -239,7 +237,7 @@ namespace HeavyItemSCPs
             configEnableSCP513 = Config.Bind("SCP-513", "Enable SCP-513", true, "Whether or not SCP-513 can spawn as scrap.");
             config513MinValue = Config.Bind("SCP-513", "Minimum value", 100, "The minimum value of SCP-513.");
             config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
-            config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 50, Modded:50", "Rarities for each level. See default for formatting.");
+            config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
 
             // Loading Assets
@@ -263,6 +261,9 @@ namespace HeavyItemSCPs
             // SCP-178
             if (configEnableSCP178.Value)
             {
+                RegisterItem("Assets/ModAssets/SCP178/SCP1781Part_1.asset", config178PartLevelRarities.Value, config178PartCustomLevelRarities.Value, config178PartMinValue.Value, config178PartMaxValue.Value);
+                RegisterItem("Assets/ModAssets/SCP178/SCP1781Part_2.asset", config178PartLevelRarities.Value, config178PartCustomLevelRarities.Value, config178PartMinValue.Value, config178PartMaxValue.Value);
+                RegisterItem("Assets/ModAssets/SCP178/SCP1781Part_3.asset", config178PartLevelRarities.Value, config178PartCustomLevelRarities.Value, config178PartMinValue.Value, config178PartMaxValue.Value);
                 RegisterItem("Assets/ModAssets/SCP178/SCP178Item.asset", config178LevelRarities.Value, config178CustomLevelRarities.Value, config178MinValue.Value, config178MaxValue.Value);
                 RegisterEnemy("Assets/ModAssets/SCP178/SCP1781Enemy.asset", "Assets/ModAssets/SCP178/Bestiary/SCP1781TN.asset", "Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset");
                 SCP1783DVision.Load();

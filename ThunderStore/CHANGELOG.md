@@ -1,6 +1,13 @@
 ## 1.4.0
 - Added SCP-513
-- 
+- Added expensive SCP-178-1 body parts you can find only visible with the glasses
+- Removed noise detection for SCP-427-1
+- SCP-427-1 no longer spawns from SCP-427 when it is on the ground
+- SCP-323 no longer blurs vision when insanity increases, it is now tied to fear instead
+- SCP-178 no longer uses WearableItemsAPI and now works the same as Comedy and Tragedy masks
+- Changed rarity/spawn values for all SCPs
+- Added a lot of performance fixes for SCP-178-1s
+- A lot of bug fixes
 
 ## 1.3.2
 - SCP-427-1 will force the player to drop all items when throwing them (configurable)

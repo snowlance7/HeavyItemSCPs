@@ -48,12 +48,10 @@ namespace HeavyItemSCPs.Items.SCP323
 
         // Config variables
         float distanceToIncreaseInstanity; // default 10 or 15
-        int insanityNearby; // default 5
         int insanityHolding; // default 10
         int insanityWearing; // default 10
         int insanityToTransform; // default 50
         bool showInsanity; // default false
-        bool blurVisionWhenAddingInsanity; // default true
 
         public ThreatType type => ThreatType.Player;
 
@@ -69,12 +67,10 @@ namespace HeavyItemSCPs.Items.SCP323
             base.Start();
 
             distanceToIncreaseInstanity = config323DistanceToIncreaseInsanity.Value;
-            insanityNearby = config323InsanityNearby.Value;
             insanityHolding = config323InsanityHolding.Value;
             insanityWearing = config323InsanityWearing.Value;
             insanityToTransform = config323InsanityToTransform.Value;
             showInsanity = config323ShowInsanity.Value;
-            blurVisionWhenAddingInsanity = config323BlurVisionWhenAddingInsanity.Value;
 
             StartCoroutine(DelayedStart());
         }
@@ -115,11 +111,7 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 if (showInsanity) // TODO: Test this
                 {
-                    float targetDrunkness = 0.001f * localPlayer.insanityLevel;
-                    if (localPlayer.drunkness <= targetDrunkness)
-                    {
-                        localPlayer.drunkness = 0.001f * localPlayer.insanityLevel;
-                    }
+                    playerHeldBy.playersManager.fearLevel = playerHeldBy.insanityLevel / 50;
                 }
 
                 timeSinceInsanityIncrease += Time.unscaledDeltaTime;
@@ -147,14 +139,6 @@ namespace HeavyItemSCPs.Items.SCP323
                                 return;
                             }
                         }
-                    }
-                    else
-                    {
-                        if (blurVisionWhenAddingInsanity && localPlayer.drunkness < 0.04f)
-                        {
-                            localPlayer.drunkness = 0.05f;
-                        }
-                        localPlayer.insanityLevel += insanityNearby;
                     }
                 }
             }

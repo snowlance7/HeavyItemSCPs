@@ -36,7 +36,7 @@ namespace HeavyItemSCPs.Items.SCP513
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         EnemyAI? mimicEnemy;
-        //Coroutine? mimicEnemyCoroutine;
+        Coroutine? mimicEnemyRoutine;
         public PlayerControllerB? mimicPlayer;
 
         bool enemyMeshEnabled;
@@ -589,6 +589,48 @@ namespace HeavyItemSCPs.Items.SCP513
             }
         }
 
+        IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
+        {
+            try
+            {
+                float elapsedTime = 0f;
+
+                while (mimicEnemy != null
+                    && mimicEnemy.NetworkObject.IsSpawned
+                    && targetPlayer.isPlayerControlled)
+                {
+                    yield return new WaitForSeconds(0.2f);
+                    elapsedTime += Time.deltaTime;
+                    float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
+
+                    if (elapsedTime > maxSpawnTime || distance < despawnDistance)
+                    {
+                        break;
+                    }
+
+                    mimicEnemy.targetPlayer = targetPlayer;
+                }
+            }
+            finally
+            {
+                if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
+                {
+                    switch (mimicEnemy.enemyType.name)
+                    {
+                        case "Butler":
+                            ButlerEnemyAI.murderMusicAudio.Stop();
+                            break;
+                        default:
+                            break;
+                    }
+
+                    mimicEnemy.NetworkObject.Despawn(true);
+                    mimicEnemy = null;
+                    mimicEnemyRoutine = null;
+                }
+            }
+        }
+
         // Animation Methods
 
         void PlayFootstepSFX()
@@ -666,65 +708,74 @@ namespace HeavyItemSCPs.Items.SCP513
         }
 
         [ServerRpc]
-        public void MimicEnemyServerRpc(string enemyName, bool chasing)
+        public void MimicJesterServerRpc()
         {
             if (!IsServerOrHost) { return; }
 
-            float maxDistanceFromPlayer = 25f;
+            float maxSpawnTime = 60f;
+            float despawnDistance = 5f;
+
+            if (mimicEnemyRoutine != null)
+            {
+                StopCoroutine(mimicEnemyRoutine);
+                mimicEnemyRoutine = null;
+            }
+
+            EnemyType type = GetEnemies().Where(x => x.enemyType.name == "Jester").FirstOrDefault().enemyType;
+            if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
+
+            Transform? spawnPosition = ChooseFarthestNodeFromPosition(targetPlayer.transform.position);
+
+            if (spawnPosition == null) { logger.LogError("Couldnt find farthest node to spawn jester"); return; }
+
+            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(spawnPosition.position, 0f, -1, type);
+            if (!netObj.TryGetComponent<EnemyAI>(out mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
+            MimicEnemyClientRpc(mimicEnemy.NetworkObject);
+
+            IEnumerator PopJesterCoroutine()
+            {
+                yield return null;
+                yield return new WaitForSeconds(1f);
+
+                mimicEnemy.creatureAnimator.SetBool("poppedOut", value: true);
+                mimicEnemy.SwitchToBehaviourClientRpc(2); // TODO: Ask slayer about this
+            }
+
+            StartCoroutine(PopJesterCoroutine());
+            mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
+        }
+
+        [ServerRpc]
+        public void MimicEnemyServerRpc(string enemyName)
+        {
+            if (!IsServerOrHost) { return; }
+
+            float maxSpawnTime = 60f;
             float despawnDistance = 3f;
 
-            if (mimicEnemy != null)
+            logger.LogDebug("Attempting spawn enemy: " + enemyName);
+
+            if (mimicEnemyRoutine != null)
             {
-                mimicEnemy.NetworkObject.Despawn(true);
+                StopCoroutine(mimicEnemyRoutine);
+                mimicEnemyRoutine = null;
             }
 
             EnemyType type = GetEnemies().Where(x => x.enemyType.name == enemyName).FirstOrDefault().enemyType;
             if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
 
-            EnemyVent vent = Utils.GetClosestVentToPosition(targetPlayer.transform.position);
+            EnemyVent? vent = Utils.GetClosestVentToPosition(targetPlayer.transform.position);
+            if (vent == null)
+            {
+                logger.LogError("Couldnt find vent for mimic enemy event.");
+                return;
+            }
+
             NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
             if (!netObj.TryGetComponent<EnemyAI>(out mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
             MimicEnemyClientRpc(mimicEnemy.NetworkObject);
 
-            IEnumerator MimicEnemyCoroutine()
-            {
-                try
-                {
-                    switch (enemyName)
-                    {
-                        default:
-
-                            while (mimicEnemy != null
-                                && mimicEnemy.NetworkObject.IsSpawned
-                                && targetPlayer.isPlayerControlled)
-                            {
-                                yield return new WaitForSeconds(0.2f);
-                                float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
-
-                                if (distance > maxDistanceFromPlayer || distance < despawnDistance)
-                                {
-                                    break;
-                                }
-
-                                if (chasing)
-                                {
-                                    mimicEnemy.targetPlayer = targetPlayer;
-                                }
-                            }
-
-                            break;
-                    }
-                }
-                finally
-                {
-                    if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
-                    {
-                        mimicEnemy.NetworkObject.Despawn(true);
-                    }
-                }
-            }
-
-            StartCoroutine(MimicEnemyCoroutine());
+            mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
         }
 
         [ClientRpc]
