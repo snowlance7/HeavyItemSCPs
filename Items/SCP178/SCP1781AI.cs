@@ -328,7 +328,7 @@ namespace HeavyItemSCPs.Items.SCP178
             int anger = 1;
 
             bool wearing178 = SCP178Behavior.Instance.wearing;
-            bool isSpeaking = lastPlayerHeldBy.voicePlayerState.IsSpeaking; // TODO: Test this
+            bool isSpeaking = lastPlayerHeldBy.voicePlayerState != null && lastPlayerHeldBy.voicePlayerState.IsSpeaking; // TODO: Test this
             logger.LogDebug("wearing178: " + wearing178);
             logger.LogDebug("isSpeaking: " + isSpeaking);
 

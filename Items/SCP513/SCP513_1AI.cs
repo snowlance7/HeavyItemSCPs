@@ -737,8 +737,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 yield return null;
                 yield return new WaitForSeconds(1f);
 
-                mimicEnemy.creatureAnimator.SetBool("poppedOut", value: true);
-                mimicEnemy.SwitchToBehaviourClientRpc(2); // TODO: Ask slayer about this
+                mimicEnemy.SwitchToBehaviourServerRpc(2); // TODO: Ask slayer about this
             }
 
             StartCoroutine(PopJesterCoroutine());

@@ -17,7 +17,7 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             base.Update();
 
-            EnableMesh(SCP178Behavior.Instance.wearingOnLocalClient);
+            EnableMesh(SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearingOnLocalClient);
         }
 
         public void EnableMesh(bool enable)

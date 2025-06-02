@@ -10,7 +10,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    public class SCP178Behavior : PhysicsProp
+    public class SCP178Behavior : PhysicsProp // TODO: Tooltip errors and game crashes when despawning 278-1s
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -213,6 +213,7 @@ namespace HeavyItemSCPs.Items.SCP178
                         yield return null;
                         if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
                         RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
+                        SCP1781Instances.Remove(entity);
                     }
                 }
                 finally
