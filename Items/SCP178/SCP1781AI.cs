@@ -70,9 +70,9 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 overlapColliders = new Collider[1];
                 thisNetworkObject = NetworkObject;
-                thisEnemyIndex = RoundManager.Instance.numberOfEnemiesInScene;
+                /*thisEnemyIndex = RoundManager.Instance.numberOfEnemiesInScene;
                 RoundManager.Instance.numberOfEnemiesInScene++;
-                RoundManager.Instance.SpawnedEnemies.Add(this);
+                RoundManager.Instance.SpawnedEnemies.Add(this);*/
 
                 path1 = new NavMeshPath();
                 openDoorSpeedMultiplier = enemyType.doorSpeedMultiplier;
@@ -100,12 +100,13 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public override void Update()
         {
+            timeSinceDamagePlayer += Time.deltaTime;
+
             if (inSpecialAnimation || StartOfRound.Instance.allPlayersDead)
             {
                 return;
             }
 
-            timeSinceDamagePlayer += Time.deltaTime;
             timeSinceEmoteUsed += Time.deltaTime;
             timeSinceLastAngerCalc += Time.deltaTime;
 

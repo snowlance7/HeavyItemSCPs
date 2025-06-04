@@ -126,21 +126,32 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             base.ItemActivate(used, buttonDown);
 
-            wearing = buttonDown;
-            playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
-            playerHeldBy.activatingItem = buttonDown;
+            if (!buttonDown) { return; }
 
-            if (playerHeldBy == localPlayer)
+            wearing = !wearing;
+            EnableGlasses(wearing);
+        }
+
+        public override void DiscardItem()
+        {
+            base.DiscardItem();
+            EnableGlasses(false);
+        }
+
+        void EnableGlasses(bool enable)
+        {
+            wearing = enable;
+            lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", wearing);
+            lastPlayerHeldBy.activatingItem = wearing;
+
+            if (lastPlayerHeldBy == localPlayer)
             {
                 wearingOnLocalClient = wearing;
                 SCP1783DVision.Instance.Enable3DVision(wearing);
             }
 
-            if (buttonDown)
-            {
-                if (playerHeldBy.drunkness < 0.2f) { playerHeldBy.drunkness = 0.2f; }
-                SpawnEntities(!playerHeldBy.isInsideFactory);
-            }
+            if (lastPlayerHeldBy.drunkness < 0.2f) { lastPlayerHeldBy.drunkness = 0.2f; }
+            SpawnEntities(!lastPlayerHeldBy.isInsideFactory);
         }
 
         void SetOutside(bool outside)
@@ -201,6 +212,7 @@ namespace HeavyItemSCPs.Items.SCP178
             if (!IsServerOrHost) { return; }
             if (SCP1781Instances.Count <= 0) { return; }
             if (spawnCoroutine != null) { return; }
+            logger.LogDebug("Despawning entities");
 
             IEnumerator DespawnEntitiesCoroutine()
             {
@@ -212,7 +224,8 @@ namespace HeavyItemSCPs.Items.SCP178
                     {
                         yield return null;
                         if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
-                        RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
+                        //RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
+                        entity.NetworkObject.Despawn(true);
                         SCP1781Instances.Remove(entity);
                     }
                 }
@@ -236,6 +249,8 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 PlayersAngerLevels[player] += anger;
             }
+
+            logger.LogDebug($"Anger for {player.playerUsername}: {PlayersAngerLevels[player]}");
         }
 
         public static int GetMaxCount(bool outside)
