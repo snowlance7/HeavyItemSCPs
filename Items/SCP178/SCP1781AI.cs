@@ -386,7 +386,7 @@ namespace HeavyItemSCPs.Items.SCP178
             base.OnCollideWithPlayer(other);
             PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
             if (player == null) { return; }
-            if (currentBehaviourStateIndex == (int)State.Roaming) { return; }
+            //if (currentBehaviourStateIndex == (int)State.Roaming) { return; }
             if (timeSinceDamagePlayer > 2f) { return; }
 
             timeSinceDamagePlayer = 0f;

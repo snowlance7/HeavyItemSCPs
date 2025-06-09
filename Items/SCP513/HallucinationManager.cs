@@ -1,7 +1,6 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
-using HeavyItemSCPs.Patches;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -52,7 +51,6 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(PlayBellSFX);
             commonEvents.Add(HideHazard);
             commonEvents.Add(Stare);
-            commonEvents.Add(FakePlayerMessage);
             logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
             uncommonEvents.Add(FarStare);
@@ -419,22 +417,6 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(StareCoroutine(), 0);
         }
 
-        void FakePlayerMessage() // 0 6 // TODO
-        {
-            logger.LogDebug("FakePlayerMessage");
-            string[] messages = new string[]
-            {
-                "I think I heard something...",
-                "Did you hear that?",
-                "I don't like this place...",
-                "I feel like I'm being watched...",
-                "Is someone there?",
-                "I need to get out of here..."
-            };
-
-
-        }
-
         #endregion
 
         #region UnCommon
@@ -627,7 +609,6 @@ namespace HeavyItemSCPs.Items.SCP513
 
             GameObject.Destroy(soundObj, clip.length);
         }
-
 
         void ShowFakeShipLeavingDisplayTip() // 1 5
         {
@@ -1075,7 +1056,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public Transform GetClosestNode(Vector3 pos, bool outside = true)
         {
             GameObject[] nodes;
-            if (outside && !TESTING.inTestRoom)
+            if (outside && !Utils.inTestRoom)
             {
                 if (RoundManager.Instance.outsideAINodes == null || RoundManager.Instance.outsideAINodes.Length <= 0)
                 {

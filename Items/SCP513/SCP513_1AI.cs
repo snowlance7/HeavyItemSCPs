@@ -1,6 +1,5 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
-using HeavyItemSCPs.Patches;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -103,7 +102,7 @@ namespace HeavyItemSCPs.Items.SCP513
             nextUncommonEventTime = uncommonEventMaxCooldown;
             nextRareEventTime = rareEventMaxCooldown;
 
-            if (TESTING.testing && IsServerOrHost)
+            if (Utils.testing && IsServerOrHost)
             {
                 targetPlayer = StartOfRound.Instance.allPlayerScripts.Where(x => x.isPlayerControlled).FirstOrDefault();
                 ChangeTargetPlayerClientRpc(targetPlayer.actualClientId);
@@ -125,7 +124,7 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 if (enemyMeshEnabled)
                 {
-                    EnableEnemyMesh(false);
+                    EnableEnemyMeshCustom(false);
                 }
                 return;
             }
@@ -269,7 +268,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (!base.IsOwner) { return; }
             if (targetPlayer == null) { return; }
 
-            EnableEnemyMesh(currentBehaviourStateIndex != (int)State.InActive);
+            EnableEnemyMeshCustom(currentBehaviourStateIndex != (int)State.InActive);
             SetEnemyOutside(!targetPlayer.isInsideFactory);
 
             switch (currentBehaviourStateIndex)
@@ -342,7 +341,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
             }
 
-            if (TESTING.testing) { return; }
+            if (Utils.testing) { return; }
 
             if (timeSinceCommonEvent > nextCommonEventTime)
             {
@@ -529,7 +528,7 @@ namespace HeavyItemSCPs.Items.SCP513
             base.SetEnemyOutside(outside);
         }
 
-        public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet = false)
+        public void EnableEnemyMeshCustom(bool enable)
         {
             if (enemyMeshEnabled == enable) { return; }
             logger.LogDebug($"EnableEnemyMesh({enable})");
@@ -566,7 +565,7 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
             player.insanityLevel = 50f;
             player.JumpToFearLevel(1f);
-            StunGrenadeItem.StunExplosion(transform.position, false, 1f, 0f);
+            targetPlayer.drunkness = 1f;
             targetPlayer.sprintMeter = 0f;
             targetPlayer.DropAllHeldItemsAndSync();
             SwitchToBehaviourServerRpc((int)State.InActive);
@@ -637,7 +636,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             int index;
 
-            if (currentBehaviourStateIndex == (int)State.Chasing || stalkRetreating)
+            if (currentBehaviourStateIndex == (int)State.Chasing)
             {
                 creatureSFX.pitch = Random.Range(0.93f, 1.07f);
                 index = UnityEngine.Random.Range(0, StepChaseSFX.Length);

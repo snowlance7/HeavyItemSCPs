@@ -1,5 +1,7 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using HarmonyLib;
+using HeavyItemSCPs.Items.SCP513;
 using LethalLib.Modules;
 using System;
 using System.Collections.Generic;
@@ -13,6 +15,77 @@ namespace HeavyItemSCPs
     public static class Utils
     {
         private static ManualLogSource logger = LoggerInstance;
+
+        public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
+        public static bool testing = true;
+        public static bool spawningAllowed = true;
+        public static bool trailerMode = false;
+
+        public static GameObject[]? outsideAINodes;
+        public static GameObject[]? insideAINodes;
+        public static Vector3[]? outsideNodePositions;
+        public static Vector3[]? insideNodePositions;
+
+        public static void ChatCommand(string[] args)
+        {
+            switch (args[0])
+            {
+                case "/spawning":
+                    spawningAllowed = !spawningAllowed;
+                    HUDManager.Instance.DisplayTip("Spawning Allowed", spawningAllowed.ToString());
+                    break;
+                case "/hazards":
+                    Dictionary<string, GameObject> hazards = Utils.GetAllHazards();
+
+                    foreach (var hazard in hazards)
+                    {
+                        logger.LogDebug(hazard);
+                    }
+                    break;
+                case "/testing":
+                    testing = !testing;
+                    HUDManager.Instance.DisplayTip("Testing", testing.ToString());
+                    break;
+                case "/surfaces":
+                    foreach (var surface in StartOfRound.Instance.footstepSurfaces)
+                    {
+                        logger.LogDebug(surface.surfaceTag);
+                    }
+                    break;
+                case "/enemies":
+                    foreach (var enemy in Utils.GetEnemies())
+                    {
+                        logger.LogDebug(enemy.enemyType.name);
+                    }
+                    break;
+                case "/refresh":
+                    RoundManager.Instance.RefreshEnemiesList();
+                    HoarderBugAI.RefreshGrabbableObjectsInMapList();
+                    break;
+                case "/levels":
+                    foreach (var level in StartOfRound.Instance.levels)
+                    {
+                        logger.LogDebug(level.name);
+                    }
+                    break;
+                case "/dungeon":
+                    logger.LogDebug(RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name);
+                    break;
+                case "/dungeons":
+                    foreach (var dungeon in RoundManager.Instance.dungeonFlowTypes)
+                    {
+                        logger.LogDebug(dungeon.dungeonFlow.name);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public static void LogChat(string msg)
+        {
+            HUDManager.Instance.AddChatMessage(msg, "Server");
+        }
 
         public static void RegisterItem(string itemPath, string levelRarities = "", string customLevelRarities = "", int minValue = 0, int maxValue = 0)
         {
@@ -111,6 +184,75 @@ namespace HeavyItemSCPs
                 LoggerInstance.LogError($"Error: {e}");
                 return null;
             }
+        }
+
+        public static Vector3 GetSpeed()
+        {
+            float num3 = localPlayer.movementSpeed / localPlayer.carryWeight;
+            if (localPlayer.sinkingValue > 0.73f)
+            {
+                num3 = 0f;
+            }
+            else
+            {
+                if (localPlayer.isCrouching)
+                {
+                    num3 /= 1.5f;
+                }
+                else if (localPlayer.criticallyInjured && !localPlayer.isCrouching)
+                {
+                    num3 *= localPlayer.limpMultiplier;
+                }
+                if (localPlayer.isSpeedCheating)
+                {
+                    num3 *= 15f;
+                }
+                if (localPlayer.movementHinderedPrev > 0)
+                {
+                    num3 /= 2f * localPlayer.hinderedMultiplier;
+                }
+                if (localPlayer.drunkness > 0f)
+                {
+                    num3 *= StartOfRound.Instance.drunknessSpeedEffect.Evaluate(localPlayer.drunkness) / 5f + 1f;
+                }
+                if (!localPlayer.isCrouching && localPlayer.crouchMeter > 1.2f)
+                {
+                    num3 *= 0.5f;
+                }
+                if (!localPlayer.isCrouching)
+                {
+                    float num4 = Vector3.Dot(localPlayer.playerGroundNormal, localPlayer.walkForce);
+                    if (num4 > 0.05f)
+                    {
+                        localPlayer.slopeModifier = Mathf.MoveTowards(localPlayer.slopeModifier, num4, (localPlayer.slopeModifierSpeed + 0.45f) * Time.deltaTime);
+                    }
+                    else
+                    {
+                        localPlayer.slopeModifier = Mathf.MoveTowards(localPlayer.slopeModifier, num4, localPlayer.slopeModifierSpeed / 2f * Time.deltaTime);
+                    }
+                    num3 = Mathf.Max(num3 * 0.8f, num3 + localPlayer.slopeIntensity * localPlayer.slopeModifier);
+                }
+            }
+
+            Vector3 vector3 = new Vector3(0f, 0f, 0f);
+            int num5 = Physics.OverlapSphereNonAlloc(localPlayer.transform.position, 0.65f, localPlayer.nearByPlayers, StartOfRound.Instance.playersMask);
+            for (int i = 0; i < num5; i++)
+            {
+                vector3 += Vector3.Normalize((localPlayer.transform.position - localPlayer.nearByPlayers[i].transform.position) * 100f) * 1.2f;
+            }
+            int num6 = Physics.OverlapSphereNonAlloc(localPlayer.transform.position, 1.25f, localPlayer.nearByPlayers, 524288);
+            for (int j = 0; j < num6; j++)
+            {
+                EnemyAICollisionDetect component = localPlayer.nearByPlayers[j].gameObject.GetComponent<EnemyAICollisionDetect>();
+                if (component != null && component.mainScript != null && !component.mainScript.isEnemyDead && Vector3.Distance(localPlayer.transform.position, localPlayer.nearByPlayers[j].transform.position) < component.mainScript.enemyType.pushPlayerDistance)
+                {
+                    vector3 += Vector3.Normalize((localPlayer.transform.position - localPlayer.nearByPlayers[j].transform.position) * 100f) * component.mainScript.enemyType.pushPlayerForce;
+                }
+            }
+
+            Vector3 vector4 = localPlayer.walkForce * num3 * localPlayer.sprintMultiplier + new Vector3(0f, localPlayer.fallValue, 0f) + vector3;
+            vector4 += localPlayer.externalForces;
+            return vector4;
         }
 
         public static void FreezePlayer(PlayerControllerB player, bool value)
@@ -293,5 +435,62 @@ namespace HeavyItemSCPs
             return positions;
         }
 
+        private static GameObject[] FindOutsideAINodes()
+        {
+            if (outsideAINodes == null || outsideAINodes.Length == 0 || outsideAINodes[0] == null)
+            {
+                outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+                logger.LogInfo("Finding outside AI nodes.");
+                outsideNodePositions = new Vector3[outsideAINodes.Length];
+
+                for (int i = 0; i < outsideAINodes.Length; i++)
+                {
+                    outsideNodePositions[i] = outsideAINodes[i].transform.position;
+                }
+            }
+            return outsideAINodes;
+        }
+
+        private static GameObject[] FindInsideAINodes()
+        {
+            if (insideAINodes == null || insideAINodes.Length == 0 || insideAINodes[0] == null)
+            {
+                insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
+                logger.LogInfo("Finding inside AI nodes.");
+                insideNodePositions = new Vector3[insideAINodes.Length];
+                for (int i = 0; i < insideAINodes.Length; i++)
+                {
+                    insideNodePositions[i] = insideAINodes[i].transform.position;
+                }
+            }
+            return insideAINodes;
+        }
+
+    }
+
+    [HarmonyPatch]
+    public class UtilsPatches
+    {
+        private static ManualLogSource logger = LoggerInstance;
+
+        [HarmonyPrefix, HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnInsideEnemiesFromVentsIfReady))]
+        public static bool SpawnInsideEnemiesFromVentsIfReadyPrefix()
+        {
+            if (!Utils.spawningAllowed) { return false; } return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnDaytimeEnemiesOutside))]
+        public static bool SpawnDaytimeEnemiesOutsidePrefix()
+        {
+            if (!Utils.spawningAllowed) { return false; }
+            return true;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnEnemiesOutside))]
+        public static bool SpawnEnemiesOutsidePrefix()
+        {
+            if (!Utils.spawningAllowed) { return false; }
+            return true;
+        }
     }
 }

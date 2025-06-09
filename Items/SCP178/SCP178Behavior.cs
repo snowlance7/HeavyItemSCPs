@@ -141,7 +141,7 @@ namespace HeavyItemSCPs.Items.SCP178
         void EnableGlasses(bool enable)
         {
             wearing = enable;
-            lastPlayerHeldBy.playerBodyAnimator.SetBool("HoldMask", wearing);
+            lastPlayerHeldBy!.playerBodyAnimator.SetBool("HoldMask", wearing);
             lastPlayerHeldBy.activatingItem = wearing;
 
             if (lastPlayerHeldBy == localPlayer)
