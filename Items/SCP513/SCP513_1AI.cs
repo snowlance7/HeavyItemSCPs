@@ -565,7 +565,7 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
             player.insanityLevel = 50f;
             player.JumpToFearLevel(1f);
-            targetPlayer.drunkness = 1f;
+            if (targetPlayer.drunkness < 0.5f) { targetPlayer.drunkness = 0.5f; }
             targetPlayer.sprintMeter = 0f;
             targetPlayer.DropAllHeldItemsAndSync();
             SwitchToBehaviourServerRpc((int)State.InActive);
@@ -584,48 +584,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     currentFootstepSurfaceIndex = i;
                     break;
-                }
-            }
-        }
-
-        IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
-        {
-            try
-            {
-                float elapsedTime = 0f;
-
-                while (mimicEnemy != null
-                    && mimicEnemy.NetworkObject.IsSpawned
-                    && targetPlayer.isPlayerControlled)
-                {
-                    yield return new WaitForSeconds(0.2f);
-                    elapsedTime += Time.deltaTime;
-                    float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
-
-                    if (elapsedTime > maxSpawnTime || distance < despawnDistance)
-                    {
-                        break;
-                    }
-
-                    mimicEnemy.targetPlayer = targetPlayer;
-                }
-            }
-            finally
-            {
-                if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
-                {
-                    switch (mimicEnemy.enemyType.name)
-                    {
-                        case "Butler":
-                            ButlerEnemyAI.murderMusicAudio.Stop();
-                            break;
-                        default:
-                            break;
-                    }
-
-                    mimicEnemy.NetworkObject.Despawn(true);
-                    mimicEnemy = null;
-                    mimicEnemyRoutine = null;
                 }
             }
         }
@@ -706,7 +664,7 @@ namespace HeavyItemSCPs.Items.SCP513
             }
         }
 
-        [ServerRpc]
+        /*[ServerRpc]
         public void MimicJesterServerRpc()
         {
             if (!IsServerOrHost) { return; }
@@ -735,13 +693,46 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 yield return null;
                 yield return new WaitForSeconds(1f);
-
+                mimicEnemy.SwitchToBehaviourServerRpc(1);
+                yield return new WaitForSeconds(1f);
                 mimicEnemy.SwitchToBehaviourServerRpc(2); // TODO: Ask slayer about this
+                mimicEnemy.targetPlayer = targetPlayer;
+            }
+
+            IEnumerator MimicJesterCoroutine(float maxSpawnTime, float despawnDistance)
+            {
+                try
+                {
+                    float elapsedTime = 0f;
+
+                    while (mimicEnemy != null
+                        && mimicEnemy.NetworkObject.IsSpawned
+                        && targetPlayer.isPlayerControlled)
+                    {
+                        yield return null;
+                        elapsedTime += Time.deltaTime;
+                        float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
+
+                        if (elapsedTime > maxSpawnTime || distance < despawnDistance)
+                        {
+                            break;
+                        }
+                    }
+                }
+                finally
+                {
+                    if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
+                    {
+                        mimicEnemy.NetworkObject.Despawn(true);
+                        mimicEnemy = null;
+                        mimicEnemyRoutine = null;
+                    }
+                }
             }
 
             StartCoroutine(PopJesterCoroutine());
-            mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
-        }
+            mimicEnemyRoutine = StartCoroutine(MimicJesterCoroutine(maxSpawnTime, despawnDistance));
+        }*/
 
         [ServerRpc]
         public void MimicEnemyServerRpc(string enemyName)
@@ -772,6 +763,48 @@ namespace HeavyItemSCPs.Items.SCP513
             NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
             if (!netObj.TryGetComponent<EnemyAI>(out mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
             MimicEnemyClientRpc(mimicEnemy.NetworkObject);
+
+            IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
+            {
+                try
+                {
+                    float elapsedTime = 0f;
+
+                    while (mimicEnemy != null
+                        && mimicEnemy.NetworkObject.IsSpawned
+                        && targetPlayer.isPlayerControlled)
+                    {
+                        yield return null;
+                        elapsedTime += Time.deltaTime;
+                        float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
+
+                        if (elapsedTime > maxSpawnTime || distance < despawnDistance)
+                        {
+                            break;
+                        }
+
+                        mimicEnemy.targetPlayer = targetPlayer;
+                    }
+                }
+                finally
+                {
+                    if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
+                    {
+                        switch (mimicEnemy.enemyType.name)
+                        {
+                            case "Butler":
+                                ButlerEnemyAI.murderMusicAudio.Stop();
+                                break;
+                            default:
+                                break;
+                        }
+
+                        mimicEnemy.NetworkObject.Despawn(true);
+                        mimicEnemy = null;
+                        mimicEnemyRoutine = null;
+                    }
+                }
+            }
 
             mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
         }

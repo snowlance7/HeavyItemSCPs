@@ -1071,6 +1071,16 @@ namespace HeavyItemSCPs.Items.SCP323
             return 1f;
         }
 
+        public GrabbableObject? GetHeldObject()
+        {
+            return null;
+        }
+
+        public bool IsThreatDead()
+        {
+            return isEnemyDead;
+        }
+
         // RPC's
 
         [ServerRpc(RequireOwnership = false)]

@@ -880,6 +880,16 @@ namespace HeavyItemSCPs.Items.SCP427
             return 1f;
         }
 
+        public GrabbableObject GetHeldObject()
+        {
+            return heldObject;
+        }
+
+        public bool IsThreatDead()
+        {
+            return isEnemyDead;
+        }
+
         // RPC's
 
         [ServerRpc(RequireOwnership = false)]

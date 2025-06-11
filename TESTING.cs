@@ -30,8 +30,8 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = LoggerInstance;
 
-        public static int setEventRarity = 2;
-        public static int setEventIndex = 8;
+        public static int setEventRarity = 1;
+        public static int setEventIndex = 2;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()

@@ -71,7 +71,7 @@ namespace HeavyItemSCPs.Items.SCP513
             rareEvents.Add(SpawnFakeLandminesAroundPlayer);
             rareEvents.Add(SpawnMultipleFakeBodies);
             rareEvents.Add(ForceSuicide);
-            rareEvents.Add(MimicJester);
+            //rareEvents.Add(MimicJester);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
             Instance = this;
@@ -500,7 +500,7 @@ namespace HeavyItemSCPs.Items.SCP513
             IEnumerator BlockDoorCoroutine()
             {
                 float doorDistance = 10f;
-                float blockPosOffset = 0f;
+                float blockPosOffset = 1f;
                 float disappearDistance = 15f;
                 float disappearTime = 15f;
 
@@ -633,7 +633,7 @@ namespace HeavyItemSCPs.Items.SCP513
             GameObject.Destroy(bodyObj, 30f);
         }
 
-        void SlowWalkToPlayer() // 1 7 // TODO: Not working
+        void SlowWalkToPlayer() // 1 7
         {
             logger.LogDebug("SlowWalkToPlayer");
 
@@ -764,7 +764,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         void SpawnFakeLandminesAroundPlayer() // 2 5 // TODO: Test this
         {
-            logger.LogDebug("SpawnFakeHazardsAroundPlayer");
+            logger.LogDebug("SpawnFakeLandminesAroundPlayer");
             /*
             [Debug  :HeavyItemSCPs] [Landmine, Landmine (UnityEngine.GameObject)]
             [Debug  :HeavyItemSCPs] [TurretContainer, TurretContainer (UnityEngine.GameObject)]
@@ -985,12 +985,12 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(ForceSuicideCoroutine(playerHasShotgun, playerHasMask), 2);
         }
 
-        void MimicJester() // 2 8
+        /*void MimicJester() // 2 8
         {
             logger.LogDebug("MimicJester");
 
             SCPInstance.MimicJesterServerRpc();
-        }
+        }*/
 
         #endregion
 
