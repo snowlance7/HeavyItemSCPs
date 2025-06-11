@@ -45,6 +45,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public void Start()
         {
+            // Common Events
             commonEvents.Add(FlickerLights);
             commonEvents.Add(PlayAmbientSFXNearby);
             commonEvents.Add(PlayFakeSoundEffectMinor);
@@ -53,6 +54,7 @@ namespace HeavyItemSCPs.Items.SCP513
             commonEvents.Add(Stare);
             logger.LogDebug("CommonEvents: " + commonEvents.Count);
 
+            // Uncommon Events
             uncommonEvents.Add(FarStare);
             uncommonEvents.Add(Jumpscare);
             uncommonEvents.Add(BlockDoor);
@@ -63,6 +65,7 @@ namespace HeavyItemSCPs.Items.SCP513
             uncommonEvents.Add(SlowWalkToPlayer);
             logger.LogDebug("UncommonEvents: " + uncommonEvents.Count);
 
+            // Rare Events
             rareEvents.Add(MimicEnemyChase);
             rareEvents.Add(MimicPlayer);
             rareEvents.Add(ChasePlayer);
@@ -493,7 +496,7 @@ namespace HeavyItemSCPs.Items.SCP513
             TryStartCoroutine(JumpscareCoroutine(), 1);
         }
 
-        void BlockDoor() // 1 2 // TODO: Test and adjust
+        void BlockDoor() // 1 2
         {
             logger.LogDebug("BlockDoor");
 
@@ -698,13 +701,16 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            int index = UnityEngine.Random.Range(0, targetPlayer.nearByPlayers.Length);
-            PlayerControllerB mimicPlayer = targetPlayer.nearByPlayers[index].gameObject.GetComponent<PlayerControllerB>();
-            if (mimicPlayer == null)
+            List<PlayerControllerB> ignoredPlayers = new List<PlayerControllerB> { targetPlayer };
+            PlayerControllerB[] nearByPlayers = Utils.GetNearbyPlayers(targetPlayer.transform.position, 10f, ignoredPlayers);
+            if (nearByPlayers.Length == 0)
             {
                 RunRandomEvent(2);
                 return;
             }
+
+            int index = UnityEngine.Random.Range(0, nearByPlayers.Length);
+            PlayerControllerB mimicPlayer = nearByPlayers[index].gameObject.GetComponent<PlayerControllerB>();
 
             IEnumerator MimicPlayerCoroutine(PlayerControllerB mimicPlayer)
             {

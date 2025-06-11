@@ -7,6 +7,7 @@ using Unity.Netcode;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
 using HeavyItemSCPs.Items.SCP513;
+using System.Linq;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
@@ -143,12 +144,23 @@ namespace HeavyItemSCPs.Items.SCP513
         public void SpawnBellMan(ulong targetPlayerClientId)
         {
             if (!IsServerOrHost) { return; }
+            if (IsPlayerHaunted(PlayerFromId(targetPlayerClientId))) { return; }
             GameObject bellManObj = Instantiate(SCP513_1Prefab, Vector3.zero, Quaternion.identity);
             SCP513_1AI bellMan = bellManObj.GetComponent<SCP513_1AI>();
             bellMan.NetworkObject.Spawn(true);
             RoundManager.Instance.SpawnedEnemies.Add(bellMan);
             BellManInstances.Add(bellMan);
             bellMan.ChangeTargetPlayerClientRpc(targetPlayerClientId);
+        }
+
+        public bool IsPlayerHaunted(PlayerControllerB player)
+        {
+            foreach (var bellman in BellManInstances.ToList())
+            {
+                if (bellman.targetPlayer == player) { return true; }
+            }
+
+            return false;
         }
 
         [ServerRpc(RequireOwnership = false)]

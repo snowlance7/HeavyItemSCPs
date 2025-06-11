@@ -235,7 +235,7 @@ namespace HeavyItemSCPs
             
             // SCP-513
             configEnableSCP513 = Config.Bind("SCP-513", "Enable SCP-513", true, "Whether or not SCP-513 can spawn as scrap.");
-            config513MinValue = Config.Bind("SCP-513", "Minimum value", 100, "The minimum value of SCP-513.");
+            config513MinValue = Config.Bind("SCP-513", "Minimum value", 150, "The minimum value of SCP-513.");
             config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
             config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");

@@ -12,7 +12,7 @@ using static HeavyItemSCPs.Utils;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    internal class SCP513_1AI : EnemyAI
+    internal class SCP513_1AI : EnemyAI // TODO: Make it so he targets masked if hes really low on hunger so he can heal and chase the player faster
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -554,13 +554,14 @@ namespace HeavyItemSCPs.Items.SCP513
             targetPlayer.insanityLevel = 0f;
         }
 
-        public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with
+        public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with // TODO: Add sounds like these when he collides with player https://www.youtube.com/watch?v=fUKbe4OR6ZA
         {
             base.OnCollideWithPlayer(other);
             if (inSpecialAnimation) { return; }
             if (currentBehaviourStateIndex == (int)State.InActive) { return; }
             if (!other.gameObject.TryGetComponent(out PlayerControllerB player)) { return; }
             if (player == null || player != localPlayer) { return; }
+            if (player != targetPlayer) { return; }
 
             RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
             player.insanityLevel = 50f;

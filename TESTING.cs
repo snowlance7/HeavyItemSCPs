@@ -30,8 +30,8 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = LoggerInstance;
 
-        public static int setEventRarity = 1;
-        public static int setEventIndex = 2;
+        public static int setEventRarity = -1;
+        public static int setEventIndex = -1;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
@@ -47,7 +47,7 @@ namespace HeavyItemSCPs
             logger.LogDebug(spikeTrap.transform.root.gameObject.name);*/
 
 
-            if (HallucinationManager.Instance == null) { return; }
+            if (HallucinationManager.Instance == null || setEventRarity == -1 || setEventIndex == -1) { return; }
             HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
         }
 

@@ -17,7 +17,7 @@ namespace HeavyItemSCPs
         private static ManualLogSource logger = LoggerInstance;
 
         public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
-        public static bool testing = true;
+        public static bool testing = false;
         public static bool spawningAllowed = true;
         public static bool trailerMode = false;
 
@@ -275,7 +275,9 @@ namespace HeavyItemSCPs
             scavengerModel.transform.Find("LOD1").gameObject.SetActive(!value);
             scavengerModel.transform.Find("LOD2").gameObject.SetActive(!value);
             scavengerModel.transform.Find("LOD3").gameObject.SetActive(!value);
-            player.playerBadgeMesh.gameObject.SetActive(value);
+            scavengerModel.transform.Find("metarig/spine/spine.001/spine.002/spine.003/LevelSticker").gameObject.SetActive(!value);
+            scavengerModel.transform.Find("metarig/spine/spine.001/spine.002/spine.003/BetaBadge").gameObject.SetActive(!value);
+
         }
 
         public static List<SpawnableEnemyWithRarity> GetEnemies()
@@ -466,6 +468,20 @@ namespace HeavyItemSCPs
             return insideAINodes;
         }
 
+        public static PlayerControllerB[] GetNearbyPlayers(Vector3 position, float distance = 10f, List<PlayerControllerB>? ignoredPlayers = null)
+        {
+            List<PlayerControllerB> players = [];
+
+            foreach (var player in StartOfRound.Instance.allPlayerScripts)
+            {
+                if (player == null || !player.isPlayerControlled) { continue; }
+                if (ignoredPlayers != null && ignoredPlayers.Contains(player)) { continue; }
+                if (Vector3.Distance(position, player.transform.position) > distance) { continue; }
+                players.Add(player);
+            }
+
+            return players.ToArray();
+        }
     }
 
     [HarmonyPatch]

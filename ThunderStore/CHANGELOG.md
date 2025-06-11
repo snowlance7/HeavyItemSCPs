@@ -1,6 +1,6 @@
 ## 1.4.0
 - Added SCP-513
-- Added expensive SCP-178-1 body parts you can find only visible with the glasses
+- Added expensive SCP-178-1 body parts you can find only visible with SCP-178
 - Removed noise detection for SCP-427-1
 - SCP-427-1 no longer spawns from SCP-427 when it is on the ground
 - SCP-323 no longer blurs vision when insanity increases, it is now tied to fear instead
