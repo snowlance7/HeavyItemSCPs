@@ -13,7 +13,7 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Items.SCP323
 {
-    internal class SCP323_1AI : EnemyAI, IVisibleThreat
+    internal class SCP323_1AI : EnemyAI, IVisibleThreat // TODO: Make it so he targets masked if hes really low on hunger so he can heal and chase the player faster
     {
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323_1AI? Instance { get; private set; }

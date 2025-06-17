@@ -12,7 +12,7 @@ using System.Linq;
 namespace HeavyItemSCPs.Items.SCP513
 {
     // TODO: Make sure 513-1 follows the player even if they go to another moon
-    internal class SCP513Behavior : PhysicsProp
+    public class SCP513Behavior : PhysicsProp
     {
         private static ManualLogSource logger = LoggerInstance;
 

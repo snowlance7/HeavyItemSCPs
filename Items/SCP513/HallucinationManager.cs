@@ -14,7 +14,7 @@ using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    internal class HallucinationManager : MonoBehaviour
+    public class HallucinationManager : MonoBehaviour
     {
         private static ManualLogSource logger = LoggerInstance;
 

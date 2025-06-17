@@ -12,7 +12,7 @@ using static HeavyItemSCPs.Utils;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    internal class SCP513_1AI : EnemyAI // TODO: Make it so he targets masked if hes really low on hunger so he can heal and chase the player faster
+    public class SCP513_1AI : MonoBehaviour // TODO: Changing this to monobehavior and use scp513 for network functions
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -33,6 +33,8 @@ namespace HeavyItemSCPs.Items.SCP513
         public SCP513Behavior SCP513Script;
         public HallucinationManager? hallucManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
+        public int currentBehaviourStateIndex;
 
         EnemyAI? mimicEnemy;
         Coroutine? mimicEnemyRoutine;
@@ -90,10 +92,9 @@ namespace HeavyItemSCPs.Items.SCP513
             MimicPlayer
         }
 
-        public override void Start()
+        public void Start()
         {
             logger.LogDebug("SCP-513-1 spawned");
-            base.Start();
 
             hashRunSpeed = Animator.StringToHash("speed");
             currentBehaviourStateIndex = (int)State.InActive;
@@ -111,8 +112,6 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public override void Update()
         {
-            base.Update();
-
             if (StartOfRound.Instance.allPlayersDead) { return; }
 
             if (IsServerOrHost && targetPlayer != null && !targetPlayer.isPlayerControlled)
