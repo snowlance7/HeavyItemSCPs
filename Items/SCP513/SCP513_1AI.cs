@@ -6,17 +6,26 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.TextCore.Text;
 using static HeavyItemSCPs.Plugin;
 using static HeavyItemSCPs.Utils;
+using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
     public class SCP513_1AI : MonoBehaviour // TODO: Changing this to monobehavior and use scp513 for network functions
     {
         private static ManualLogSource logger = LoggerInstance;
+        public static SCP513_1AI? Instance { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public NavMeshAgent agent;
+        public Animator creatureAnimator;
+        public float AIIntervalTime = 0.2f;
+        public AudioSource creatureSFX;
+        public AudioSource creatureVoice;
+
         public Transform turnCompass;
         public GameObject enemyMesh;
         public GameObject ScanNode;
@@ -29,12 +38,9 @@ namespace HeavyItemSCPs.Items.SCP513
         public AudioClip[] MajorSoundEffectSFX;
 
         public GameObject SoundObjectPrefab;
-
-        public SCP513Behavior SCP513Script;
-        public HallucinationManager? hallucManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-        public int currentBehaviourStateIndex;
+        public State currentBehaviourState;
 
         EnemyAI? mimicEnemy;
         Coroutine? mimicEnemyRoutine;
@@ -82,6 +88,19 @@ namespace HeavyItemSCPs.Items.SCP513
         float uncommonEventMaxCooldown = 30f;
         float rareEventMinCooldown = 100f;
         float rareEventMaxCooldown = 200f;
+        private bool gotFarthestNodeAsync;
+        private float updateDestinationInterval;
+        private NavMeshPath path1;
+        private bool moveTowardsDestination;
+        private bool movingTowardsTargetPlayer;
+        private Vector3 destination;
+        private GameObject[] allAINodes = [];
+        private float mostOptimalDistance;
+        private Transform targetNode;
+        private GameObject[] nodesTempArray;
+        private float pathDistance;
+        private bool isOutside;
+        private int getFarthestNodeAsyncBookmark;
 
         public enum State
         {
@@ -96,49 +115,41 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("SCP-513-1 spawned");
 
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            Instance = this;
+
             hashRunSpeed = Animator.StringToHash("speed");
-            currentBehaviourStateIndex = (int)State.InActive;
+            currentBehaviourState = (int)State.InActive;
 
             nextCommonEventTime = commonEventMaxCooldown;
             nextUncommonEventTime = uncommonEventMaxCooldown;
             nextRareEventTime = rareEventMaxCooldown;
-
-            if (Utils.testing && IsServerOrHost)
-            {
-                targetPlayer = StartOfRound.Instance.allPlayerScripts.Where(x => x.isPlayerControlled).FirstOrDefault();
-                ChangeTargetPlayerClientRpc(targetPlayer.actualClientId);
-            }
         }
 
-        public override void Update()
+        public void Update()
         {
+            if (SCP513Behavior.Instance == null || !SCP513Behavior.Instance.localPlayerHaunted || StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             if (StartOfRound.Instance.allPlayersDead) { return; }
+            if (!Plugin.localPlayer.isPlayerControlled) { return; }
 
-            if (IsServerOrHost && targetPlayer != null && !targetPlayer.isPlayerControlled)
+            if (updateDestinationInterval >= 0f)
             {
-                NetworkObject.Despawn(true);
-                return;
+                updateDestinationInterval -= Time.deltaTime;
             }
-            else if (!base.IsOwner)
+            else
             {
-                if (enemyMeshEnabled)
-                {
-                    EnableEnemyMeshCustom(false);
-                }
-                return;
-            }
-            else if (targetPlayer != null && localPlayer != targetPlayer)
-            {
-                ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-            }
-
-            if (targetPlayer == null
-                || targetPlayer.isPlayerDead
-                || targetPlayer.disconnectedMidGame
-                || !targetPlayer.isPlayerControlled
-                || inSpecialAnimation)
-            {
-                return;
+                DoAIInterval();
+                updateDestinationInterval = AIIntervalTime + UnityEngine.Random.Range(-0.015f, 0.015f);
             }
 
             //float newFear = targetPlayer.insanityLevel / maxInsanity;
@@ -146,14 +157,14 @@ namespace HeavyItemSCPs.Items.SCP513
 
             //cooldownMultiplier = 1f - localPlayer.playersManager.fearLevel;
 
-            float t = Mathf.Clamp01(targetPlayer.insanityLevel / maxInsanityThreshold);
+            float t = Mathf.Clamp01(Plugin.localPlayer.insanityLevel / maxInsanityThreshold);
             cooldownMultiplier = Mathf.Lerp(minCooldown, maxCooldown, t);
 
             timeSinceCommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceUncommonEvent += Time.deltaTime * cooldownMultiplier;
             timeSinceRareEvent += Time.deltaTime * cooldownMultiplier;
 
-            playerHasLOS = targetPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset, LOSAngle);
+            playerHasLOS = localPlayer.HasLineOfSightToPosition(transform.position + Vector3.up * LOSOffset, LOSAngle);
 
             if (playerHasLOS)
             {
@@ -164,88 +175,67 @@ namespace HeavyItemSCPs.Items.SCP513
                 stareTime = 0f;
             }
 
-            switch (currentBehaviourStateIndex)
+            if (currentBehaviourState == State.Stalking)
             {
-                case (int)State.InActive:
-
-                    break;
-
-                case (int)State.Manifesting:
-
-                    break;
-
-                case (int)State.Chasing:
-
-                    break;
-
-                case (int)State.Stalking: // TODO: Figure out how to get this to work like the Flowerman/Braken or have him teleport after staring for too long
-
-                    if (gettingFarthestNodeFromPlayerAsync && targetPlayer != null)
+                if (gettingFarthestNodeFromPlayerAsync && localPlayer != null)
+                {
+                    float distanceFromPlayer = Vector3.Distance(base.transform.position, localPlayer.transform.position);
+                    if (distanceFromPlayer < 16f)
                     {
-                        float distanceFromPlayer = Vector3.Distance(base.transform.position, targetPlayer.transform.position);
-                        if (distanceFromPlayer < 16f)
-                        {
-                            maxAsync = 100;
-                        }
-                        else if (distanceFromPlayer < 40f)
-                        {
-                            maxAsync = 25;
-                        }
-                        else
-                        {
-                            maxAsync = 4;
-                        }
-                        Transform transform = ChooseFarthestNodeFromPosition(targetPlayer.transform.position, avoidLineOfSight: true, 0, doAsync: true, maxAsync, capDistance: true);
-                        if (!gotFarthestNodeAsync)
-                        {
-                            return;
-                        }
-                        farthestNodeFromTargetPlayer = transform;
-                        gettingFarthestNodeFromPlayerAsync = false;
+                        maxAsync = 100;
                     }
-                    if (playerHasLOS)
+                    else if (distanceFromPlayer < 40f)
                     {
-                        if (!stalkRetreating)
-                        {
-                            stalkRetreating = true;
-                            agent.speed = 0f;
-                            evadeStealthTimer = 0f;
-                        }
-                        else if (evadeStealthTimer > 0.5f)
-                        {
-                            ResetStealthTimerServerRpc();
-                        }
-                    }
-
-                    if (stalkRetreating)
-                    {
-                        if (!wasInEvadeMode)
-                        {
-                            RoundManager.Instance.PlayAudibleNoise(base.transform.position, 7f, 0.8f);
-                            wasInEvadeMode = true;
-                        }
-                        evadeStealthTimer += Time.deltaTime;
-                        if (thisNetworkObject.IsOwner)
-                        {
-                            if (evadeStealthTimer > 5f)
-                            {
-                                evadeStealthTimer = 0f;
-                                stalkRetreating = false;
-                            }
-                        }
+                        maxAsync = 25;
                     }
                     else
                     {
-                        if (wasInEvadeMode)
-                        {
-                            wasInEvadeMode = false;
-                            evadeStealthTimer = 0f;
-                        }
+                        maxAsync = 4;
                     }
+                    Transform transform = ChooseFarthestNodeFromPosition(localPlayer.transform.position, avoidLineOfSight: true, 0, doAsync: true, maxAsync, capDistance: true);
+                    if (!gotFarthestNodeAsync)
+                    {
+                        return;
+                    }
+                    farthestNodeFromTargetPlayer = transform;
+                    gettingFarthestNodeFromPlayerAsync = false;
+                }
+                if (playerHasLOS)
+                {
+                    if (!stalkRetreating)
+                    {
+                        stalkRetreating = true;
+                        agent.speed = 0f;
+                        evadeStealthTimer = 0f;
+                    }
+                    else if (evadeStealthTimer > 0.5f)
+                    {
+                        ResetStealthTimerServerRpc();
+                    }
+                }
 
-                    break;
-                default:
-                    break;
+                if (stalkRetreating)
+                {
+                    if (!wasInEvadeMode)
+                    {
+                        RoundManager.Instance.PlayAudibleNoise(base.transform.position, 7f, 0.8f);
+                        wasInEvadeMode = true;
+                    }
+                    evadeStealthTimer += Time.deltaTime;
+                    if (evadeStealthTimer > 5f)
+                    {
+                        evadeStealthTimer = 0f;
+                        stalkRetreating = false;
+                    }
+                }
+                else
+                {
+                    if (wasInEvadeMode)
+                    {
+                        wasInEvadeMode = false;
+                        evadeStealthTimer = 0f;
+                    }
+                }
             }
         }
 
@@ -255,44 +245,50 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (facePlayer)
             {
-                turnCompass.LookAt(localPlayer.gameplayCamera.transform.position);
+                turnCompass.LookAt(Plugin.localPlayer.gameplayCamera.transform.position);
                 transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 30f * Time.deltaTime);
             }
         }
 
-        public override void DoAIInterval()
+        public void SwitchToBehavior(State state)
         {
-            base.DoAIInterval();
+            if (currentBehaviourState == state) { return; }
+            currentBehaviourState = state;
+        }
 
-            if (!base.IsOwner) { return; }
-            if (targetPlayer == null) { return; }
-
-            EnableEnemyMeshCustom(currentBehaviourStateIndex != (int)State.InActive);
-            SetEnemyOutside(!targetPlayer.isInsideFactory);
-
-            switch (currentBehaviourStateIndex)
+        public void DoAIInterval()
+        {
+            if (moveTowardsDestination)
             {
-                case (int)State.InActive:
+                agent.SetDestination(destination);
+            }
+
+            EnableEnemyMesh(currentBehaviourState != (int)State.InActive);
+            SetEnemyOutside(!localPlayer.isInsideFactory);
+
+            switch (currentBehaviourState)
+            {
+                case State.InActive:
                     agent.speed = 0f;
                     facePlayer = false;
                     creatureSFX.volume = 1f;
 
                     break;
 
-                case (int)State.Manifesting:
+                case State.Manifesting:
                     agent.speed = 0f;
                     creatureSFX.volume = 1f;
 
                     break;
 
-                case (int)State.Chasing:
+                case State.Chasing:
                     creatureSFX.volume = 1f;
 
-                    SetDestinationToPosition(targetPlayer.transform.position);
+                    SetDestinationToPosition(localPlayer.transform.position);
 
                     break;
 
-                case (int)State.Stalking: // TODO: Figure out how to get this to work like the Flowerman/Braken or have him teleport after staring for too long
+                case State.Stalking: // TODO: Figure out how to get this to work like the Flowerman/Braken or have him teleport after staring for too long
                     creatureSFX.volume = 0.5f;
 
                     if (stalkRetreating)
@@ -305,7 +301,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     }
                     else
                     {
-                        agent.speed = Vector3.Distance(transform.position, targetPlayer.transform.position); // TODO: Test this
+                        agent.speed = Vector3.Distance(transform.position, localPlayer.transform.position); // TODO: Test this
                         creatureAnimator.SetBool("armsCrossed", false);
                         facePlayer = false;
 
@@ -314,11 +310,11 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     break;
 
-                case (int)State.MimicPlayer:
+                case State.MimicPlayer:
 
                     if (mimicPlayer == null)
                     {
-                        SwitchToBehaviourServerRpc((int)State.MimicPlayer);
+                        SwitchToBehavior(State.MimicPlayer);
                         return;
                     }
 
@@ -326,7 +322,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     {
                         Utils.MakePlayerInvisible(mimicPlayer, false);
                         mimicPlayer = null;
-                        SwitchToBehaviourServerRpc((int)State.MimicPlayer);
+                        SwitchToBehavior(State.MimicPlayer);
                         return;
                     }
 
@@ -336,7 +332,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
 
                 default:
-                    logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
+                    logger.LogWarning("Invalid state: " + currentBehaviourState);
                     break;
             }
 
@@ -347,7 +343,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 logger.LogDebug("Running Common Event");
                 timeSinceCommonEvent = 0f;
                 nextCommonEventTime = UnityEngine.Random.Range(commonEventMinCooldown, commonEventMaxCooldown);
-                hallucManager!.RunRandomEvent(0);
+                HallucinationManager.Instance!.RunRandomEvent(0);
                 return;
             }
             if (timeSinceUncommonEvent > nextUncommonEventTime)
@@ -355,7 +351,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 logger.LogDebug("Running Uncommon Event");
                 timeSinceUncommonEvent = 0f;
                 nextUncommonEventTime = UnityEngine.Random.Range(uncommonEventMinCooldown, uncommonEventMaxCooldown);
-                hallucManager!.RunRandomEvent(1);
+                HallucinationManager.Instance!.RunRandomEvent(1);
                 return;
             }
             if (timeSinceRareEvent > nextRareEventTime)
@@ -363,31 +359,48 @@ namespace HeavyItemSCPs.Items.SCP513
                 logger.LogDebug("Running Rare Event");
                 timeSinceRareEvent = 0f;
                 nextRareEventTime = UnityEngine.Random.Range(rareEventMinCooldown, rareEventMaxCooldown);
-                hallucManager!.RunRandomEvent(2);
+                HallucinationManager.Instance!.RunRandomEvent(2);
                 return;
             }
         }
 
-        public override void OnDestroy()
+        public void OnDestroy()
         {
-            base.OnDestroy();
-            if (SCP513Script != null)
+            if (Instance == this)
             {
-                SCP513Script.HauntedPlayers.Remove(targetPlayer.actualClientId);
-                SCP513Script.BellManInstances.Remove(this);
+                Instance = null;
             }
-            if (hallucManager != null)
-                UnityEngine.GameObject.Destroy(hallucManager.gameObject);
+        }
+
+        public bool SetDestinationToPosition(Vector3 position, bool checkForPath = false)
+        {
+            if (checkForPath)
+            {
+                position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
+                path1 = new NavMeshPath();
+                if (!agent.CalculatePath(position, path1))
+                {
+                    return false;
+                }
+                if (Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 2.7f)) > 1.55f)
+                {
+                    return false;
+                }
+            }
+            moveTowardsDestination = true;
+            movingTowardsTargetPlayer = false;
+            destination = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, -1f);
+            return true;
         }
 
         public Vector3 GetRandomPositionAroundPlayer(float minDistance, float maxDistance)
         {
-            Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
+            Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(localPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
             
-            while (Physics.Linecast(targetPlayer.gameplayCamera.transform.position, pos + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(targetPlayer.transform.position, pos) < minDistance)
+            while (Physics.Linecast(localPlayer.gameplayCamera.transform.position, pos + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(localPlayer.transform.position, pos) < minDistance)
             {
                 logger.LogDebug("Reroll");
-                pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(targetPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
+                pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(localPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
             }
 
             return pos;
@@ -397,9 +410,9 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             for (int i = 0; i < allAINodes.Length; i++)
             {
-                if (!Physics.Linecast(targetPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !playerHasLOS)
+                if (!Physics.Linecast(localPlayer.gameplayCamera.transform.position, allAINodes[i].transform.position + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) && !playerHasLOS)
                 {
-                    logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(targetPlayer.transform.position, allAINodes[i].transform.position)}");
+                    logger.LogDebug($"Player distance to haunt position: {Vector3.Distance(localPlayer.transform.position, allAINodes[i].transform.position)}");
                     return allAINodes[i].transform;
                 }
             }
@@ -415,17 +428,102 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 if (node == null) { continue; }
                 Vector3 nodePos = node.transform.position + Vector3.up * LOSOffset;
-                Vector3 playerPos = targetPlayer.gameplayCamera.transform.position;
+                Vector3 playerPos = localPlayer.gameplayCamera.transform.position;
                 float distance = Vector3.Distance(playerPos, nodePos);
                 if (distance < minDistance || distance > maxDistance) { continue; }
                 if (Physics.Linecast(nodePos, playerPos, StartOfRound.Instance.collidersAndRoomMaskAndDefault, queryTriggerInteraction: QueryTriggerInteraction.Ignore)) { continue; }
-                if (!targetPlayer.HasLineOfSightToPosition(nodePos, LOSAngle)) { continue; }
+                if (!localPlayer.HasLineOfSightToPosition(nodePos, LOSAngle)) { continue; }
 
                 mostOptimalDistance = distance;
                 result = node.transform;
             }
 
             logger.LogDebug($"null: {targetNode == null}");
+            return result;
+        }
+        public bool PathIsIntersectedByLineOfSight(Vector3 targetPos, bool calculatePathDistance = false, bool avoidLineOfSight = true, bool checkLOSToTargetPlayer = false)
+        {
+            pathDistance = 0f;
+            if (agent.isOnNavMesh && !agent.CalculatePath(targetPos, path1))
+            {
+                return true;
+            }
+            if (path1 == null || path1.corners.Length == 0)
+            {
+                return true;
+            }
+            if (Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(targetPos, RoundManager.Instance.navHit, 2.7f)) > 1.55f)
+            {
+                return true;
+            }
+            bool flag = false;
+            if (calculatePathDistance)
+            {
+                for (int j = 1; j < path1.corners.Length; j++)
+                {
+                    pathDistance += Vector3.Distance(path1.corners[j - 1], path1.corners[j]);
+                    if ((!avoidLineOfSight && !checkLOSToTargetPlayer) || j > 15)
+                    {
+                        continue;
+                    }
+                    if (!flag && j > 8 && Vector3.Distance(path1.corners[j - 1], path1.corners[j]) < 2f)
+                    {
+                        flag = true;
+                        continue;
+                    }
+                    flag = false;
+                    if (localPlayer != null && checkLOSToTargetPlayer && !Physics.Linecast(path1.corners[j - 1], localPlayer.transform.position + Vector3.up * 0.3f, StartOfRound.Instance.collidersAndRoomMaskAndDefault, QueryTriggerInteraction.Ignore))
+                    {
+                        return true;
+                    }
+                    if (avoidLineOfSight && Physics.Linecast(path1.corners[j - 1], path1.corners[j], 262144))
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if (avoidLineOfSight)
+            {
+                for (int k = 1; k < path1.corners.Length; k++)
+                {
+                    if (!flag && k > 8 && Vector3.Distance(path1.corners[k - 1], path1.corners[k]) < 2f)
+                    {
+                        flag = true;
+                        continue;
+                    }
+                    if (localPlayer != null && checkLOSToTargetPlayer && !Physics.Linecast(Vector3.Lerp(path1.corners[k - 1], path1.corners[k], 0.5f) + Vector3.up * 0.25f, localPlayer.transform.position + Vector3.up * 0.25f, StartOfRound.Instance.collidersAndRoomMaskAndDefault, QueryTriggerInteraction.Ignore))
+                    {
+                        return true;
+                    }
+                    if (Physics.Linecast(path1.corners[k - 1], path1.corners[k], 262144))
+                    {
+                        return true;
+                    }
+                    if (k > 15)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+        public Transform ChooseClosestNodeToPosition(Vector3 pos, bool avoidLineOfSight = false, int offset = 0)
+        {
+            nodesTempArray = allAINodes.OrderBy((GameObject x) => Vector3.Distance(pos, x.transform.position)).ToArray();
+            Transform result = nodesTempArray[0].transform;
+            for (int i = 0; i < nodesTempArray.Length; i++)
+            {
+                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: false, avoidLineOfSight))
+                {
+                    mostOptimalDistance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
+                    result = nodesTempArray[i].transform;
+                    if (offset == 0 || i >= nodesTempArray.Length - 1)
+                    {
+                        break;
+                    }
+                    offset--;
+                }
+            }
             return result;
         }
 
@@ -435,7 +533,7 @@ namespace HeavyItemSCPs.Items.SCP513
             Transform? result = null;
             for (int i = 0; i < nodesTempArray.Length; i++)
             {
-                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: true, avoidLineOfSight: true, checkLOSToTargetPlayer: false) && !Physics.Linecast(targetPlayer.gameplayCamera.transform.position, nodesTempArray[i].transform.position + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
+                if (!PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: true, avoidLineOfSight: true, checkLOSToTargetPlayer: false) && !Physics.Linecast(localPlayer.gameplayCamera.transform.position, nodesTempArray[i].transform.position + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault))
                 {
                     float distance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
                     if (distance < minDistance) { continue; }
@@ -468,13 +566,13 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 targetNode = allAINodes[0].transform;
             }
-            Transform transform = ChooseClosestNodeToPosition(targetPlayer.transform.position, avoidLineOfSight: true);
+            Transform transform = ChooseClosestNodeToPosition(localPlayer.transform.position, avoidLineOfSight: true);
             if (transform != null)
             {
                 targetNode = transform;
             }
-            float num = Vector3.Distance(targetPlayer.transform.position, base.transform.position);
-            if (num - mostOptimalDistance < 0.1f && (!PathIsIntersectedByLineOfSight(targetPlayer.transform.position, calculatePathDistance: true) || num < 3f))
+            float num = Vector3.Distance(localPlayer.transform.position, base.transform.position);
+            if (num - mostOptimalDistance < 0.1f && (!PathIsIntersectedByLineOfSight(localPlayer.transform.position, calculatePathDistance: true) || num < 3f))
             {
                 if (pathDistance > 10f && !ignoredNodes.Contains(targetNode) && ignoredNodes.Count < 4)
                 {
@@ -497,7 +595,7 @@ namespace HeavyItemSCPs.Items.SCP513
             }
             Transform transform = farthestNodeFromTargetPlayer;
             farthestNodeFromTargetPlayer = null;
-            if (transform != null && mostOptimalDistance > 5f && Physics.Linecast(transform.transform.position, targetPlayer.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault, QueryTriggerInteraction.Ignore))
+            if (transform != null && mostOptimalDistance > 5f && Physics.Linecast(transform.transform.position, localPlayer.gameplayCamera.transform.position, StartOfRound.Instance.collidersAndRoomMaskAndDefault, QueryTriggerInteraction.Ignore))
             {
                 targetNode = transform;
                 SetDestinationToPosition(targetNode.position);
@@ -509,25 +607,34 @@ namespace HeavyItemSCPs.Items.SCP513
                 stareTime = 0f;
                 if (farthestNodeFromTargetPlayer == null)
                 {
-                    farthestNodeFromTargetPlayer = ChooseFarthestNodeFromPosition(targetPlayer.transform.position);
+                    farthestNodeFromTargetPlayer = ChooseFarthestNodeFromPosition(localPlayer.transform.position);
                 }
 
                 Teleport(farthestNodeFromTargetPlayer.position);
-                hallucManager?.FlickerLights();
+                HallucinationManager.Instance?.FlickerLights();
                 RoundManager.PlayRandomClip(creatureVoice, BellSFX);
             }
 
             agent.speed = 0f;
         }
 
-        public override void SetEnemyOutside(bool outside = false)
+        public void SetEnemyOutside(bool outside = false)
         {
             if (isOutside == outside) { return; }
             logger.LogDebug("SettingOutside: " + outside);
-            base.SetEnemyOutside(outside);
+
+            isOutside = outside;
+            if (outside)
+            {
+                allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+            }
+            else
+            {
+                allAINodes = GameObject.FindGameObjectsWithTag("AINode");
+            }
         }
 
-        public void EnableEnemyMeshCustom(bool enable)
+        public void EnableEnemyMesh(bool enable)
         {
             if (enemyMeshEnabled == enable) { return; }
             logger.LogDebug($"EnableEnemyMesh({enable})");
@@ -544,31 +651,28 @@ namespace HeavyItemSCPs.Items.SCP513
             transform.position = position;
         }
 
-        public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
+        public void HitEnemy(int force = 1, PlayerControllerB? playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
         {
-            base.HitEnemy(force, playerWhoHit, playHitSFX, hitID);
-            if (currentBehaviourStateIndex == (int)State.MimicPlayer) { return; }
+            if (currentBehaviourState == State.MimicPlayer) { return; }
             RoundManager.PlayRandomClip(creatureSFX, BellSFX);
-            SwitchToBehaviourServerRpc((int)State.InActive);
-            targetPlayer.insanityLevel = 0f;
+            SwitchToBehavior(State.InActive);
+            localPlayer.insanityLevel = 0f;
         }
 
-        public override void OnCollideWithPlayer(Collider other) // This only runs on client collided with // TODO: Add sounds like these when he collides with player https://www.youtube.com/watch?v=fUKbe4OR6ZA
+        public void OnCollideWithPlayer(Collider other) // This only runs on client collided with // TODO: Add sounds like these when he collides with player https://www.youtube.com/watch?v=fUKbe4OR6ZA
         {
-            base.OnCollideWithPlayer(other);
-            if (inSpecialAnimation) { return; }
-            if (currentBehaviourStateIndex == (int)State.InActive) { return; }
+            if (currentBehaviourState == State.InActive) { return; }
+            if (currentBehaviourState == State.MimicPlayer) { return; }
             if (!other.gameObject.TryGetComponent(out PlayerControllerB player)) { return; }
             if (player == null || player != localPlayer) { return; }
-            if (player != targetPlayer) { return; }
 
             RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
             player.insanityLevel = 50f;
             player.JumpToFearLevel(1f);
-            if (targetPlayer.drunkness < 0.5f) { targetPlayer.drunkness = 0.5f; }
-            targetPlayer.sprintMeter = 0f;
-            targetPlayer.DropAllHeldItemsAndSync();
-            SwitchToBehaviourServerRpc((int)State.InActive);
+            if (localPlayer.drunkness < 0.3f) { localPlayer.drunkness = 0.3f; }
+            localPlayer.sprintMeter = 0f;
+            localPlayer.DropAllHeldItemsAndSync();
+            SwitchToBehavior(State.InActive);
         }
 
         void GetCurrentMaterialStandingOn()
@@ -588,13 +692,54 @@ namespace HeavyItemSCPs.Items.SCP513
             }
         }
 
+        public Transform? ChooseFarthestNodeFromPosition(Vector3 pos, bool avoidLineOfSight = false, int offset = 0, bool doAsync = false, int maxAsyncIterations = 50, bool capDistance = false)
+        {
+            if (!doAsync || gotFarthestNodeAsync || getFarthestNodeAsyncBookmark <= 0 || nodesTempArray == null || nodesTempArray.Length == 0)
+            {
+                nodesTempArray = allAINodes.OrderByDescending((GameObject x) => Vector3.Distance(pos, x.transform.position)).ToArray();
+            }
+            Transform result = nodesTempArray[0].transform;
+            int num = 0;
+            if (doAsync)
+            {
+                if (getFarthestNodeAsyncBookmark >= nodesTempArray.Length)
+                {
+                    getFarthestNodeAsyncBookmark = 0;
+                }
+                num = getFarthestNodeAsyncBookmark;
+                gotFarthestNodeAsync = false;
+            }
+            for (int i = num; i < nodesTempArray.Length; i++)
+            {
+                if (doAsync && i - getFarthestNodeAsyncBookmark > maxAsyncIterations)
+                {
+                    gotFarthestNodeAsync = false;
+                    getFarthestNodeAsyncBookmark = i;
+                    return null;
+                }
+                if ((!capDistance || !(Vector3.Distance(base.transform.position, nodesTempArray[i].transform.position) > 60f)) && !PathIsIntersectedByLineOfSight(nodesTempArray[i].transform.position, calculatePathDistance: false, avoidLineOfSight))
+                {
+                    mostOptimalDistance = Vector3.Distance(pos, nodesTempArray[i].transform.position);
+                    result = nodesTempArray[i].transform;
+                    if (offset == 0 || i >= nodesTempArray.Length - 1)
+                    {
+                        break;
+                    }
+                    offset--;
+                }
+            }
+            getFarthestNodeAsyncBookmark = 0;
+            gotFarthestNodeAsync = true;
+            return result;
+        }
+
         // Animation Methods
 
         void PlayFootstepSFX()
         {
             int index;
 
-            if (currentBehaviourStateIndex == (int)State.Chasing)
+            if (currentBehaviourState == State.Chasing)
             {
                 creatureSFX.pitch = Random.Range(0.93f, 1.07f);
                 index = UnityEngine.Random.Range(0, StepChaseSFX.Length);
@@ -613,55 +758,14 @@ namespace HeavyItemSCPs.Items.SCP513
             previousFootstepClip = index;
         }
 
-        // RPC's
-
-        [ServerRpc(RequireOwnership = false)]
-        public void SpawnGhostGirlServerRpc(ulong clientId)
+        internal void OnCollideWithEnemy(Collider other, EnemyAI mainScript)
         {
-            if (!IsServerOrHost) { return; }
-
-            foreach (var girl in FindObjectsOfType<DressGirlAI>())
-            {
-                if (girl.hauntingPlayer == targetPlayer)
-                {
-                    return;
-                }
-            }
-
-            List<SpawnableEnemyWithRarity> enemies = Utils.GetEnemies();
-            SpawnableEnemyWithRarity? ghostGirl = enemies.Where(x => x.enemyType.name == "DressGirl").FirstOrDefault();
-            if (ghostGirl == null) { logger.LogError("Ghost girl could not be found"); return; }
-
-            RoundManager.Instance.SpawnEnemyGameObject(Vector3.zero, 0, -1, ghostGirl.enemyType);
+            return;
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void ChangeTargetPlayerServerRpc(ulong clientId)
+        internal void HitEnemyOnLocalClient(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit, bool playHitSFX, int hitID)
         {
-            if (!IsServerOrHost) { return; }
-            NetworkObject.ChangeOwnership(clientId);
-            ChangeTargetPlayerClientRpc(clientId);
-        }
-
-        [ClientRpc]
-        public void ChangeTargetPlayerClientRpc(ulong clientId)
-        {
-            PlayerControllerB player = PlayerFromId(clientId);
-            player.insanityLevel = 0f;
-            targetPlayer = player;
-            logger.LogDebug($"SCP-513-1: Haunting player with playerClientId: {targetPlayer.playerClientId}; actualClientId: {targetPlayer.actualClientId}");
-            ChangeOwnershipOfEnemy(targetPlayer.actualClientId);
-            timeSinceCommonEvent = 0f;
-            timeSinceUncommonEvent = 0f;
-            timeSinceRareEvent = 0f;
-
-            if (localPlayer == targetPlayer)
-            {
-                GameObject obj = Instantiate(new GameObject(), Vector3.zero, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform);
-                hallucManager = obj.AddComponent<HallucinationManager>();
-                hallucManager.SCPInstance = this;
-                hallucManager.targetPlayer = targetPlayer;
-            }
+            throw new System.NotImplementedException();
         }
 
         /*[ServerRpc]
@@ -734,7 +838,6 @@ namespace HeavyItemSCPs.Items.SCP513
             mimicEnemyRoutine = StartCoroutine(MimicJesterCoroutine(maxSpawnTime, despawnDistance));
         }*/
 
-        [ServerRpc]
         public void MimicEnemyServerRpc(string enemyName)
         {
             if (!IsServerOrHost) { return; }
@@ -753,7 +856,7 @@ namespace HeavyItemSCPs.Items.SCP513
             EnemyType type = GetEnemies().Where(x => x.enemyType.name == enemyName).FirstOrDefault().enemyType;
             if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
 
-            EnemyVent? vent = Utils.GetClosestVentToPosition(targetPlayer.transform.position);
+            EnemyVent? vent = Utils.GetClosestVentToPosition(localPlayer.transform.position);
             if (vent == null)
             {
                 logger.LogError("Couldnt find vent for mimic enemy event.");
@@ -772,18 +875,18 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     while (mimicEnemy != null
                         && mimicEnemy.NetworkObject.IsSpawned
-                        && targetPlayer.isPlayerControlled)
+                        && localPlayer.isPlayerControlled)
                     {
                         yield return null;
                         elapsedTime += Time.deltaTime;
-                        float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
+                        float distance = Vector3.Distance(mimicEnemy.transform.position, localPlayer.transform.position);
 
                         if (elapsedTime > maxSpawnTime || distance < despawnDistance)
                         {
                             break;
                         }
 
-                        mimicEnemy.targetPlayer = targetPlayer;
+                        mimicEnemy.targetPlayer = localPlayer;
                     }
                 }
                 finally
@@ -820,7 +923,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 collider.enabled = false;
             }
 
-            if (localPlayer != targetPlayer)
+            if (Plugin.localPlayer != localPlayer)
             {
                 enemy.EnableEnemyMesh(false, true);
                 enemy.creatureSFX.enabled = false;
@@ -881,19 +984,19 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     yield return new WaitForSeconds(3f);
 
-                    targetPlayer.activatingItem = false;
-                    Utils.FreezePlayer(targetPlayer, false);
-                    if (localPlayer == targetPlayer) { shotgun.ShootGunAndSync(false); }
+                    localPlayer.activatingItem = false;
+                    Utils.FreezePlayer(localPlayer, false);
+                    if (Plugin.localPlayer == localPlayer) { shotgun.ShootGunAndSync(false); }
                     yield return null;
-                    targetPlayer.DamagePlayer(100, hasDamageSFX: true, callRPC: false, CauseOfDeath.Gunshots, 0, fallDamage: false, shotgun.shotgunRayPoint.forward * 30f);
+                    localPlayer.DamagePlayer(100, hasDamageSFX: true, callRPC: false, CauseOfDeath.Gunshots, 0, fallDamage: false, shotgun.shotgunRayPoint.forward * 30f);
 
                     yield return new WaitForSeconds(1f);
                 }
                 finally
                 {
                     HallucinationManager.overrideShotguns.Remove(shotgun);
-                    targetPlayer.activatingItem = false;
-                    Utils.FreezePlayer(targetPlayer, false);
+                    localPlayer.activatingItem = false;
+                    Utils.FreezePlayer(localPlayer, false);
                 }
             }
 

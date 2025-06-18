@@ -17,9 +17,9 @@ namespace HeavyItemSCPs.Items.SCP513
     public class HallucinationManager : MonoBehaviour
     {
         private static ManualLogSource logger = LoggerInstance;
+        public static HallucinationManager? Instance { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public static HallucinationManager Instance { get; private set; }
         public SCP513_1AI SCPInstance {  get; set; }
         public PlayerControllerB targetPlayer;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -77,7 +77,31 @@ namespace HeavyItemSCPs.Items.SCP513
             //rareEvents.Add(MimicJester);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             Instance = this;
+        }
+
+        public void Update()
+        {
+            if (SCP513_1AI.Instance == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+        }
+
+        public void OnDestroy()
+        {
+            StopAllCoroutines();
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
         public void RunRandomEvent(int eventRarity)
@@ -127,16 +151,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 default:
                     break;
             }
-        }
-
-        void SwitchToBehavior(State state)
-        {
-            SCPInstance.SwitchToBehaviourServerRpc((int)state);
-        }
-
-        public void OnDestroy()
-        {
-            StopAllCoroutines();
         }
 
         Coroutine? activeCoroutine = null;
@@ -533,7 +547,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     yield return new WaitForSeconds(0.2f);
                     elapsedTime += 0.2f;
-                    if (Vector3.Distance(SCPInstance.transform.position, targetPlayer.transform.position) > disappearDistance || SCPInstance.currentBehaviourStateIndex != (int)State.Manifesting)
+                    if (Vector3.Distance(SCPInstance.transform.position, targetPlayer.transform.position) > disappearDistance || SCPInstance.currentBehaviourState != (int)State.Manifesting)
                     {
                         break;
                     }
@@ -565,7 +579,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCPInstance.SetDestinationToPosition(teleportPos);
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
 
-                while (SCPInstance.currentBehaviourStateIndex == (int)State.Stalking && targetPlayer.isInsideFactory != SCPInstance.isOutside)
+                while (SCPInstance.currentBehaviourState == (int)State.Stalking && targetPlayer.isInsideFactory != SCPInstance.isOutside)
                 {
                     yield return new WaitForSeconds(1f);
                 }
@@ -658,7 +672,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", true);
                 SwitchToBehavior(State.Chasing);
 
-                while (SCPInstance.currentBehaviourStateIndex == (int)State.Chasing && targetPlayer.isInsideFactory != SCPInstance.isOutside)
+                while (SCPInstance.currentBehaviourState == (int)State.Chasing && targetPlayer.isInsideFactory != SCPInstance.isOutside)
                 {
                     yield return new WaitForSeconds(5f);
                     FlickerLights();
@@ -744,7 +758,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCPInstance.creatureAnimator.SetBool("armsCrossed", false);
                 SwitchToBehavior(State.Chasing);
 
-                while (SCPInstance.currentBehaviourStateIndex == (int)State.Chasing && targetPlayer.isInsideFactory != SCPInstance.isOutside)
+                while (SCPInstance.currentBehaviourState == (int)State.Chasing && targetPlayer.isInsideFactory != SCPInstance.isOutside)
                 {
                     yield return new WaitForSeconds(2.5f);
                     FlickerLights();
