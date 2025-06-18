@@ -280,7 +280,7 @@ namespace HeavyItemSCPs
             if (configEnableSCP513.Value)
             {
                 RegisterItem("Assets/ModAssets/SCP513/SCP513Item.asset", config513LevelRarities.Value, config513CustomLevelRarities.Value, config513MinValue.Value, config513MaxValue.Value);
-                RegisterEnemy("Assets/ModAssets/SCP513/SCP513_1Enemy.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TN.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset");
+                //RegisterEnemy("Assets/ModAssets/SCP513/SCP513_1Enemy.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TN.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset");
             }
 
             // Finished
