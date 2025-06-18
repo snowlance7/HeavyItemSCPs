@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4976234893464543198}
-  - component: {fileID: 8220690046693644409}
   - component: {fileID: 7307826035505290003}
   - component: {fileID: 5980038543210714921}
+  - component: {fileID: 6437766308693814250}
   m_Layer: 19
   m_Name: Collision
   m_TagString: Enemy
@@ -34,21 +34,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 9200087714663905612}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8220690046693644409
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 20451464492218760}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d7127b8f98ca8ec9896b384a71d39a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainScript: {fileID: 7928650130011133472}
-  canCollideWithEnemies: 0
-  onlyCollideWhenGrounded: 0
 --- !u!65 &7307826035505290003
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -97,6 +82,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &6437766308693814250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 20451464492218760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1210194110, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  canCollideWithEnemies: 0
+  onlyCollideWhenGrounded: 0
 --- !u!1 &22970129580329000
 GameObject:
   m_ObjectHideFlags: 0
@@ -1422,8 +1421,6 @@ GameObject:
   m_Component:
   - component: {fileID: 9200087714663905612}
   - component: {fileID: 2782649738501197346}
-  - component: {fileID: 4085338376240457624}
-  - component: {fileID: 7379213096311749191}
   - component: {fileID: 5004526506431924014}
   - component: {fileID: 7928650130011133472}
   m_Layer: 19
@@ -1470,7 +1467,7 @@ NavMeshAgent:
   m_Speed: 2
   m_Acceleration: 20
   avoidancePriority: 1
-  m_AngularSpeed: 2000
+  m_AngularSpeed: 5000
   m_StoppingDistance: 0
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
@@ -1479,58 +1476,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 0
---- !u!114 &4085338376240457624
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2510840225416614795}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 2080542287
-  InScenePlacedSourceGlobalObjectIdHash: 0
-  AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 1
-  ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
-  SpawnWithObservers: 1
-  DontDestroyWithOwner: 1
-  AutoObjectParentSync: 1
---- !u!114 &7379213096311749191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2510840225416614795}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  UseUnreliableDeltas: 0
-  SyncPositionX: 1
-  SyncPositionY: 1
-  SyncPositionZ: 1
-  SyncRotAngleX: 1
-  SyncRotAngleY: 1
-  SyncRotAngleZ: 1
-  SyncScaleX: 1
-  SyncScaleY: 1
-  SyncScaleZ: 1
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
-  ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
-  InLocalSpace: 0
-  Interpolate: 1
-  SlerpPosition: 0
 --- !u!95 &5004526506431924014
 Animator:
   serializedVersion: 5
@@ -1564,121 +1509,11 @@ MonoBehaviour:
   m_Script: {fileID: -1683112408, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyType: {fileID: 11400000, guid: 1df60f26a3ceb8749aba285ffd1db38d, type: 2}
-  skinnedMeshRenderers: []
-  meshRenderers: []
-  creatureAnimator: {fileID: 5004526506431924014}
-  creatureVoice: {fileID: 550918106905493945}
-  creatureSFX: {fileID: 2175500726018964752}
-  eye: {fileID: 7214298511435717655}
-  dieSFX: {fileID: 0}
-  enemyBehaviourStates:
-  - name: Active
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  - name: Manifesting
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  - name: Chasing
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  - name: Stalking
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  - name: MimicPlayer
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  currentBehaviourState:
-    name: 
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  currentBehaviourStateIndex: 0
-  previousBehaviourStateIndex: 0
-  currentOwnershipOnThisClient: 0
-  isInsidePlayerShip: 0
-  AIIntervalTime: 0.2
-  inSpecialAnimation: 0
-  inSpecialAnimationWithPlayer: {fileID: 0}
-  serverPosition: {x: 0, y: 0, z: 0}
-  serverRotation: {x: 0, y: 0, z: 0}
   agent: {fileID: 2782649738501197346}
-  allAINodes: []
-  targetNode: {fileID: 0}
-  favoriteSpot: {fileID: 0}
-  tempDist: 0
-  mostOptimalDistance: 0
-  pathDistance: 0
-  thisNetworkObject: {fileID: 0}
-  thisEnemyIndex: 0
-  isClientCalculatingAI: 0
-  updatePositionThreshold: 99999
-  targetPlayer: {fileID: 0}
-  movingTowardsTargetPlayer: 0
-  moveTowardsDestination: 0
-  destination: {x: 0, y: 0, z: 0}
-  addPlayerVelocityToDestination: 0
-  syncMovementSpeed: 0
-  timeSinceSpawn: 0
-  exitVentAnimationTime: 0
-  ventAnimationFinished: 0
-  isEnemyDead: 0
-  daytimeEnemyLeaving: 0
-  enemyHP: 1
-  openDoorSpeedMultiplier: 0
-  useSecondaryAudiosOnAnimatedObjects: 0
-  currentSearch:
-    unsearchedNodes: []
-    currentTargetNode: {fileID: 0}
-    nextTargetNode: {fileID: 0}
-    waitingForTargetNode: 0
-    choseTargetNode: 0
-    currentSearchStartPosition: {x: 0, y: 0, z: 0}
-    loopSearch: 0
-    timesFinishingSearch: 0
-    nodesEliminatedInCurrentSearch: 0
-    inProgress: 0
-    calculatingNodeInSearch: 0
-    searchWidth: 0
-    searchPrecision: 0
-    randomized: 0
-    onlySearchNodesInLOS: 0
-  DebugEnemy: 0
-  stunnedIndefinitely: 0
-  stunNormalizedTimer: 0
-  postStunInvincibilityTimer: 0
-  stunnedByPlayer: {fileID: 0}
-  debugEnemyAI: 0
-  isOutside: 0
+  creatureAnimator: {fileID: 5004526506431924014}
+  AIIntervalTime: 0.2
+  creatureSFX: {fileID: 2175500726018964752}
+  creatureVoice: {fileID: 550918106905493945}
   turnCompass: {fileID: 3922893198445650476}
   enemyMesh: {fileID: 8651808419257290193}
   ScanNode: {fileID: 6124889963872117346}
@@ -1727,6 +1562,11 @@ MonoBehaviour:
   - {fileID: 8300000, guid: e19a624bef390ea44960ea32d7c3f2f5, type: 3}
   - {fileID: 8300000, guid: 53328b36e4103f14bb1499cda4521fc3, type: 3}
   - {fileID: 8300000, guid: 824e6a6f3784dc942a16252d462e2eeb, type: 3}
+  - {fileID: 8300000, guid: 9ea1239c399812d46b6ad9dcb16853eb, type: 3}
+  - {fileID: 8300000, guid: 6286268d5dad14a418cbc97988b52cc5, type: 3}
+  - {fileID: 8300000, guid: cabf6f576d2e05641983f229938a6c7b, type: 3}
+  - {fileID: 8300000, guid: cfd46761c0adf76429ab9b099e746efc, type: 3}
+  - {fileID: 8300000, guid: aa8ebeccca7d59c4d962682508225ffc, type: 3}
   StepChaseSFX:
   - {fileID: 8300000, guid: 0e09322c49d184648a0d45af75a78f94, type: 3}
   - {fileID: 8300000, guid: d480d5ece55e7d74b8e1f9e3d0bb24ee, type: 3}
@@ -1811,8 +1651,20 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 9548fabcd2341bf45a079581193eb7e0, type: 3}
   SoundObjectPrefab: {fileID: 5833051735370547793, guid: 569822303f46d054eb240003d31466bc,
     type: 3}
-  SCP513Script: {fileID: 0}
-  hallucManager: {fileID: 0}
+  gotFarthestNodeAsync: 0
+  updateDestinationInterval: 0
+  moveTowardsDestination: 0
+  movingTowardsTargetPlayer: 0
+  destination: {x: 0, y: 0, z: 0}
+  allAINodes: []
+  mostOptimalDistance: 0
+  targetNode: {fileID: 0}
+  nodesTempArray: []
+  pathDistance: 0
+  isOutside: 0
+  getFarthestNodeAsyncBookmark: 0
+  currentBehaviourState: 0
+  mimicEnemy: {fileID: 0}
   mimicPlayer: {fileID: 0}
   facePlayer: 0
   playerHasLOS: 0

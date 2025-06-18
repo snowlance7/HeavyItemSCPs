@@ -56,7 +56,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            if (!StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving && localPlayerHaunted && SCP513_1AI.Instance == null)
+            if (localPlayerHaunted && SCP513_1AI.Instance == null && !StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving)
             {
                 SpawnBellMan();
             }
@@ -253,8 +253,8 @@ namespace HeavyItemSCPs.Items.SCP513
             mimicEnemyRoutine = StartCoroutine(MimicJesterCoroutine(maxSpawnTime, despawnDistance));
         }*/
 
-        [ServerRpc]
-        public void MimicEnemyServerRpc(string enemyName) // TODO: just spawn the enemy and send the network reference to the client so they can continue the coroutine do waituntil mimicenemy != null or something
+        /*[ServerRpc]
+        public void MimicEnemyServerRpc(ulong clientId, string enemyName) // TODO: just spawn the enemy and send the network reference to the client so they can continue the coroutine do waituntil mimicenemy != null or something
         {
             if (!IsServerOrHost) { return; }
 
@@ -326,10 +326,32 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
+        }*/
+
+        [ServerRpc]
+        public void MimicEnemyServerRpc(ulong clientId, string enemyName)
+        {
+            if (!IsServerOrHost) { return; }
+
+            logger.LogDebug("Attempting spawn enemy: " + enemyName);
+
+            EnemyType type = Utils.GetEnemies().Where(x => x.enemyType.name == enemyName).FirstOrDefault().enemyType;
+            if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
+
+            EnemyVent? vent = Utils.GetClosestVentToPosition(localPlayer.transform.position);
+            if (vent == null)
+            {
+                logger.LogError("Couldnt find vent for mimic enemy event.");
+                return;
+            }
+
+            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
+            if (!netObj.TryGetComponent<EnemyAI>(out SCP513_1AI.Instance!.mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
+            MimicEnemyClientRpc(clientId, SCP513_1AI.Instance!.mimicEnemy.NetworkObject);
         }
 
         [ClientRpc]
-        public void MimicEnemyClientRpc(NetworkObjectReference netRef)
+        public void MimicEnemyClientRpc(ulong clientId, NetworkObjectReference netRef)
         {
             if (!netRef.TryGet(out NetworkObject netObj)) { logger.LogError("Couldnt get netRef in MimicEnemyClientRpc"); return; }
             if (!netObj.TryGetComponent<EnemyAI>(out EnemyAI enemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
@@ -339,25 +361,15 @@ namespace HeavyItemSCPs.Items.SCP513
                 collider.enabled = false;
             }
 
-            if (Plugin.localPlayer != localPlayer)
+            if (localPlayer.actualClientId != clientId)
             {
                 enemy.EnableEnemyMesh(false, true);
                 enemy.creatureSFX.enabled = false;
                 enemy.creatureVoice.enabled = false;
+                return;
             }
-        }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void ResetStealthTimerServerRpc()
-        {
-            if (!IsServerOrHost) { return; }
-            ResetStealthTimerClientRpc();
-        }
-
-        [ClientRpc]
-        public void ResetStealthTimerClientRpc()
-        {
-            evadeStealthTimer = 0f;
+            SCP513_1AI.Instance!.mimicEnemy = enemy;
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -420,33 +432,6 @@ namespace HeavyItemSCPs.Items.SCP513
             if (!netObj.TryGetComponent(out ShotgunItem shotgun)) { logger.LogError("Cant get ShotgunItem"); return; }
 
             StartCoroutine(RotateShotgunCoroutine(shotgun, duration));
-        }
-    }
-
-    [HarmonyPatch]
-    public class SCP513Patches
-    {
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnShipLandedMiscEvents))]
-        public static void OnShipLandedMiscEventsPostfix()
-        {
-            try
-            {
-                if (!IsServerOrHost) { return; }
-                if (SCP513Behavior.Instance == null) { return; }
-
-                foreach (var clientId in SCP513Behavior.Instance.HauntedPlayers)
-                {
-                    PlayerControllerB player = PlayerFromId(clientId);
-                    if (player == null || !player.isPlayerControlled) { continue; }
-                    SCP513Behavior.Instance.SpawnBellMan(clientId);
-                }
-            }
-            catch (System.Exception e)
-            {
-                LoggerInstance.LogError(e);
-                return;
-            }
         }
     }
 }
