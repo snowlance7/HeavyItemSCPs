@@ -17,8 +17,8 @@ namespace HeavyItemSCPs
         private static ManualLogSource logger = LoggerInstance;
 
         public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
-        public static bool testing = false;
-        public static bool spawningAllowed = true;
+        public static bool testing = true;
+        public static bool spawningAllowed = false;
         public static bool trailerMode = false;
 
         public static GameObject[]? outsideAINodes;

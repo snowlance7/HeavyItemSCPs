@@ -30,8 +30,8 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = LoggerInstance;
 
-        public static int setEventRarity = -1;
-        public static int setEventIndex = -1;
+        public static int setEventRarity = 2;
+        public static int setEventIndex = 0;
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
@@ -60,12 +60,15 @@ namespace HeavyItemSCPs
 
             switch (args[0])
             {
+                case "/allEvents":
+                    HallucinationManager.Instance?.RunAllEvents(int.Parse(args[1]));
+                    break;
                 case "/setEvent":
                     setEventRarity = int.Parse(args[1]);
                     setEventIndex = int.Parse(args[2]);
                     break;
                 case "/event":
-                    HallucinationManager.Instance.RunEvent(int.Parse(args[1]), int.Parse(args[2]));
+                    HallucinationManager.Instance?.RunEvent(int.Parse(args[1]), int.Parse(args[2]));
                     break;
                 default:
                     Utils.ChatCommand(args);

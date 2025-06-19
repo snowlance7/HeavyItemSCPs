@@ -1423,6 +1423,7 @@ GameObject:
   - component: {fileID: 2782649738501197346}
   - component: {fileID: 5004526506431924014}
   - component: {fileID: 7928650130011133472}
+  - component: {fileID: 5352835355229704144}
   m_Layer: 19
   m_Name: SCP513_1
   m_TagString: Enemy
@@ -1668,6 +1669,18 @@ MonoBehaviour:
   mimicPlayer: {fileID: 0}
   facePlayer: 0
   playerHasLOS: 0
+--- !u!114 &5352835355229704144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2510840225416614795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 687621824, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2525098024950143557
 GameObject:
   m_ObjectHideFlags: 0

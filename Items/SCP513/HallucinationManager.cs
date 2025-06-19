@@ -30,15 +30,6 @@ namespace HeavyItemSCPs.Items.SCP513
         List<MethodDelegate> uncommonEvents = new List<MethodDelegate>();
         List<MethodDelegate> rareEvents = new List<MethodDelegate>();
 
-        public enum State
-        {
-            InActive,
-            Manifesting,
-            Chasing,
-            Stalking,
-            MimicPlayer
-        }
-
         public void Start()
         {
             // Common Events
@@ -73,23 +64,23 @@ namespace HeavyItemSCPs.Items.SCP513
             //rareEvents.Add(MimicJester);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
-            if (Instance != null && Instance != this)
+            /*if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
-            }
+            }*/
 
             Instance = this;
         }
 
-        public void Update()
+        /*public void Update()
         {
             if (SCP513_1AI.Instance == null)
             {
                 Destroy(gameObject);
                 return;
             }
-        }
+        }*/
 
         public void OnDestroy()
         {
@@ -98,6 +89,27 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 Instance = null;
             }
+        }
+
+        public void RunAllEvents(float timeBetweenEvents)
+        {
+            IEnumerator RunAllEventsCoroutine(float timeBetweenEvents)
+            {
+                yield return null;
+
+                List<MethodDelegate> allEvents = new List<MethodDelegate>();
+                allEvents.AddRange(commonEvents);
+                allEvents.AddRange(uncommonEvents);
+                allEvents.AddRange(rareEvents);
+
+                foreach (var _event in allEvents)
+                {
+                    _event.Invoke();
+                    yield return new WaitForSeconds(timeBetweenEvents);
+                }
+            }
+
+            StartCoroutine(RunAllEventsCoroutine(timeBetweenEvents));
         }
 
         public void RunRandomEvent(int eventRarity)
@@ -153,7 +165,7 @@ namespace HeavyItemSCPs.Items.SCP513
         int currentCoroutineTier = -1; // -1 = none, 0 = common, 1 = uncommon, 2 = rare
         bool wasInterrupted = false;
 
-        private bool TryStartCoroutine(IEnumerator coroutineMethod, int tier)
+        private bool TryStartCoroutine(IEnumerator coroutineMethod, int tier, Action? cleanup)
         {
             if (activeCoroutine != null)
             {
@@ -166,6 +178,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 // Interrupt current coroutine
                 wasInterrupted = true;
                 StopCoroutine(activeCoroutine);
+                cleanup?.Invoke();
                 activeCoroutine = null;
                 currentCoroutineTier = -1;
             }
@@ -232,10 +245,11 @@ namespace HeavyItemSCPs.Items.SCP513
 
             // Choose sound position based on 'F'
             int offset = isFar ? 5 : 0;
-            Vector3 pos = SCP513_1AI.Instance!.ChooseClosestNodeToPosition(localPlayer.transform.position, false, offset).position;
+            Transform? pos = SCP513_1AI.Instance?.ChooseClosestNodeToPosition(localPlayer.transform.position, false, offset);
+            if (pos == null) { logger.LogError("Couldnt find closest node to position"); return; }
 
             // Play the sound
-            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos, Quaternion.identity);
+            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos.position, Quaternion.identity);
             AudioSource source = soundObj.GetComponent<AudioSource>();
             source.spatialBlend = is2D ? 0f : 1f;
             source.clip = clip;
@@ -308,7 +322,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     finally
                     {
                         if (landmine != null)
-                                landmine.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                                landmine.GetComponent<MeshRenderer>().forceRenderingOff = false; "this is here so is check this" // TODO: fix all finallys, they dont run if the coroutine is stopped...consider using unitys task system? cant just use the action cleanup system either because if ondestroy is called and it runs stopallcoroutines, then it wont cleanup
                     }
                 }
 
@@ -895,110 +909,106 @@ namespace HeavyItemSCPs.Items.SCP513
 
             IEnumerator ForceSuicideCoroutine(bool hasShotgun, bool hasMask)
             {
-                try
+                yield return null;
+
+                if (hasShotgun) // Shotgun
                 {
-                    yield return null;
+                    Utils.FreezePlayer(localPlayer, true);
+                    localPlayer.activatingItem = true;
+                    ShotgunItem? shotgun = null;
 
-                    if (hasShotgun) // Shotgun
+                    foreach (var slot in localPlayer.ItemSlots)
                     {
-                        Utils.FreezePlayer(localPlayer, true);
-                        localPlayer.activatingItem = true;
-                        ShotgunItem? shotgun = null;
-
-                        foreach (var slot in localPlayer.ItemSlots)
+                        if (slot == null) { continue; }
+                        if (slot.itemProperties.name == "Shotgun")
                         {
-                            if (slot == null) { continue; }
-                            if (slot.itemProperties.name == "Shotgun")
-                            {
-                                shotgun = (ShotgunItem)slot;
-                            }
+                            shotgun = (ShotgunItem)slot;
                         }
-
-                        if (shotgun == null) { logger.LogError("Couldnt find shotgun"); yield break; }
-
-                        localPlayer.SwitchToItemSlot(0, shotgun);
-
-                        SCP513Behavior.Instance!.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
-
-                        yield return new WaitForSeconds(10f);
                     }
-                    else if (hasMask) // Mask
+
+                    if (shotgun == null) { logger.LogError("Couldnt find shotgun"); yield break; }
+
+                    localPlayer.SwitchToItemSlot(0, shotgun);
+
+                    SCP513Behavior.Instance!.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
+
+                    yield return new WaitForSeconds(10f);
+                }
+                else if (hasMask) // Mask
+                {
+                    Utils.FreezePlayer(localPlayer, true);
+                    localPlayer.activatingItem = true;
+                    HauntedMaskItem? mask = null;
+
+                    foreach (var slot in localPlayer.ItemSlots)
                     {
-                        Utils.FreezePlayer(localPlayer, true);
-                        localPlayer.activatingItem = true;
-                        HauntedMaskItem? mask = null;
-
-                        foreach (var slot in localPlayer.ItemSlots)
+                        if (slot == null) { continue; }
+                        if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
                         {
-                            if (slot == null) { continue; }
-                            if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
-                            {
-                                mask = (HauntedMaskItem)slot;
-                            }
+                            mask = (HauntedMaskItem)slot;
                         }
-
-                        if (mask == null) { logger.LogError("Couldnt find mask"); yield break; }
-
-                        localPlayer.SwitchToItemSlot(0, mask);
-
-                        yield return new WaitForSeconds(1f);
-
-                        mask.maskOn = true;
-                        localPlayer.activatingItem = true;
-                        mask.BeginAttachment();
-
-                        yield return new WaitForSeconds(1f);
                     }
-                    else // Knife
+
+                    if (mask == null) { logger.LogError("Couldnt find mask"); yield break; }
+
+                    localPlayer.SwitchToItemSlot(0, mask);
+
+                    yield return new WaitForSeconds(1f);
+
+                    mask.maskOn = true;
+                    localPlayer.activatingItem = true;
+                    mask.BeginAttachment();
+
+                    yield return new WaitForSeconds(1f);
+                }
+                else // Knife
+                {
+                    Utils.FreezePlayer(localPlayer, true);
+                    localPlayer.activatingItem = true;
+                    KnifeItem? knife = null;
+
+                    foreach (var slot in localPlayer.ItemSlots)
                     {
-                        Utils.FreezePlayer(localPlayer, true);
-                        localPlayer.activatingItem = true;
-                        KnifeItem? knife = null;
-
-                        foreach (var slot in localPlayer.ItemSlots)
+                        if (slot == null) { continue; }
+                        if (slot.itemProperties.name == "Knife")
                         {
-                            if (slot == null) { continue; }
-                            if (slot.itemProperties.name == "Knife")
-                            {
-                                knife = (KnifeItem)slot;
-                            }
+                            knife = (KnifeItem)slot;
                         }
+                    }
 
-                        if (knife == null) { logger.LogError("Couldnt find knife"); yield break; }
+                    if (knife == null) { logger.LogError("Couldnt find knife"); yield break; }
 
-                        localPlayer.SwitchToItemSlot(0, knife);
+                    localPlayer.SwitchToItemSlot(0, knife);
 
-                        float elapsedTime = 0f;
+                    float elapsedTime = 0f;
 
-                        while (!localPlayer.isPlayerDead)
+                    while (!localPlayer.isPlayerDead)
+                    {
+                        yield return null;
+                        elapsedTime += Time.deltaTime;
+
+                        Transform camTransform = localPlayer.gameplayCamera.transform;
+                        Vector3 currentAngles = camTransform.localEulerAngles;
+                        float targetX = 90f;
+                        float smoothedX = Mathf.LerpAngle(currentAngles.x, targetX, Time.deltaTime * 5f);
+                        camTransform.localEulerAngles = new Vector3(smoothedX, currentAngles.y, 0f);
+
+                        if (elapsedTime > 1f)
                         {
-                            yield return null;
-                            elapsedTime += Time.deltaTime;
-
-                            Transform camTransform = localPlayer.gameplayCamera.transform;
-                            Vector3 currentAngles = camTransform.localEulerAngles;
-                            float targetX = 90f;
-                            float smoothedX = Mathf.LerpAngle(currentAngles.x, targetX, Time.deltaTime * 5f);
-                            camTransform.localEulerAngles = new Vector3(smoothedX, currentAngles.y, 0f);
-
-                            if (elapsedTime > 1f)
-                            {
-                                elapsedTime = 0f;
-                                knife.UseItemOnClient();
-                                localPlayer.activatingItem = true;
-                                yield return new WaitForSeconds(0.25f);
-                                localPlayer.DamagePlayer(25, true, true, CauseOfDeath.Stabbing);
-                            }
+                            elapsedTime = 0f;
+                            knife.UseItemOnClient();
+                            localPlayer.activatingItem = true;
+                            yield return new WaitForSeconds(0.25f);
+                            localPlayer.DamagePlayer(25, true, true, CauseOfDeath.Stabbing);
                         }
                     }
                 }
-                finally
-                {
-                    Utils.FreezePlayer(localPlayer, false);
-                }
+
+                Utils.FreezePlayer(localPlayer, false);
             }
 
-            TryStartCoroutine(ForceSuicideCoroutine(playerHasShotgun, playerHasMask), 2);
+            Action cleanup = () => Utils.FreezePlayer(localPlayer, false);
+            TryStartCoroutine(ForceSuicideCoroutine(playerHasShotgun, playerHasMask), 2, cleanup);
         }
 
         /*void MimicJester() // 2 8

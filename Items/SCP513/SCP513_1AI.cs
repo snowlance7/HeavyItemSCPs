@@ -40,18 +40,22 @@ namespace HeavyItemSCPs.Items.SCP513
         public GameObject SoundObjectPrefab;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
+        GameObject[] insideAINodes = [];
+        GameObject[] outsideAINodes = [];
+        public bool isOutside => !localPlayer.isInsideFactory;
+        public GameObject[] allAINodes => isOutside ? outsideAINodes : insideAINodes;
+
         public bool gotFarthestNodeAsync;
         public float updateDestinationInterval;
         public NavMeshPath? path1;
         public bool moveTowardsDestination;
         public bool movingTowardsTargetPlayer;
         public Vector3 destination;
-        public GameObject[] allAINodes = [];
+
         public float mostOptimalDistance;
         public Transform? targetNode;
         public GameObject[] nodesTempArray = [];
         public float pathDistance;
-        public bool isOutside;
         public int getFarthestNodeAsyncBookmark;
 
         public State currentBehaviourState;
@@ -123,6 +127,11 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             Instance = this;
+
+            insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
+            outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+
+            path1 = new NavMeshPath();
 
             hashRunSpeed = Animator.StringToHash("speed");
             currentBehaviourState = (int)State.InActive;
@@ -269,7 +278,7 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             EnableEnemyMesh(currentBehaviourState != (int)State.InActive);
-            SetEnemyOutside(!localPlayer.isInsideFactory);
+            //SetEnemyOutside(!localPlayer.isInsideFactory);
 
             switch (currentBehaviourState)
             {
@@ -512,7 +521,7 @@ namespace HeavyItemSCPs.Items.SCP513
             }
             return false;
         }
-        public Transform ChooseClosestNodeToPosition(Vector3 pos, bool avoidLineOfSight = false, int offset = 0)
+        public Transform? ChooseClosestNodeToPosition(Vector3 pos, bool avoidLineOfSight = false, int offset = 0)
         {
             nodesTempArray = allAINodes.OrderBy((GameObject x) => Vector3.Distance(pos, x.transform.position)).ToArray();
             Transform result = nodesTempArray[0].transform;
@@ -532,7 +541,7 @@ namespace HeavyItemSCPs.Items.SCP513
             return result;
         }
 
-        public Transform ChooseStalkPosition(Vector3 pos, float minDistance)
+        public Transform? ChooseStalkPosition(Vector3 pos, float minDistance)
         {
             nodesTempArray = allAINodes.OrderBy((GameObject x) => Vector3.Distance(pos, x.transform.position)).ToArray();
             Transform? result = null;
@@ -621,22 +630,6 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             agent.speed = 0f;
-        }
-
-        public void SetEnemyOutside(bool outside = false)
-        {
-            if (isOutside == outside) { return; }
-            logger.LogDebug("SettingOutside: " + outside);
-
-            isOutside = outside;
-            if (outside)
-            {
-                allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
-            }
-            else
-            {
-                allAINodes = GameObject.FindGameObjectsWithTag("AINode");
-            }
         }
 
         public void EnableEnemyMesh(bool enable)
@@ -781,6 +774,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (mimicEnemyRoutine != null)
             {
                 StopCoroutine(mimicEnemyRoutine);
+                DespawnMimicEnemy();
             }
 
             SCP513Behavior.Instance!.MimicEnemyServerRpc(localPlayer.actualClientId, enemyName);
@@ -807,30 +801,31 @@ namespace HeavyItemSCPs.Items.SCP513
 
                         mimicEnemy.targetPlayer = localPlayer;
                     }
-                }
-                finally
-                {
-                    if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
-                    {
-                        logger.LogDebug("Despawning mimic enemy " + mimicEnemy.enemyType.name);
 
-                        switch (mimicEnemy.enemyType.name)
-                        {
-                            case "Butler":
-                                ButlerEnemyAI.murderMusicAudio.Stop();
-                                break;
-                            default:
-                                break;
-                        }
-
-                        mimicEnemy.NetworkObject.Despawn(true);
-                        mimicEnemy = null;
-                        mimicEnemyRoutine = null;
-                    }
+                    DespawnMimicEnemy();
                 }
             }
 
             mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
+        }
+
+        public void DespawnMimicEnemy()
+        {
+            if (mimicEnemy == null || !mimicEnemy.NetworkObject.IsSpawned) { return; }
+            logger.LogDebug("Despawning mimic enemy " + mimicEnemy.enemyType.name);
+
+            switch (mimicEnemy.enemyType.name)
+            {
+                case "Butler":
+                    ButlerEnemyAI.murderMusicAudio.Stop();
+                    break;
+                default:
+                    break;
+            }
+
+            mimicEnemy.NetworkObject.Despawn(true);
+            mimicEnemy = null;
+            mimicEnemyRoutine = null;
         }
     }
 }
