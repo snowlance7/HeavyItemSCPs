@@ -97,6 +97,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (Instance == this)
             {
                 Instance = null;
+                Utils.FreezePlayer(localPlayer, false);
             }
         }
 
@@ -183,151 +184,6 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.Instance.SpawnEnemyGameObject(Vector3.zero, 0, -1, ghostGirl.enemyType);
         }
 
-        /*[ServerRpc]
-        public void MimicJesterServerRpc()
-        {
-            if (!IsServerOrHost) { return; }
-
-            float maxSpawnTime = 60f;
-            float despawnDistance = 5f;
-
-            if (mimicEnemyRoutine != null)
-            {
-                StopCoroutine(mimicEnemyRoutine);
-                mimicEnemyRoutine = null;
-            }
-
-            EnemyType type = GetEnemies().Where(x => x.enemyType.name == "Jester").FirstOrDefault().enemyType;
-            if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
-
-            Transform? spawnPosition = ChooseFarthestNodeFromPosition(targetPlayer.transform.position);
-
-            if (spawnPosition == null) { logger.LogError("Couldnt find farthest node to spawn jester"); return; }
-
-            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(spawnPosition.position, 0f, -1, type);
-            if (!netObj.TryGetComponent<EnemyAI>(out mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-            MimicEnemyClientRpc(mimicEnemy.NetworkObject);
-
-            IEnumerator PopJesterCoroutine()
-            {
-                yield return null;
-                yield return new WaitForSeconds(1f);
-                mimicEnemy.SwitchToBehaviourServerRpc(1);
-                yield return new WaitForSeconds(1f);
-                mimicEnemy.SwitchToBehaviourServerRpc(2); // TODO: Ask slayer about this
-                mimicEnemy.targetPlayer = targetPlayer;
-            }
-
-            IEnumerator MimicJesterCoroutine(float maxSpawnTime, float despawnDistance)
-            {
-                try
-                {
-                    float elapsedTime = 0f;
-
-                    while (mimicEnemy != null
-                        && mimicEnemy.NetworkObject.IsSpawned
-                        && targetPlayer.isPlayerControlled)
-                    {
-                        yield return null;
-                        elapsedTime += Time.deltaTime;
-                        float distance = Vector3.Distance(mimicEnemy.transform.position, targetPlayer.transform.position);
-
-                        if (elapsedTime > maxSpawnTime || distance < despawnDistance)
-                        {
-                            break;
-                        }
-                    }
-                }
-                finally
-                {
-                    if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
-                    {
-                        mimicEnemy.NetworkObject.Despawn(true);
-                        mimicEnemy = null;
-                        mimicEnemyRoutine = null;
-                    }
-                }
-            }
-
-            StartCoroutine(PopJesterCoroutine());
-            mimicEnemyRoutine = StartCoroutine(MimicJesterCoroutine(maxSpawnTime, despawnDistance));
-        }*/
-
-        /*[ServerRpc]
-        public void MimicEnemyServerRpc(ulong clientId, string enemyName) // TODO: just spawn the enemy and send the network reference to the client so they can continue the coroutine do waituntil mimicenemy != null or something
-        {
-            if (!IsServerOrHost) { return; }
-
-            float maxSpawnTime = 60f;
-            float despawnDistance = 3f;
-
-            logger.LogDebug("Attempting spawn enemy: " + enemyName);
-
-            if (mimicEnemyRoutine != null)
-            {
-                StopCoroutine(mimicEnemyRoutine);
-                mimicEnemyRoutine = null;
-            }
-
-            EnemyType type = GetEnemies().Where(x => x.enemyType.name == enemyName).FirstOrDefault().enemyType;
-            if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
-
-            EnemyVent? vent = Utils.GetClosestVentToPosition(localPlayer.transform.position);
-            if (vent == null)
-            {
-                logger.LogError("Couldnt find vent for mimic enemy event.");
-                return;
-            }
-
-            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
-            if (!netObj.TryGetComponent<EnemyAI>(out mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-            MimicEnemyClientRpc(mimicEnemy.NetworkObject);
-
-            IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
-            {
-                try
-                {
-                    float elapsedTime = 0f;
-
-                    while (mimicEnemy != null
-                        && mimicEnemy.NetworkObject.IsSpawned
-                        && localPlayer.isPlayerControlled)
-                    {
-                        yield return null;
-                        elapsedTime += Time.deltaTime;
-                        float distance = Vector3.Distance(mimicEnemy.transform.position, localPlayer.transform.position);
-
-                        if (elapsedTime > maxSpawnTime || distance < despawnDistance)
-                        {
-                            break;
-                        }
-
-                        mimicEnemy.targetPlayer = localPlayer;
-                    }
-                }
-                finally
-                {
-                    if (mimicEnemy != null && mimicEnemy.NetworkObject.IsSpawned)
-                    {
-                        switch (mimicEnemy.enemyType.name)
-                        {
-                            case "Butler":
-                                ButlerEnemyAI.murderMusicAudio.Stop();
-                                break;
-                            default:
-                                break;
-                        }
-
-                        mimicEnemy.NetworkObject.Despawn(true);
-                        mimicEnemy = null;
-                        mimicEnemyRoutine = null;
-                    }
-                }
-            }
-
-            mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
-        }*/
-
         [ServerRpc]
         public void MimicEnemyServerRpc(ulong clientId, string enemyName)
         {
@@ -346,8 +202,9 @@ namespace HeavyItemSCPs.Items.SCP513
             }
 
             NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
-            if (!netObj.TryGetComponent<EnemyAI>(out SCP513_1AI.Instance!.mimicEnemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-            MimicEnemyClientRpc(clientId, SCP513_1AI.Instance!.mimicEnemy.NetworkObject);
+            if (!netObj.TryGetComponent(out EnemyAI enemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
+            enemy.ChangeOwnershipOfEnemy(clientId);
+            MimicEnemyClientRpc(clientId, enemy.NetworkObject);
         }
 
         [ClientRpc]

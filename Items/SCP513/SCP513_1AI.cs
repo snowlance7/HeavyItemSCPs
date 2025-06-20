@@ -383,6 +383,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (Instance == this)
             {
                 Instance = null;
+                DespawnMimicEnemy();
             }
         }
 
@@ -781,29 +782,27 @@ namespace HeavyItemSCPs.Items.SCP513
 
             IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
             {
-                try
+                yield return new WaitUntil(() => mimicEnemy != null);
+
+                float elapsedTime = 0f;
+                while (mimicEnemy != null
+                    && mimicEnemy.NetworkObject != null
+                    && mimicEnemy.NetworkObject.IsSpawned
+                    && localPlayer.isPlayerControlled)
                 {
-                    yield return new WaitUntil(() => mimicEnemy != null);
+                    yield return null;
+                    elapsedTime += Time.deltaTime;
+                    float distance = Vector3.Distance(mimicEnemy.transform.position, localPlayer.transform.position);
 
-                    float elapsedTime = 0f;
-                    while (mimicEnemy != null
-                        && mimicEnemy.NetworkObject.IsSpawned
-                        && localPlayer.isPlayerControlled)
+                    if (elapsedTime > maxSpawnTime || distance < despawnDistance)
                     {
-                        yield return null;
-                        elapsedTime += Time.deltaTime;
-                        float distance = Vector3.Distance(mimicEnemy.transform.position, localPlayer.transform.position);
-
-                        if (elapsedTime > maxSpawnTime || distance < despawnDistance)
-                        {
-                            break;
-                        }
-
-                        mimicEnemy.targetPlayer = localPlayer;
+                        break;
                     }
 
-                    DespawnMimicEnemy();
+                    mimicEnemy.targetPlayer = localPlayer;
                 }
+
+                DespawnMimicEnemy();
             }
 
             mimicEnemyRoutine = StartCoroutine(MimicEnemyCoroutine(maxSpawnTime, despawnDistance));
