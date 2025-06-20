@@ -30,6 +30,13 @@ namespace HeavyItemSCPs.Items.SCP513
         List<MethodDelegate> uncommonEvents = new List<MethodDelegate>();
         List<MethodDelegate> rareEvents = new List<MethodDelegate>();
 
+        List<Action> cleanupActions = [];
+
+        Coroutine? activeCoroutine;
+        Action? activeCoroutineCleanup;
+        int currentCoroutineTier = -1; // -1 = none, 0 = common, 1 = uncommon, 2 = rare
+        bool wasInterrupted = false;
+
         public void Start()
         {
             // Common Events
@@ -81,13 +88,94 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
         }*/
-
         public void OnDestroy()
         {
             StopAllCoroutines();
+
+            foreach (var cleanup in cleanupActions)
+                cleanup?.Invoke();
+
+            cleanupActions.Clear();
+            activeCoroutineCleanup = null;
+            activeCoroutine = null;
+
             if (Instance == this)
-            {
                 Instance = null;
+        }
+
+        // === TIERED SYSTEM ===
+        bool TryStartCoroutine(IEnumerator coroutineMethod, int tier, Action? cleanup = null) // TODO: Needs testing!!!
+        {
+            if (activeCoroutine != null)
+            {
+                if (tier < currentCoroutineTier)
+                {
+                    logger.LogDebug("A higher priority coroutine is already running, don't start this one");
+                    return false;
+                }
+
+                wasInterrupted = true;
+                StopCoroutine(activeCoroutine);
+
+                if (activeCoroutineCleanup != null)
+                {
+                    activeCoroutineCleanup.Invoke();
+                    cleanupActions.Remove(activeCoroutineCleanup);
+                }
+
+                activeCoroutine = null;
+                activeCoroutineCleanup = null;
+                currentCoroutineTier = -1;
+            }
+
+            wasInterrupted = false;
+
+            if (cleanup != null)
+            {
+                cleanupActions.Add(cleanup);
+                activeCoroutineCleanup = cleanup;
+            }
+
+            activeCoroutine = StartCoroutine(WrapTierCoroutine(coroutineMethod, tier, cleanup));
+            currentCoroutineTier = tier;
+            return true;
+        }
+
+        IEnumerator WrapTierCoroutine(IEnumerator coroutineMethod, int tier, Action? cleanup)
+        {
+            yield return coroutineMethod;
+
+            if (!wasInterrupted && tier == currentCoroutineTier)
+            {
+                cleanup?.Invoke();
+                cleanupActions.Remove(cleanup);
+
+                // Your behavior switch here
+                SCP513_1AI.Instance!.SwitchToBehavior(SCP513_1AI.State.InActive);
+
+                activeCoroutine = null;
+                activeCoroutineCleanup = null;
+                currentCoroutineTier = -1;
+            }
+        }
+
+        // === NON-TIERED SYSTEM ===
+        Coroutine StartSafeCoroutine(IEnumerator coroutineMethod, Action? cleanup = null)
+        {
+            return StartCoroutine(WrapSafeCoroutine(coroutineMethod, cleanup));
+        }
+
+        private IEnumerator WrapSafeCoroutine(IEnumerator coroutineMethod, Action? cleanup)
+        {
+            if (cleanup != null)
+                cleanupActions.Add(cleanup);
+
+            yield return coroutineMethod;
+
+            if (cleanup != null)
+            {
+                cleanup.Invoke();
+                cleanupActions.Remove(cleanup);
             }
         }
 
@@ -160,48 +248,6 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
             }
         }
-
-        Coroutine? activeCoroutine = null;
-        int currentCoroutineTier = -1; // -1 = none, 0 = common, 1 = uncommon, 2 = rare
-        bool wasInterrupted = false;
-
-        private bool TryStartCoroutine(IEnumerator coroutineMethod, int tier, Action? cleanup)
-        {
-            if (activeCoroutine != null)
-            {
-                if (tier < currentCoroutineTier)
-                {
-                    logger.LogDebug("A higher priority coroutine is already running, don't start this one");
-                    return false;
-                }
-
-                // Interrupt current coroutine
-                wasInterrupted = true;
-                StopCoroutine(activeCoroutine);
-                cleanup?.Invoke();
-                activeCoroutine = null;
-                currentCoroutineTier = -1;
-            }
-
-            wasInterrupted = false;
-            activeCoroutine = StartCoroutine(WrapCoroutine(coroutineMethod, tier));
-            currentCoroutineTier = tier;
-            return true;
-        }
-
-        private IEnumerator WrapCoroutine(IEnumerator coroutineMethod, int tier)
-        {
-            yield return StartCoroutine(coroutineMethod);
-
-            // Only clear and switch behavior if not interrupted
-            if (tier == currentCoroutineTier && !wasInterrupted)
-            {
-                SCP513_1AI.Instance!.SwitchToBehavior(SCP513_1AI.State.InActive);
-                activeCoroutine = null;
-                currentCoroutineTier = -1;
-            }
-        }
-
 
         #region Common
 
@@ -300,14 +346,12 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 case "Landmine": // Landmine
 
-                IEnumerator HideLandmineCoroutine(Landmine landmine)
-                {
-                    try
+                    IEnumerator HideLandmineCoroutine(Landmine landmine)
                     {
                         logger.LogDebug("Hiding landmine");
                         yield return null;
                         landmine.GetComponent<MeshRenderer>().forceRenderingOff = true;
-                        
+
                         float elapsedTime = 0f;
                         while (elapsedTime < hideTime)
                         {
@@ -319,14 +363,14 @@ namespace HeavyItemSCPs.Items.SCP513
                             }
                         }
                     }
-                    finally
+
+                    Action cleanupLandmine = () =>
                     {
                         if (landmine != null)
-                                landmine.GetComponent<MeshRenderer>().forceRenderingOff = false; "this is here so is check this" // TODO: fix all finallys, they dont run if the coroutine is stopped...consider using unitys task system? cant just use the action cleanup system either because if ondestroy is called and it runs stopallcoroutines, then it wont cleanup
-                    }
-                }
+                            landmine.GetComponent<MeshRenderer>().forceRenderingOff = false;
+                    };
 
-                StartCoroutine(HideLandmineCoroutine(landmine));
+                    StartSafeCoroutine(HideLandmineCoroutine(landmine!), cleanupLandmine);
 
                 break;
                 case "Turret": // Turret
@@ -335,36 +379,28 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     IEnumerator HideTurretCoroutine(Turret turret)
                     {
-                        try
-                        {
-                            logger.LogDebug("Hiding turret");
-                            yield return null;
-                            turretMesh.SetActive(false);
+                        logger.LogDebug("Hiding turret");
+                        yield return null;
+                        turretMesh.SetActive(false);
 
-                            float elapsedTime = 0f;
-                            while (elapsedTime < hideTime)
-                            {
-                                yield return null;
-                                elapsedTime += Time.deltaTime;
-                                if (turret.turretMode != TurretMode.Detection)
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                        finally
+                        float elapsedTime = 0f;
+                        while (elapsedTime < hideTime)
                         {
-                            if (turretMesh != null)
-                                turretMesh.SetActive(true);
+                            yield return null;
+                            elapsedTime += Time.deltaTime;
+                            if (turret.turretMode != TurretMode.Detection)
+                            {
+                                break;
+                            }
                         }
                     }
 
-                    StartCoroutine(HideTurretCoroutine(turret));
+                    StartSafeCoroutine(HideTurretCoroutine(turret), () => turretMesh?.SetActive(true));
 
                     break;
                 case "SpikeTrap": // SpikeTrap
 
-                    MeshRenderer[] renderers = spikeTrap.transform.root.GetComponentsInChildren<MeshRenderer>();
+                    MeshRenderer[] renderers = spikeTrap!.transform.root.GetComponentsInChildren<MeshRenderer>();
 
                     IEnumerator HideSpikeTrapCoroutine(SpikeRoofTrap spikeTrap)
                     {
@@ -399,7 +435,16 @@ namespace HeavyItemSCPs.Items.SCP513
                         }
                     }
 
-                    StartCoroutine(HideSpikeTrapCoroutine(spikeTrap));
+                    Action spikeTrapCleanup = () =>
+                    {
+                        foreach (var renderer in spikeTrap!.transform.root.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            if (renderer == null) { continue; }
+                            renderer.forceRenderingOff = false;
+                        }
+                    };
+
+                    StartSafeCoroutine(HideSpikeTrapCoroutine(spikeTrap), spikeTrapCleanup);
 
                     break;
                 default:
@@ -825,29 +870,22 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     IEnumerator DespawnLandmineConditionCoroutine(Landmine landmine)
                     {
-                        try
+                        yield return null;
+                        float elapsedTime = 0f;
+
+                        while (elapsedTime < spawnTime)
                         {
                             yield return null;
-                            float elapsedTime = 0f;
+                            elapsedTime += Time.deltaTime;
 
-                            while (elapsedTime < spawnTime)
+                            if (landmine.localPlayerOnMine)
                             {
-                                yield return null;
-                                elapsedTime += Time.deltaTime;
-
-                                if (landmine.localPlayerOnMine)
-                                {
-                                    break;
-                                }
+                                break;
                             }
-                        }
-                        finally
-                        {
-                            GameObject.Destroy(landmine.gameObject);
                         }
                     }
 
-                    StartCoroutine(DespawnLandmineConditionCoroutine(landmine));
+                    StartSafeCoroutine(DespawnLandmineConditionCoroutine(landmine), () => GameObject.Destroy(landmine.gameObject));
                 }
             }
 

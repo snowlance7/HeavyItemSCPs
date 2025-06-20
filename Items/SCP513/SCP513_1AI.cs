@@ -268,6 +268,12 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             if (currentBehaviourState == state) { return; }
             currentBehaviourState = state;
+
+            if (mimicPlayer != null)
+            {
+                Utils.MakePlayerInvisible(mimicPlayer, false);
+                mimicPlayer = null;
+            }
         }
 
         public void DoAIInterval()
@@ -384,6 +390,12 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 Instance = null;
                 DespawnMimicEnemy();
+
+                if (mimicPlayer != null)
+                {
+                    Utils.MakePlayerInvisible(mimicPlayer, false);
+                    mimicPlayer = null;
+                }
             }
         }
 
