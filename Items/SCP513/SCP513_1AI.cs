@@ -420,13 +420,15 @@ namespace HeavyItemSCPs.Items.SCP513
             return true;
         }
 
-        public Vector3 GetRandomPositionAroundPlayer(float minDistance, float maxDistance)
+        public Vector3 GetRandomPositionAroundPlayer(float minDistance, float maxDistance, int cap)
         {
             Vector3 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(localPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
-            
-            while (Physics.Linecast(localPlayer.gameplayCamera.transform.position, pos + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(localPlayer.transform.position, pos) < minDistance)
+
+            int _cap = 0;
+            while ((Physics.Linecast(localPlayer.gameplayCamera.transform.position, pos + Vector3.up * LOSOffset, StartOfRound.Instance.collidersAndRoomMaskAndDefault) || Vector3.Distance(localPlayer.transform.position, pos) < minDistance) && _cap < cap)
             {
                 logger.LogDebug("Reroll");
+                _cap++;
                 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadiusSpherical(localPlayer.transform.position, maxDistance, RoundManager.Instance.navHit);
             }
 
@@ -537,6 +539,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public Transform? ChooseClosestNodeToPosition(Vector3 pos, bool avoidLineOfSight = false, int offset = 0)
         {
             nodesTempArray = allAINodes.OrderBy((GameObject x) => Vector3.Distance(pos, x.transform.position)).ToArray();
+            if (nodesTempArray.Length <= 0) { logger.LogError("No nodes found in choose closest node to position"); return null; }
             Transform result = nodesTempArray[0].transform;
             for (int i = 0; i < nodesTempArray.Length; i++)
             {

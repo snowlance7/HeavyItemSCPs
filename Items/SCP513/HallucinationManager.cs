@@ -462,7 +462,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 yield return null;
 
-                Vector3 outsideLOS = SCP513_1AI.Instance!.GetRandomPositionAroundPlayer(5f, 15f);
+                Vector3 outsideLOS = SCP513_1AI.Instance!.GetRandomPositionAroundPlayer(5f, 15f, 10);
 
                 SCP513_1AI.Instance!.SwitchToBehavior(SCP513_1AI.State.Manifesting);
                 SCP513_1AI.Instance!.Teleport(outsideLOS);
@@ -750,7 +750,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 "Flowerman",
                 "SpringMan",
                 "MaskedPlayerEnemy",
-                "SandSpider",
                 "Crawler",
                 "Butler"
             };
