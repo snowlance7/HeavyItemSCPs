@@ -17,12 +17,12 @@ namespace HeavyItemSCPs
         private static ManualLogSource logger = LoggerInstance;
 
         public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
-        public static bool testing = true;
-        public static bool spawningAllowed = false;
+        public static bool testing = false;
+        public static bool spawningAllowed = true;
         public static bool trailerMode = false;
-
-        public static GameObject[]? outsideAINodes;
-        public static GameObject[]? insideAINodes;
+        
+        public static GameObject[] insideAINodes => RoundManager.Instance.insideAINodes ?? GameObject.FindGameObjectsWithTag("AINode");
+        public static GameObject[] outsideAINodes => RoundManager.Instance.outsideAINodes ?? GameObject.FindGameObjectsWithTag("OutsideAINode");
         public static Vector3[]? outsideNodePositions;
         public static Vector3[]? insideNodePositions;
 
@@ -435,37 +435,6 @@ namespace HeavyItemSCPs
             }
 
             return positions;
-        }
-
-        private static GameObject[] FindOutsideAINodes()
-        {
-            if (outsideAINodes == null || outsideAINodes.Length == 0 || outsideAINodes[0] == null)
-            {
-                outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
-                logger.LogInfo("Finding outside AI nodes.");
-                outsideNodePositions = new Vector3[outsideAINodes.Length];
-
-                for (int i = 0; i < outsideAINodes.Length; i++)
-                {
-                    outsideNodePositions[i] = outsideAINodes[i].transform.position;
-                }
-            }
-            return outsideAINodes;
-        }
-
-        private static GameObject[] FindInsideAINodes()
-        {
-            if (insideAINodes == null || insideAINodes.Length == 0 || insideAINodes[0] == null)
-            {
-                insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
-                logger.LogInfo("Finding inside AI nodes.");
-                insideNodePositions = new Vector3[insideAINodes.Length];
-                for (int i = 0; i < insideAINodes.Length; i++)
-                {
-                    insideNodePositions[i] = insideAINodes[i].transform.position;
-                }
-            }
-            return insideAINodes;
         }
 
         public static PlayerControllerB[] GetNearbyPlayers(Vector3 position, float distance = 10f, List<PlayerControllerB>? ignoredPlayers = null)

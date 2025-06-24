@@ -40,8 +40,8 @@ namespace HeavyItemSCPs.Items.SCP513
         public GameObject SoundObjectPrefab;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-        GameObject[] insideAINodes = [];
-        GameObject[] outsideAINodes = [];
+        GameObject[] insideAINodes => RoundManager.Instance.insideAINodes ?? GameObject.FindGameObjectsWithTag("AINode");
+        GameObject[] outsideAINodes => RoundManager.Instance.outsideAINodes ?? GameObject.FindGameObjectsWithTag("OutsideAINode");
         public bool isOutside => !localPlayer.isInsideFactory;
         public GameObject[] allAINodes => isOutside ? outsideAINodes : insideAINodes;
 
@@ -128,8 +128,8 @@ namespace HeavyItemSCPs.Items.SCP513
 
             Instance = this;
 
-            insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
-            outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+            //insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
+            //outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
 
             path1 = new NavMeshPath();
 
