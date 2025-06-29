@@ -97,9 +97,13 @@ namespace HeavyItemSCPs.Items.SCP427
 
         EnemyAI targetEnemy = null!;
 
+        int hashSpeed;
+
         // Config values
-        DropMethod dropMethod;
-        int maxHealth;
+        DropMethod dropMethod => config4271DropMethod.Value;
+        int maxHealth => config4271MaxHealth.Value;
+        float distanceToLoseAggro = 30f;
+        private bool throwingScrap;
 
         public enum State
         {
@@ -124,7 +128,7 @@ namespace HeavyItemSCPs.Items.SCP427
             DropAllItems
         }
 
-        public void SwitchToBehaviourCustom(State state)
+        /*public void SwitchToBehaviourCustom(State state)
         {
             switch (state)
             {
@@ -147,25 +151,21 @@ namespace HeavyItemSCPs.Items.SCP427
             }
 
             SwitchToBehaviourClientRpc((int)state);
-        }
+        }*/
 
         public override void Start()
         {
             base.Start();
             logger.LogDebug("SCP-427-1 Spawned");
 
-            dropMethod = config4271DropMethod.Value;
-            maxHealth = config4271MaxHealth.Value;
-
             SetOutsideOrInside();
-            //SetEnemyOutsideClientRpc(true);
-            //debugEnemyAI = true;
 
             RoundManager.Instance.RefreshEnemiesList();
             HoarderBugAI.RefreshGrabbableObjectsInMapList();
 
             timeSinceSeenPlayer = Mathf.Infinity;
-            SwitchToBehaviourCustom(State.Roaming);
+
+            hashSpeed = Animator.StringToHash("speed");
 
             logger.LogDebug("Finished spawning SCP-427-1");
         }
@@ -211,11 +211,22 @@ namespace HeavyItemSCPs.Items.SCP427
             CalculateAgentSpeed();
         }
 
+        public void LateUpdate()
+        {
+            creatureAnimator.SetFloat(hashSpeed, agent.velocity.magnitude / 2); // TODO: Set this up correctly
+
+            if (facePlayer)
+            {
+                turnCompass.LookAt(Plugin.localPlayer.gameplayCamera.transform.position);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 30f * Time.deltaTime);
+            }
+        }
+
         public override void DoAIInterval()
         {
             base.DoAIInterval();
 
-            if (isEnemyDead || StartOfRound.Instance.allPlayersDead)
+            if (isEnemyDead || StartOfRound.Instance.allPlayersDead || inSpecialAnimation)
             {
                 return;
             };
@@ -226,42 +237,48 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 case (int)State.Roaming:
 
+                    if (throwingScrap) { return; }
+
                     if (FoundClosestPlayerInRange(25f, 5f))
                     {
-                        if (heldObject != null)
-                        {
-                            SwitchToBehaviourCustom(State.Throwing);
-                            AttemptThrowScrapAtTargetPlayer();
-                        }
-                        else
-                        {
-                            StopSearch(currentSearch);
+                        StopSearch(currentSearch);
 
+                        if (heldObject == null)
+                        {
                             if (timeSinceSeenPlayer > 30f)
                             {
                                 Roar();
                             }
-                            else
-                            {
-                                SwitchToBehaviourCustom(State.Chasing);
-                            }
 
+                            SwitchToBehaviourCustom(State.Chasing);
                             idlingTimer = 0f;
                             timeSinceSeenPlayer = 0f;
+                        }
+                        else
+                        {
+                            SwitchToBehaviourCustom(State.Throwing);
+                            AttemptThrowScrapAtTargetPlayer();
                         }
                         break;
                     }
 
-                    MoveTowardsScrapInLineOfSight();
+                    if (!MoveTowardsScrapInLineOfSight())
+                    {
+                        if (currentSearch == null || !currentSearch.inProgress)
+                        {
+                            StartSearch(transform.position);
+                        }
+                    }
 
                     break;
 
                 case (int)State.Chasing:
 
-                    if (!TargetClosestPlayerInAnyCase() || (Vector3.Distance(transform.position, targetPlayer.transform.position) > 30f && !CheckLineOfSightForPosition(targetPlayer.transform.position)))
+                    if (!TargetClosestPlayerInAnyCase() || (Vector3.Distance(transform.position, targetPlayer.transform.position) > distanceToLoseAggro && !CheckLineOfSightForPosition(targetPlayer.transform.position)))
                     {
                         logger.LogDebug("Stop Targeting");
                         targetPlayer = null;
+                        StartSearch();
                         SwitchToBehaviourCustom(State.Roaming);
                         return;
                     }
@@ -432,21 +449,15 @@ namespace HeavyItemSCPs.Items.SCP427
             if (heldObject != null) { return; }
             if (targetObject != null)
             {
-                logger.LogDebug("Trying to pick up scrap when close"); // TODO: Test this, stops working if someone picks up scrap before it is picked up?
+                //logger.LogDebug("Trying to pick up scrap when close"); // TODO: Test this, stops working if someone picks up scrap before it is picked up?
                 PickUpScrapIfClose();
                 return;
             }
 
             targetObject = CheckLineOfSight(HoarderBugAI.grabbableObjectsInMap);
-
-            if (targetObject != null)
-            {
-                if (SetDestinationToPosition(targetObject.transform.position, true))
-                {
-                    logger.LogDebug("Moving to targetObject");
-                    StopSearch(currentSearch);
-                }
-            }
+            if (targetObject == null) { return; }
+            if (!SetDestinationToPosition(targetObject.transform.position, true)) { return; }
+            StopSearch();
         }
 
         private void PickUpScrapIfClose()
@@ -455,39 +466,28 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (scrap == null || scrap.isHeldByEnemy || scrap.isHeld)
             {
-                targetObject = null;
+                targetObject = null!;
                 StartSearch(transform.position);
-                DoAnimationClientRpc(walk: true, run: false);
                 return;
             }
 
             if (Vector3.Distance(transform.position, targetObject.transform.position) < 1.5f)
             {
                 pickingUpScrap = true;
-                inSpecialAnimation = true;
-                StartCoroutine(PickUpScrapCoroutine());
+                networkAnimator.SetTrigger("pickup");
+
+                GrabbableObject grabbingObject = targetObject.GetComponent<GrabbableObject>();
+                targetObject = null!;
+                grabbingObject.parentObject = RightHandTransform;
+                grabbingObject.hasHitGround = false;
+                grabbingObject.GrabItemFromEnemy(this);
+                grabbingObject.EnablePhysics(false);
+                HoarderBugAI.grabbableObjectsInMap.Remove(grabbingObject.gameObject);
+                heldObject = grabbingObject;
+
+                StartSearch(transform.position);
+                pickingUpScrap = false;
             }
-        }
-
-        public IEnumerator PickUpScrapCoroutine()
-        {
-            networkAnimator.SetTrigger("pickup");
-            yield return new WaitForSeconds(0.1f);
-
-            GrabbableObject grabbingObject = targetObject.GetComponent<GrabbableObject>();
-            targetObject = null!;
-            grabbingObject.parentObject = RightHandTransform;
-            grabbingObject.hasHitGround = false;
-            grabbingObject.GrabItemFromEnemy(this);
-            grabbingObject.EnablePhysics(false);
-            HoarderBugAI.grabbableObjectsInMap.Remove(grabbingObject.gameObject);
-            heldObject = grabbingObject;
-
-            yield return new WaitForSeconds(0.5f);
-            StartSearch(transform.position);
-            pickingUpScrap = false;
-            inSpecialAnimation = false;
-            //networkAnimator.SetTrigger("startWalk");
         }
 
         public void AttemptThrowScrapAtTargetPlayer()
@@ -515,6 +515,7 @@ namespace HeavyItemSCPs.Items.SCP427
             }
             else
             {
+                StopSearch();
                 SwitchToBehaviourCustom(State.Chasing);
             }
         }
@@ -554,6 +555,12 @@ namespace HeavyItemSCPs.Items.SCP427
             // Grab player
             logger.LogDebug("Grabbing player: " + inSpecialAnimationWithPlayer.playerUsername);
             grabbingPlayer = true;
+
+            IEnumerator FailsafeCoroutine()
+            {
+                yield return new WaitForSeconds(5f);
+                CancelSpecialAnimationWithPlayer();
+            }
             StartCoroutine(FailsafeCoroutine());
         }
 
@@ -573,6 +580,27 @@ namespace HeavyItemSCPs.Items.SCP427
 
                     enemyRb.velocity = Vector3.zero;
                     enemyRb.AddForce(throwDirection.normalized * throwForce, ForceMode.Impulse);
+
+                    IEnumerator RemoveRigidbodyAfterDelay(float delay)
+                    {
+                        yield return new WaitForSeconds(delay);
+
+                        Rigidbody enemyRb = targetEnemy.gameObject.GetComponent<Rigidbody>();
+
+                        if (enemyRb != null)
+                        {
+                            enemyRb.isKinematic = true;
+                            Destroy(enemyRb);
+                        }
+
+                        targetEnemy.agent.enabled = true;
+                        targetEnemy.HitEnemy(4, null, true);
+
+                        targetEnemy = null!;
+                        inSpecialAnimation = false;
+                        StartSearch(transform.position);
+                        SwitchToBehaviourCustom(State.Roaming);
+                    }
                     StartCoroutine(RemoveRigidbodyAfterDelay(1f));
                 }
 
@@ -595,6 +623,16 @@ namespace HeavyItemSCPs.Items.SCP427
             // Damage player
             if (localPlayer == player)
             {
+                IEnumerator InjureLocalPlayerCoroutine()
+                {
+                    yield return new WaitUntil(() => localPlayer.thisController.isGrounded || localPlayer.isInHangarShipRoom);
+                    if (localPlayer.isPlayerDead) { yield break; }
+                    localPlayer.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
+                    localPlayer.sprintMeter /= 2;
+                    localPlayer.JumpToFearLevel(0.8f);
+                    localPlayer.drunkness = 0.2f;
+                }
+
                 StartCoroutine(InjureLocalPlayerCoroutine());
             }
 
@@ -606,81 +644,44 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        public IEnumerator FailsafeCoroutine()
-        {
-            yield return new WaitForSeconds(5f);
-            CancelSpecialAnimationWithPlayer();
-        }
-
-        public IEnumerator RemoveRigidbodyAfterDelay(float delay)
-        {
-            yield return new WaitForSeconds(delay);
-
-            Rigidbody enemyRb = targetEnemy.gameObject.GetComponent<Rigidbody>();
-
-            if (enemyRb != null)
-            {
-                enemyRb.isKinematic = true;
-                Destroy(enemyRb);
-            }
-
-            targetEnemy.agent.enabled = true;
-            targetEnemy.HitEnemy(4, null, true);
-
-            targetEnemy = null!;
-            inSpecialAnimation = false;
-            SwitchToBehaviourCustom(State.Roaming);
-        }
-
-        public IEnumerator InjureLocalPlayerCoroutine()
-        {
-            yield return new WaitUntil(() => localPlayer.thisController.isGrounded || localPlayer.isInHangarShipRoom);
-            if (localPlayer.isPlayerDead) { yield break; }
-            localPlayer.DamagePlayer(40, true, true, CauseOfDeath.Inertia);
-            localPlayer.sprintMeter /= 2;
-            localPlayer.JumpToFearLevel(0.8f);
-            localPlayer.drunkness = 0.2f;
-        }
-
         public void FreezePlayer(PlayerControllerB player, float freezeTime)
         {
-            StartCoroutine(FreezePlayerCoroutine(player, freezeTime));
-        }
+            IEnumerator FreezePlayerCoroutine(PlayerControllerB player, float freezeTime)
+            {
+                player.disableMoveInput = true;
+                player.disableInteract = true;
+                yield return new WaitForSeconds(freezeTime);
+                player.disableInteract = false;
+                player.disableMoveInput = false;
+            }
 
-        private IEnumerator FreezePlayerCoroutine(PlayerControllerB player, float freezeTime)
-        {
-            player.disableMoveInput = true;
-            player.disableInteract = true;
-            yield return new WaitForSeconds(freezeTime);
-            player.disableInteract = false;
-            player.disableMoveInput = false;
+            StartCoroutine(FreezePlayerCoroutine(player, freezeTime));
         }
 
         public void Roar()
         {
+            IEnumerator RoarCoroutine()
+            {
+                creatureVoice.PlayOneShot(roarSFX, 1f);
+                networkAnimator.SetTrigger("roar");
+
+                yield return new WaitUntil(() => stunNormalizedTimer <= 0f);
+
+                if (targetPlayer != null)
+                {
+                    SwitchToBehaviourCustom(State.Chasing);
+                }
+                else
+                {
+                    SwitchToBehaviourCustom(State.Roaming);
+                }
+            }
+
             idlingTimer = 0f;
 
-
-            StopSearch(currentSearch);
+            StopSearch();
             SetEnemyStunned(true, 3.2f);
             StartCoroutine(RoarCoroutine());
-        }
-
-        public IEnumerator RoarCoroutine()
-        {
-            creatureVoice.PlayOneShot(roarSFX, 1f);
-            networkAnimator.SetTrigger("roar");
-
-            yield return new WaitUntil(() => stunNormalizedTimer <= 0f);
-
-            if (targetPlayer != null)
-            {
-                SwitchToBehaviourCustom(State.Chasing);
-            }
-            else
-            {
-                SwitchToBehaviourCustom(State.Roaming);
-            }
         }
 
         public override void ReachedNodeInSearch()
@@ -814,9 +815,11 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null) // TODO: TEST THIS
+        public override void OnCollideWithEnemy(Collider other, EnemyAI? collidedEnemy = null) // TODO: TEST THIS
         {
             base.OnCollideWithEnemy(other, collidedEnemy);
+
+            if (collidedEnemy == null) { return; }
 
             if (collidedEnemy.enemyType.name == "BaboonHawk" || collidedEnemy.enemyType.name == "HoarderBug")
             {
@@ -895,10 +898,8 @@ namespace HeavyItemSCPs.Items.SCP427
         [ServerRpc(RequireOwnership = false)]
         void DoAnimationServerRpc(string animationName)
         {
-            if (IsServerOrHost)
-            {
-                networkAnimator.SetTrigger(animationName);
-            }
+            if (!IsServerOrHost) { return; }
+            networkAnimator.SetTrigger(animationName);
         }
 
         [ClientRpc]

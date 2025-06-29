@@ -46,6 +46,9 @@ namespace HeavyItemSCPs
             logger.LogDebug(spikeTrap.gameObject.transform.root.name);
             logger.LogDebug(spikeTrap.transform.root.gameObject.name);*/
 
+            logger.LogDebug("AINodes: " + GameObject.FindGameObjectsWithTag("AINode").Length);
+            logger.LogDebug("OutsideAINodes: " + GameObject.FindGameObjectsWithTag("OutsideAINode").Length);
+
 
             if (HallucinationManager.Instance == null || setEventRarity == -1 || setEventIndex == -1) { return; }
             HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);

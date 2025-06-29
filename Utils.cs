@@ -20,11 +20,31 @@ namespace HeavyItemSCPs
         public static bool testing = false;
         public static bool spawningAllowed = true;
         public static bool trailerMode = false;
-        
-        public static GameObject[] insideAINodes => RoundManager.Instance.insideAINodes ?? GameObject.FindGameObjectsWithTag("AINode");
-        public static GameObject[] outsideAINodes => RoundManager.Instance.outsideAINodes ?? GameObject.FindGameObjectsWithTag("OutsideAINode");
-        public static Vector3[]? outsideNodePositions;
-        public static Vector3[]? insideNodePositions;
+
+        public static GameObject[] insideAINodes
+        {
+            get
+            {
+                if (RoundManager.Instance.insideAINodes != null && RoundManager.Instance.insideAINodes.Length > 0)
+                {
+                    return RoundManager.Instance.insideAINodes;
+                }
+
+                return GameObject.FindGameObjectsWithTag("AINode");
+            }
+        }
+        public static GameObject[] outsideAINodes
+        {
+            get
+            {
+                if (RoundManager.Instance.outsideAINodes != null && RoundManager.Instance.outsideAINodes.Length > 0)
+                {
+                    return RoundManager.Instance.outsideAINodes;
+                }
+
+                return GameObject.FindGameObjectsWithTag("OutsideAINode");
+            }
+        }
 
         public static void ChatCommand(string[] args)
         {
@@ -340,6 +360,39 @@ namespace HeavyItemSCPs
             return closest;
         }
 
+        public static void Shuffle<T>(this List<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = UnityEngine.Random.Range(0, n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
+
+        public static GameObject? GetClosestGameObjectToPosition(this List<GameObject> list, Vector3 position)
+        {
+            GameObject? closest = null;
+            float closestDistance = Mathf.Infinity;
+
+            foreach (var item in list)
+            {
+                if (item == null) continue;
+
+                float distance = Vector3.Distance(position, item.transform.position);
+                if (distance < closestDistance)
+                {
+                    closest = item;
+                    closestDistance = distance;
+                }
+            }
+
+            return closest;
+        }
+
         public static Dictionary<string, GameObject> GetAllHazards()
         {
             Dictionary<string, GameObject> hazards = new Dictionary<string, GameObject>();
@@ -351,6 +404,18 @@ namespace HeavyItemSCPs
                 hazards.Add(item.prefabToSpawn.name, item.prefabToSpawn);
             }
             return hazards;
+        }
+
+        public static GameObject? GetRandomNode(bool outside)
+        {
+            logger.LogDebug("Choosing random node...");
+
+            GameObject[] nodes = outside ? outsideAINodes : insideAINodes;
+
+            if (nodes.Length == 0) return null;
+
+            int randIndex = UnityEngine.Random.Range(0, nodes.Length);
+            return nodes[randIndex];
         }
 
         public static Vector3 GetRandomNavMeshPositionInAnnulus(Vector3 center, float minRadius, float maxRadius, int sampleCount = 10)

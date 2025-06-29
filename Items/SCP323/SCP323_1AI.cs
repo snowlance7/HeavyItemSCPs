@@ -460,7 +460,8 @@ namespace HeavyItemSCPs.Items.SCP323
             while (roamCoroutine != null)
             {
                 movingTowardsTargetPlayer = false;
-                TargetRandomNode();
+                targetNode = Utils.GetRandomNode(isOutside)?.transform;
+                if (targetNode == null) { yield break; }
                 yield return null;
 
                 logger.LogDebug("Setting destination to position");
@@ -471,24 +472,6 @@ namespace HeavyItemSCPs.Items.SCP323
                     logger.LogDebug("Arrived at targetNode");
                 }
             }
-        }
-
-        void TargetRandomNode()
-        {
-            logger.LogDebug("Choosing new target node...");
-
-            GameObject[] nodes;
-            if (isOutside)
-            {
-                nodes = RoundManager.Instance.outsideAINodes;
-            }
-            else
-            {
-                nodes = RoundManager.Instance.insideAINodes;
-            }
-
-            int randIndex = UnityEngine.Random.Range(0, nodes.Length);
-            targetNode = nodes[randIndex].transform;
         }
 
         void CheckForCorpseToEat()
@@ -595,36 +578,14 @@ namespace HeavyItemSCPs.Items.SCP323
             return targetPlayer != null && Vector3.Distance(transform.position, targetPlayer.transform.position) < range;
         }
 
-        bool TargetClosestPlayerInAnyCase()
-        {
-            mostOptimalDistance = 2000f;
-            targetPlayer = null;
-            foreach (var player in StartOfRound.Instance.allPlayerScripts)
-            {
-                if (!PlayerIsTargetable(player)) { continue; }
-                tempDist = Vector3.Distance(transform.position, player.transform.position);
-                if (tempDist < mostOptimalDistance)
-                {
-                    mostOptimalDistance = tempDist;
-                    targetPlayer = player;
-                }
-            }
-
-            return targetPlayer != null;
-        }
-
         public void SetOutsideOrInside()
         {
-            GameObject closestOutsideNode = GetClosestAINode(GameObject.FindGameObjectsWithTag("OutsideAINode").ToList());
-            GameObject closestInsideNode = GetClosestAINode(GameObject.FindGameObjectsWithTag("AINode").ToList());
+            GameObject closestOutsideNode = Utils.outsideAINodes.ToList().GetClosestGameObjectToPosition(transform.position)!;
+            GameObject closestInsideNode = Utils.insideAINodes.ToList().GetClosestGameObjectToPosition(transform.position)!;
 
-            if (Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position))
-            {
-                logger.LogDebug("Setting enemy outside");
-                SetEnemyOutsideClientRpc(true);
-                return;
-            }
-            logger.LogDebug("Setting enemy inside");
+            bool outside = Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position);
+            logger.LogDebug("Setting enemy outside: " + outside.ToString());
+            SetEnemyOutsideClientRpc(true);
         }
 
         public GameObject GetClosestAINode(List<GameObject> nodes)
@@ -664,15 +625,16 @@ namespace HeavyItemSCPs.Items.SCP323
                 GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, RoundManager.Instance.spawnedScrapContainer);
                 skullObj.GetComponent<NetworkObject>().Spawn();
             }
-            StartCoroutine(WaitTillNetworkSpawn());
-        }
 
-        IEnumerator WaitTillNetworkSpawn()
-        {
-            yield return new WaitUntil(() => SCP323Behavior.Instance != null && SCP323Behavior.Instance.NetworkObject.IsSpawned);
-            SCP323Behavior.Instance!.AttachedToWendigo = this;
-            SCP323Behavior.Instance.parentObject = SkullTransform;
-            SCP323Behavior.Instance.transform.localScale = new Vector3(0.12f, 0.12f, 0.12f);
+            IEnumerator WaitTillNetworkSpawn()
+            {
+                yield return new WaitUntil(() => SCP323Behavior.Instance != null && SCP323Behavior.Instance.NetworkObject.IsSpawned);
+                SCP323Behavior.Instance!.AttachedToWendigo = this;
+                SCP323Behavior.Instance.parentObject = SkullTransform;
+                SCP323Behavior.Instance.transform.localScale = new Vector3(0.12f, 0.12f, 0.12f);
+            }
+
+            StartCoroutine(WaitTillNetworkSpawn());
         }
 
         public override void HitEnemy(int force = 0, PlayerControllerB playerWhoHit = null!, bool playHitSFX = true, int hitID = -1)
@@ -726,7 +688,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        public double MapValue(double a0, double a1, double b0, double b1, double a) // TODO: Thank Hamunii for this function
+        public double MapValue(double a0, double a1, double b0, double b1, double a) // Thanks Hamunii for this function
         {
             return b0 + (b1 - b0) * ((a - a0) / (a1 - a0));
         }
@@ -752,7 +714,7 @@ namespace HeavyItemSCPs.Items.SCP323
             if (timeSinceDamage > 1f)
             {
                 PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
-                if (player != null && !player.isPlayerDead && !inSpecialAnimation && !isEnemyDead)
+                if (player != null && player.isPlayerControlled && !inSpecialAnimation && !isEnemyDead)
                 {
                     timeSinceDamage = 0f;
                     int damageAmount = GetPlayerDamage();
@@ -766,20 +728,15 @@ namespace HeavyItemSCPs.Items.SCP323
         public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null!)
         {
             base.OnCollideWithEnemy(other, collidedEnemy);
+            if (!IsServerOrHost || timeSinceDamage <= 1f) { return; }
 
-            if (IsServerOrHost)
+            if (collidedEnemy.enemyType.name == maskedName || (targetEnemy != null && collidedEnemy == targetEnemy))
             {
-                if (timeSinceDamage > 1f)
+                if (!isEnemyDead && !collidedEnemy.isEnemyDead && !inSpecialAnimation)
                 {
-                    if (collidedEnemy.enemyType.name == maskedName || (targetEnemy != null && collidedEnemy == targetEnemy))
-                    {
-                        if (!isEnemyDead && !collidedEnemy.isEnemyDead && !inSpecialAnimation)
-                        {
-                            timeSinceDamage = 0f;
-                            networkAnimator.SetTrigger("claw");
-                            collidedEnemy.HitEnemy(2, null, true);
-                        }
-                    }
+                    timeSinceDamage = 0f;
+                    networkAnimator.SetTrigger("claw");
+                    collidedEnemy.HitEnemy(2, null, true);
                 }
             }
         }

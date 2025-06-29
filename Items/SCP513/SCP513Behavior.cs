@@ -56,7 +56,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            if (localPlayerHaunted && SCP513_1AI.Instance == null && !StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving)
+            if (localPlayerHaunted && SCP513_1AI.Instance == null && ((!StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving) || Utils.inTestRoom))
             {
                 SpawnBellMan();
             }
