@@ -141,6 +141,21 @@ namespace HeavyItemSCPs.Items.SCP513
             nextRareEventTime = rareEventMaxCooldown;
         }
 
+        public void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+                DespawnMimicEnemy();
+
+                if (mimicPlayer != null)
+                {
+                    Utils.MakePlayerInvisible(mimicPlayer, false);
+                    mimicPlayer = null;
+                }
+            }
+        }
+
         public void Update()
         {
             if (SCP513Behavior.Instance == null || !SCP513Behavior.Instance.localPlayerHaunted || StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase)
@@ -381,21 +396,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 nextRareEventTime = UnityEngine.Random.Range(rareEventMinCooldown, rareEventMaxCooldown);
                 HallucinationManager.Instance!.RunRandomEvent(2);
                 return;
-            }
-        }
-
-        public void OnDestroy()
-        {
-            if (Instance == this)
-            {
-                Instance = null;
-                DespawnMimicEnemy();
-
-                if (mimicPlayer != null)
-                {
-                    Utils.MakePlayerInvisible(mimicPlayer, false);
-                    mimicPlayer = null;
-                }
             }
         }
 

@@ -46,12 +46,12 @@ namespace HeavyItemSCPs
             logger.LogDebug(spikeTrap.gameObject.transform.root.name);
             logger.LogDebug(spikeTrap.transform.root.gameObject.name);*/
 
-            logger.LogDebug("AINodes: " + GameObject.FindGameObjectsWithTag("AINode").Length);
-            logger.LogDebug("OutsideAINodes: " + GameObject.FindGameObjectsWithTag("OutsideAINode").Length);
+            //logger.LogDebug("AINodes: " + GameObject.FindGameObjectsWithTag("AINode").Length);
+            //logger.LogDebug("OutsideAINodes: " + GameObject.FindGameObjectsWithTag("OutsideAINode").Length);
 
 
-            if (HallucinationManager.Instance == null || setEventRarity == -1 || setEventIndex == -1) { return; }
-            HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
+            //if (HallucinationManager.Instance == null || setEventRarity == -1 || setEventIndex == -1) { return; }
+            //HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
@@ -63,6 +63,10 @@ namespace HeavyItemSCPs
 
             switch (args[0])
             {
+                case "/playerThrowing":
+                    SCP4271AI.throwingPlayerDisabled = !SCP4271AI.throwingPlayerDisabled;
+                    HUDManager.Instance.DisplayTip("ThrowingPlayerDisabled", SCP4271AI.throwingPlayerDisabled.ToString());
+                    break;
                 case "/allEvents":
                     HallucinationManager.Instance?.RunAllEvents(int.Parse(args[1]));
                     break;

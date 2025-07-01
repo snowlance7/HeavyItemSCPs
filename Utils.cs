@@ -4,11 +4,13 @@ using HarmonyLib;
 using HeavyItemSCPs.Items.SCP513;
 using LethalLib.Modules;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using static HeavyItemSCPs.Plugin;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace HeavyItemSCPs
 {

@@ -56,9 +56,14 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
 
-            if (localPlayerHaunted && SCP513_1AI.Instance == null && ((!StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving) || Utils.inTestRoom))
+            if (localPlayerHaunted && SCP513_1AI.Instance == null && !StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving)
             {
                 SpawnBellMan();
+            }
+
+            if (Utils.inTestRoom && localPlayerHaunted && SCP513_1AI.Instance == null)
+            {
+                SpawnBellMan(); // TODO: Spams this for some reason
             }
 
             if (playerHeldBy == null || localPlayer != playerHeldBy)
