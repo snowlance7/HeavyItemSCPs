@@ -215,7 +215,7 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 case (int)State.Roaming:
 
-                    if (FoundClosestPlayerInRange(25f, 5f))
+                    if (!disableTargetting && FoundClosestPlayerInRange(25f, 5f))
                     {
                         StopSearch(currentSearch);
 
@@ -564,6 +564,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (Vector3.Distance(transform.position, targetObject.transform.position) < 1.5f)
                 {
+                    logger.LogDebug("Grabbing scrap");
                     GrabScrapClientRpc(scrap.NetworkObject);
                 }
 
@@ -832,7 +833,7 @@ namespace HeavyItemSCPs.Items.SCP427
             if (!netObj.TryGetComponent(out GrabbableObject scrap)) { logger.LogError("Cant find GrabbableObject from netObj GrabClientRpc"); return; }
             
             targetObject = scrap.gameObject;
-            creatureAnimator.SetTrigger("grab");
+            creatureAnimator.SetTrigger("pickup");
         }
 
         [ServerRpc(RequireOwnership = false)]

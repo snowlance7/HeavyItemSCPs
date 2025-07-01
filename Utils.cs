@@ -22,6 +22,7 @@ namespace HeavyItemSCPs
         public static bool testing = false;
         public static bool spawningAllowed = true;
         public static bool trailerMode = false;
+        public static bool disableTargetting = false;
 
         public static GameObject[] insideAINodes
         {

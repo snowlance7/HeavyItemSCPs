@@ -63,6 +63,10 @@ namespace HeavyItemSCPs
 
             switch (args[0])
             {
+                case "/targetting":
+                    Utils.disableTargetting = !Utils.disableTargetting;
+                    HUDManager.Instance.DisplayTip("DisableTargetting: ", Utils.disableTargetting.ToString());
+                    break;
                 case "/playerThrowing":
                     SCP4271AI.throwingPlayerDisabled = !SCP4271AI.throwingPlayerDisabled;
                     HUDManager.Instance.DisplayTip("ThrowingPlayerDisabled", SCP4271AI.throwingPlayerDisabled.ToString());
