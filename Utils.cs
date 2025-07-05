@@ -18,11 +18,14 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = LoggerInstance;
 
+        public static bool debuggingEnabled = true;
+
         public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
         public static bool testing = false;
         public static bool spawningAllowed = true;
         public static bool trailerMode = false;
         public static bool disableTargetting = false;
+        public static bool disableMoving = false;
 
         public static GameObject[] insideAINodes
         {
@@ -207,6 +210,35 @@ namespace HeavyItemSCPs
                 LoggerInstance.LogError($"Error: {e}");
                 return null;
             }
+        }
+
+        public static Vector3 GetBestThrowDirection(Vector3 origin, Vector3 forward, int rayCount, float maxDistance, LayerMask layerMask)
+        {
+            Vector3 bestDirection = forward;
+            float farthestHit = 0f;
+
+            for (int i = 0; i < rayCount; i++)
+            {
+                float angle = i * (360f / rayCount);
+                Vector3 dir = Quaternion.Euler(0, angle, 0) * forward.normalized;
+
+                // Raycast from origin outward
+                if (Physics.Raycast(origin + Vector3.up * 0.5f, dir, out RaycastHit hit, maxDistance, layerMask))
+                {
+                    if (hit.distance > farthestHit)
+                    {
+                        bestDirection = dir;
+                        farthestHit = hit.distance;
+                    }
+                }
+                else
+                {
+                    // If nothing is hit, assume max distance (ideal throw)
+                    return dir;
+                }
+            }
+
+            return bestDirection;
         }
 
         public static Vector3 GetSpeed()

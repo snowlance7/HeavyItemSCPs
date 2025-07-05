@@ -39,9 +39,6 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public GameObject SoundObjectPrefab;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
-        GameObject[] insideAINodes => RoundManager.Instance.insideAINodes ?? GameObject.FindGameObjectsWithTag("AINode");
-        GameObject[] outsideAINodes => RoundManager.Instance.outsideAINodes ?? GameObject.FindGameObjectsWithTag("OutsideAINode");
         public bool isOutside => !localPlayer.isInsideFactory;
         public GameObject[] allAINodes => isOutside ? outsideAINodes : insideAINodes;
 
@@ -128,9 +125,6 @@ namespace HeavyItemSCPs.Items.SCP513
 
             Instance = this;
 
-            //insideAINodes = GameObject.FindGameObjectsWithTag("AINode");
-            //outsideAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
-
             path1 = new NavMeshPath();
 
             hashRunSpeed = Animator.StringToHash("speed");
@@ -158,13 +152,15 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public void Update()
         {
-            if (SCP513Behavior.Instance == null || !SCP513Behavior.Instance.localPlayerHaunted || StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase)
+            if ((SCP513Behavior.Instance == null || !SCP513Behavior.Instance.localPlayerHaunted) || 
+                ((StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) && !inTestRoom))
             {
                 Destroy(gameObject);
                 return;
             }
 
-            if (localPlayer.isPlayerDead)
+
+            if (localPlayer.isPlayerDead || !localPlayer.isPlayerControlled)
             {
                 SCP513Behavior.Instance.localPlayerHaunted = false;
                 Destroy(gameObject);

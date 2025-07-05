@@ -20,7 +20,7 @@ namespace HeavyItemSCPs.Items.SCP427
 {
     public class SCP4271AI : EnemyAI, IVisibleThreat // TODO: Needs testing
     {
-
+        // Run speed for animation: 1.1 or higher
         // Thumper variables for reference:
         /*
          * CrawlerAI.SpeedAccelerationEffect = 2.4f;
@@ -49,6 +49,7 @@ namespace HeavyItemSCPs.Items.SCP427
          */
 
         private static ManualLogSource logger = LoggerInstance;
+        public static SCP4271AI? Instance { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Transform turnCompass;
@@ -70,7 +71,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public static bool throwingPlayerDisabled; // TESTING REMOVE LATER
 
-        public static float heldObjectVerticalOffset = 6f; // TODO: Get this from testing
+        public float heldObjectVerticalOffset = 6f; // TODO: Get this from testing
 
         EnemyAI? targetEnemy;
         GameObject? targetObject;
@@ -101,6 +102,8 @@ namespace HeavyItemSCPs.Items.SCP427
         Vector3 upDirection;
         Vector3 throwDirection;
         Vector3 lastKnownTargetPlayerPosition;
+
+        float currentSpeed => agent.velocity.magnitude / 2;
 
         int hashSpeed;
 
@@ -136,6 +139,11 @@ namespace HeavyItemSCPs.Items.SCP427
             base.Start();
             logger.LogDebug("SCP-427-1 Spawned");
 
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+
             SetOutsideOrInside();
 
             RoundManager.Instance.RefreshEnemiesList();
@@ -146,6 +154,16 @@ namespace HeavyItemSCPs.Items.SCP427
             hashSpeed = Animator.StringToHash("speed");
 
             logger.LogDebug("Finished spawning SCP-427-1");
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
         public override void Update()
@@ -191,7 +209,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void LateUpdate()
         {
-            creatureAnimator.SetFloat(hashSpeed, agent.velocity.magnitude / 2); // TODO: Set this up correctly
+            creatureAnimator.SetFloat(hashSpeed, currentSpeed); // TODO: Set this up correctly
 
             if (facePlayer)
             {
@@ -203,6 +221,8 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void DoAIInterval()
         {
             base.DoAIInterval();
+
+            logger.LogDebug(currentSpeed);
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead || inSpecialAnimation)
             {
@@ -267,23 +287,23 @@ namespace HeavyItemSCPs.Items.SCP427
 
         #region Animation Events
 
-        public void InSpecialAnimationTrue()
+        public void InSpecialAnimationTrue() // Used in animation events
         {
             inSpecialAnimation = true;
         }
 
-        public void InSpecialAnimationFalse()
+        public void InSpecialAnimationFalse() // Used in animation events
         {
             inSpecialAnimation = false;
         }
 
-        public void PlayStompSFX() // Used in animation events, works as intended
+        public void PlayStompSFX() // Used in animation events
         {
             float volume = currentBehaviourStateIndex == (int)State.Chasing ? 1f : 0.7f;
             RoundManager.PlayRandomClip(creatureSFX, stompSFXList, true, volume);
         }
 
-        public void PlayRoarSFX()
+        public void PlayRoarSFX() // Used in animation events
         {
             creatureVoice.PlayOneShot(roarSFX, 1f);
         }
@@ -448,7 +468,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private void CalculateAgentSpeed()
         {
-            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
+            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0) || Utils.disableMoving)
             {
                 //logger.LogDebug("Stopping agent speed");
                 agent.speed = 0f;
@@ -521,33 +541,13 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void SetOutsideOrInside()
         {
-            GameObject closestOutsideNode = Utils.GetClosestGameObjectToPosition(outsideAINodes.ToList(), transform.position);
-            GameObject closestInsideNode = Utils.GetClosestGameObjectToPosition(insideAINodes.ToList(), transform.position);
+            GameObject closestOutsideNode = Utils.outsideAINodes.ToList().GetClosestGameObjectToPosition(transform.position)!;
+            GameObject closestInsideNode = Utils.insideAINodes.ToList().GetClosestGameObjectToPosition(transform.position)!;
 
-            if (Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position))
-            {
-                logger.LogDebug("Setting enemy outside");
-                SetEnemyOutsideClientRpc(true);
-                return;
-            }
-            logger.LogDebug("Setting enemy inside");
+            bool outside = Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position);
+            logger.LogDebug("Setting enemy outside: " + outside.ToString());
+            SetEnemyOutsideClientRpc(true);
         }
-
-        /*public GameObject GetClosestAINode(List<GameObject> nodes)
-        {
-            float closestDistance = Mathf.Infinity;
-            GameObject closestNode = null!;
-            foreach (GameObject node in nodes)
-            {
-                float distanceToNode = Vector3.Distance(transform.position, node.transform.position);
-                if (distanceToNode < closestDistance)
-                {
-                    closestDistance = distanceToNode;
-                    closestNode = node;
-                }
-            }
-            return closestNode;
-        }*/
 
         bool MoveTowardsScrapInLineOfSight()
         {
@@ -593,6 +593,8 @@ namespace HeavyItemSCPs.Items.SCP427
             itemGrabbableObject.targetFloorPosition = itemGrabbableObject.transform.parent.InverseTransformPoint(targetFloorPosition);
             itemGrabbableObject.floorYRot = -1;
             itemGrabbableObject.DiscardItemFromEnemy();
+            itemGrabbableObject.isHeldByEnemy = false;
+            HoarderBugAI.grabbableObjectsInMap.Add(itemGrabbableObject.gameObject);
             heldObject = null!;
         }
 
@@ -687,7 +689,8 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.OnCollideWithPlayer(other);
             if (throwingPlayerDisabled) { return; }
-            if (heldObject != null || inSpecialAnimation) { return; }
+            if (inSpecialAnimation) { return; }
+            if (heldObject != null) { DropItem(transform.position); }
             PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other, false, true);
             if (player == null || timeSinceDamagePlayer < 2f) { return; }
 

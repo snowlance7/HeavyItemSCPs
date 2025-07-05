@@ -63,6 +63,10 @@ namespace HeavyItemSCPs
 
             switch (args[0])
             {
+                case "/moving":
+                    Utils.disableMoving = !Utils.disableMoving;
+                    HUDManager.Instance.DisplayTip("DisableMoving: ", Utils.disableMoving.ToString());
+                    break;
                 case "/targetting":
                     Utils.disableTargetting = !Utils.disableTargetting;
                     HUDManager.Instance.DisplayTip("DisableTargetting: ", Utils.disableTargetting.ToString());

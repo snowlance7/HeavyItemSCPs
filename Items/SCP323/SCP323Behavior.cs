@@ -25,7 +25,6 @@ namespace HeavyItemSCPs.Items.SCP323
         public GameObject SCP3231Prefab;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-        public static bool isTesting = false;
         public static AttachState testState = AttachState.None;
 
         readonly Vector3 posOffsetWearing = new Vector3(-0.275f, -0.15f, -0.05f);
@@ -43,15 +42,16 @@ namespace HeavyItemSCPs.Items.SCP323
         bool attaching;
         bool skullOn;
         Coroutine? transformingCoroutine;
+        float timeSpawned = 0f;
 
         public SCP323_1AI AttachedToWendigo = null!;
 
         // Config variables
-        float distanceToIncreaseInstanity; // default 10 or 15
-        int insanityHolding; // default 10
-        int insanityWearing; // default 10
-        int insanityToTransform; // default 50
-        bool showInsanity; // default false
+        float distanceToIncreaseInstanity => config323DistanceToIncreaseInsanity.Value;
+        int insanityHolding => config323InsanityHolding.Value;
+        int insanityWearing => config323InsanityWearing.Value;
+        int insanityToTransform => config323InsanityToTransform.Value;
+        bool showInsanity => config323ShowInsanity.Value;
 
         public ThreatType type => ThreatType.Player;
 
@@ -62,50 +62,43 @@ namespace HeavyItemSCPs.Items.SCP323
             Transforming
         }
 
-        public override void Start()
+        public override void OnNetworkSpawn()
         {
-            base.Start();
-
-            distanceToIncreaseInstanity = config323DistanceToIncreaseInsanity.Value;
-            insanityHolding = config323InsanityHolding.Value;
-            insanityWearing = config323InsanityWearing.Value;
-            insanityToTransform = config323InsanityToTransform.Value;
-            showInsanity = config323ShowInsanity.Value;
-
-            StartCoroutine(DelayedStart());
+            base.OnNetworkSpawn();
+            if (Instance != null && Instance != this)
+            {
+                logger.LogDebug("There is already a SCP-513 in the scene. Removing this one.");
+                return;
+            }
+            Instance = this;
+            logger.LogDebug("Finished spawning SCP-513");
         }
 
-        IEnumerator DelayedStart()
+        public override void OnNetworkDespawn()
         {
-            yield return new WaitUntil(() => NetworkObject.IsSpawned);
-
-            if (Instance != null && NetworkObject.IsSpawned)
-            {
-                if (IsServerOrHost)
-                {
-                    logger.LogDebug("There is already a SCP-323 in the scene. Removing this one.");
-                    NetworkObject.Despawn(true);
-                }
-            }
-            else
-            {
-                Instance = this;
-            }
-        }
-
-        public override void OnDestroy()
-        {
-            base.OnDestroy();
-
+            base.OnNetworkDespawn();
             if (Instance == this)
             {
                 Instance = null;
+                Utils.FreezePlayer(localPlayer, false);
             }
         }
 
         public override void Update()
         {
             base.Update();
+
+            timeSpawned += Time.deltaTime;
+
+            if (Instance != this)
+            {
+                grabbable = false;
+                if (IsServerOrHost && timeSpawned > 3f)
+                {
+                    NetworkObject.Despawn(true);
+                }
+                return;
+            }
 
             if (PlayerIsTargetable(localPlayer) && Vector3.Distance(transform.position, localPlayer.transform.position) < distanceToIncreaseInstanity)
             {
@@ -181,7 +174,7 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.ItemActivate(used, buttonDown);
 
-            if (isTesting)
+            if (Utils.testing)
             {
                 playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
                 skullOn = buttonDown;
