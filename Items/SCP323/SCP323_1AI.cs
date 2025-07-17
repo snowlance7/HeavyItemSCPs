@@ -40,7 +40,8 @@ namespace HeavyItemSCPs.Items.SCP323
         Coroutine? roamCoroutine;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-        EnemyAI? targetEnemy; // TODO: Use game object instead and use extended function to get closest entity idk brain no work no more
+        PlayerControllerB targetPlayer;
+        EnemyAI? targetEnemy;
         EnemyAI? lastEnemyAttackedMe;
 
         float timeSinceDamage;
@@ -163,10 +164,10 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 case (int)State.Roaming:
                     if (timeSpawned < 5f) { return; }
-                    if (FoundClosestMaskedInRange(50f, 15f) || FoundClosestPlayerInRange(50f, 5f))
+                    if (TargetClosestPlayerOrMasked())
                     {
-                        SwitchToBehaviourStateCustom((int)State.Hunting);
-                        if (targetEntity != null) { targetPlayerLastSeenPos = targetEntity.transform.position; }
+                        SwitchToBehaviourClientRpc((int)State.Hunting);
+                        if (targetPlayer != null) { targetPlayerLastSeenPos = targetPlayer.transform.position; }
                         Roar();
                     }
 
@@ -174,13 +175,12 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 case (int)State.BloodSearch:
 
-                    if (TargetPlayerInBloodSearch()) // TODO: Rework this
+                    if (TargetPlayerInBloodSearch())
                     {
-                        targetPlayer = targetEntity as PlayerControllerB;
-                        SetDestinationToPosition(targetEntity.transform.position);
-                        if (CheckLineOfSightForPosition(targetEntity.transform.position, 70f, 60, 10))
+                        SetDestinationToPosition(targetPlayer.transform.position);
+                        if (CheckLineOfSightForPosition(targetPlayer.transform.position, 70f, 60, 10))
                         {
-                            SwitchToBehaviourStateCustom((int)State.Hunting);
+                            SwitchToBehaviourClientRpc((int)State.Hunting);
                             timeSinceSeenPlayer = 0f;
                             Roar();
                         }
@@ -191,22 +191,28 @@ namespace HeavyItemSCPs.Items.SCP323
                         SetDestinationToPosition(targetEnemy.transform.position);
                         if (CheckLineOfSightForPosition(targetEnemy.transform.position, 70f, 60, 10))
                         {
-                            SwitchToBehaviourStateCustom((int)State.Hunting);
+                            SwitchToBehaviourClientRpc((int)State.Hunting);
                             timeSinceSeenPlayer = 0f;
                             Roar();
                         }
                         return;
                     }
 
-                    SwitchToBehaviourStateCustom((int)State.Roaming);
+                    SwitchToBehaviourClientRpc((int)State.Roaming);
 
                     break;
 
                 case (int)State.Hunting:
 
-                    if (targetEntity != null && targetEntity.isPlayerControlled)
+                    if (!TargetClosestPlayerOrMasked())
                     {
-                        if (CheckLineOfSightForPosition(targetEntity.transform.position, 70f, 60, 10))
+                        SwitchToBehaviourClientRpc((int)State.Roaming);
+                        return;
+                    }
+
+                    if (targetPlayer != null && targetPlayer.isPlayerControlled)
+                    {
+                        if (CheckLineOfSightForPosition(targetPlayer.transform.position, 70f, 60, 10))
                         {
                             StopSearch(currentSearch);
 
@@ -216,11 +222,11 @@ namespace HeavyItemSCPs.Items.SCP323
                             }
 
                             timeSinceSeenPlayer = 0f;
-                            targetPlayerLastSeenPos = targetEntity.transform.position;
+                            targetPlayerLastSeenPos = targetPlayer.transform.position;
                         }
-                        if (timeSinceSeenPlayer < timeToLosePlayer || Vector3.Distance(targetEntity.transform.position, transform.position) >= huntingRange)
+                        if (timeSinceSeenPlayer < timeToLosePlayer || Vector3.Distance(targetPlayer.transform.position, transform.position) >= huntingRange)
                         {
-                            SetDestinationToPosition(targetEntity.transform.position);
+                            SetDestinationToPosition(targetPlayer.transform.position);
                             return;
                         }
                         else
@@ -241,7 +247,7 @@ namespace HeavyItemSCPs.Items.SCP323
                         }
                     }
 
-                    SwitchToBehaviourStateCustom((int)State.Roaming);
+                    SwitchToBehaviourClientRpc((int)State.Roaming);
 
                     break;
 
@@ -265,8 +271,7 @@ namespace HeavyItemSCPs.Items.SCP323
                     {
                         if (!inSpecialAnimation && Vector3.Distance(targetEnemyCorpse.transform.position, transform.position) <= 1f)
                         {
-                            inSpecialAnimation = true;
-                            EatMaskedBodyClientRpc();
+                            networkAnimator.SetTrigger("eat");
                             return;
                         }
 
@@ -330,7 +335,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        public void StopRoaming()
+        public void RoamStop()
         {
             if (!IsServerOrHost) { return; }
             StopSearch(currentSearch);
@@ -342,7 +347,7 @@ namespace HeavyItemSCPs.Items.SCP323
             agent.ResetPath();
         }
 
-        public void StartRoaming()
+        public void RoamStart()
         {
             if (!IsServerOrHost) { return; }
             StopSearch(currentSearch);
@@ -398,12 +403,13 @@ namespace HeavyItemSCPs.Items.SCP323
                     }
                 }
             }
+
             foreach (var masked in UnityEngine.Object.FindObjectsOfType<MaskedPlayerEnemy>())
             {
                 if (masked.isEnemyDead && Vector3.Distance(masked.transform.position, transform.position) <= maskedBloodSenseRange * 2f)
                 {
                     targetEnemyCorpse = masked;
-                    SwitchToBehaviourStateCustom((int)State.Eating);
+                    SwitchToBehaviourClientRpc((int)State.Eating);
                     return;
                 }
             }
@@ -451,9 +457,60 @@ namespace HeavyItemSCPs.Items.SCP323
             return targetEnemy != null && Vector3.Distance(transform.position, targetEnemy.transform.position) < range;
         }
 
+        bool FoundClosestPlayerInRange(float range, float senseRange)
+        {
+            TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: true);
+            if (targetPlayer == null)
+            {
+                // Couldn't see a player, so we check if a player is in sensing distance instead
+                TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: false);
+                range = senseRange;
+            }
+            return targetPlayer != null && Vector3.Distance(transform.position, targetPlayer.transform.position) < range;
+        }
+
+        bool TargetClosestPlayerOrMasked()
+        {
+            bool foundMask = FoundClosestMaskedInRange(50f, 15f);
+            bool foundPlayer = FoundClosestPlayerInRange(50f, 5f);
+
+            if (!foundMask && !foundPlayer)
+                return false;
+
+            if (foundMask && foundPlayer)
+            {
+                float playerDistance = Vector3.Distance(transform.position, targetPlayer.transform.position);
+                float maskDistance = Vector3.Distance(transform.position, targetEnemy!.transform.position);
+
+                if (playerDistance < maskDistance)
+                {
+                    targetEnemy = null;
+                }
+                else
+                {
+                    targetPlayer = null;
+                }
+
+                return true;
+            }
+
+            // Only one was found
+            if (foundPlayer)
+            {
+                targetEnemy = null;
+            }
+            else
+            {
+                targetPlayer = null;
+            }
+
+            return true;
+        }
+
+
         public bool TargetPlayerInBloodSearch()
         {
-            if (targetEntity != null && Vector3.Distance(targetEntity.transform.position, transform.position) <= playerBloodSenseRange)
+            if (targetPlayer != null && Vector3.Distance(targetPlayer.transform.position, transform.position) <= playerBloodSenseRange)
             {
                 return true;
             }
@@ -469,18 +526,6 @@ namespace HeavyItemSCPs.Items.SCP323
             }
 
             return false;
-        }
-
-        bool FoundClosestPlayerInRange(float range, float senseRange)
-        {
-            TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: true);
-            if (targetEntity == null)
-            {
-                // Couldn't see a player, so we check if a player is in sensing distance instead
-                TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: false);
-                range = senseRange;
-            }
-            return targetEntity != null && Vector3.Distance(transform.position, targetEntity.transform.position) < range;
         }
 
         public void SetOutsideOrInside()
@@ -539,7 +584,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 if (playerWhoHit != null)
                 {
-                    targetEntity = playerWhoHit;
+                    targetPlayer = playerWhoHit;
                 }
                 else
                 {
@@ -587,7 +632,7 @@ namespace HeavyItemSCPs.Items.SCP323
             if (reverseDamage)
             {
                 // Calculate damage based on linear interpolation between max and min points
-                //float damage = ((maxDamage - minDamage) / (minHPToDoMaxDamage - maxHP)) * (enemyHP - maxHP) + minDamage; // TODO: Figure this out, isnt doing 50 damage at 5 hp
+                //float damage = ((maxDamage - minDamage) / (minHPToDoMaxDamage - maxHP)) * (enemyHP - maxHP) + minDamage;
                 float damage = (float)MapValue(minHPToDoMaxDamage, maxHP, maxDamage, minDamage, enemyHP);
                 return (int)Mathf.Clamp(damage, minDamage, maxDamage);  // Ensure damage is within bounds
             }
@@ -633,14 +678,8 @@ namespace HeavyItemSCPs.Items.SCP323
             if (timeSinceSeenPlayer > 15f)
             {
                 timeSinceSeenPlayer = 0f;
-                SetEnemyStunned(true);
+                networkAnimator.SetTrigger("roar");
             }
-        }
-
-        public override void SetEnemyStunned(bool setToStunned, float setToStunTime = 1, PlayerControllerB setStunnedByPlayer = null!)
-        {
-            base.SetEnemyStunned(setToStunned, 2.133f, setStunnedByPlayer);
-            networkAnimator.SetTrigger("roar");
         }
 
         public void BeginBashDoor(DoorLock _doorLock)
@@ -759,14 +798,14 @@ namespace HeavyItemSCPs.Items.SCP323
                         if ((player.isInsideFactory && !isOutside) || (!player.isInsideFactory && isOutside))
                         {
                             targetPlayer = player;
-                            SwitchToBehaviourStateCustom((int)State.BloodSearch);
+                            SwitchToBehaviourClientRpc((int)State.BloodSearch);
                             return;
                         }
                     }
                     if (Vector3.Distance(player.transform.position, transform.position) <= playerBloodSenseRange)
                     {
                         targetPlayer = player;
-                        SwitchToBehaviourStateCustom((int)State.BloodSearch);
+                        SwitchToBehaviourClientRpc((int)State.BloodSearch);
                     }
                 }
             }
@@ -780,7 +819,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 if (Vector3.Distance(masked.transform.position, transform.position) <= maskedBloodSenseRange && !inSpecialAnimation)
                 {
                     targetEnemy = masked;
-                    SwitchToBehaviourStateCustom((int)State.BloodSearch);
+                    SwitchToBehaviourClientRpc((int)State.BloodSearch);
                 }
             }
         }
@@ -942,11 +981,11 @@ namespace HeavyItemSCPs.Items.SCP323
         public void EatPlayerBodyClientRpc(ulong clientId)
         {
             targetPlayerCorpse = PlayerFromId(clientId).deadBody;
-            targetPlayerCorpse.canBeGrabbedBackByPlayers = false;
-            targetPlayerCorpse.grabBodyObject.grabbable = false;
+            targetPlayerCorpse.canBeGrabbedBackByPlayers = true;
+            targetPlayerCorpse.grabBodyObject.grabbable = true;
             targetPlayerCorpse.grabBodyObject.grabbableToEnemies = false;
 
-
+            creatureAnimator.SetTrigger("eat");
         }
 
         [ClientRpc]
