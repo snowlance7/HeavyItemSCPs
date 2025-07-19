@@ -89,11 +89,12 @@ namespace HeavyItemSCPs.Items.SCP323
         public override void Start()
         {
             base.Start();
-            logger.LogDebug("SCP-323-1 Spawned");
 
             SetOutsideOrInside();
 
             timeSinceSeenPlayer = Mathf.Infinity;
+
+            logger.LogDebug("SCP-323-1 Spawned");
         }
 
         public override void OnNetworkSpawn()
@@ -152,6 +153,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead || stunNormalizedTimer > 0f || inSpecialAnimation)
             {
+                logger.LogDebug("Skipping DoAIInterval");
                 return;
             };
 
@@ -166,9 +168,16 @@ namespace HeavyItemSCPs.Items.SCP323
                     if (timeSpawned < 5f) { return; }
                     if (TargetClosestPlayerOrMasked())
                     {
+                        RoamStop();
                         SwitchToBehaviourClientRpc((int)State.Hunting);
                         if (targetPlayer != null) { targetPlayerLastSeenPos = targetPlayer.transform.position; }
                         Roar();
+                        return;
+                    }
+
+                    if (roamCoroutine == null)
+                    {
+                        RoamStart();
                     }
 
                     break;
@@ -337,19 +346,18 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public void RoamStop()
         {
-            if (!IsServerOrHost) { return; }
+            logger.LogDebug("Start roaming");
             StopSearch(currentSearch);
             if (roamCoroutine != null)
             {
                 StopCoroutine(roamCoroutine);
                 roamCoroutine = null;
             }
-            agent.ResetPath();
         }
 
         public void RoamStart()
         {
-            if (!IsServerOrHost) { return; }
+            logger.LogDebug("Stop roaming");
             StopSearch(currentSearch);
 
             if (roamCoroutine != null)
@@ -360,7 +368,34 @@ namespace HeavyItemSCPs.Items.SCP323
             roamCoroutine = StartCoroutine(RoamCoroutine());
         }
 
-        public IEnumerator RoamCoroutine()
+        IEnumerator RoamCoroutine() // TODO: use this instead?
+        {
+            yield return null;
+            while (ratCoroutine != null && agent.enabled)
+            {
+                targetNode = GetRandomNode();
+                Vector3 position = RoundManager.Instance.GetNavMeshPosition(targetNode.position, RoundManager.Instance.navHit, 1.75f, agent.areaMask);
+                if (!SetDestinationToPosition(position, true))
+                {
+                    logger.LogDebug("RatKing couldnt reach random node, choosing a new one...");
+                    continue;
+                }
+                while (agent.enabled)
+                {
+                    yield return new WaitForSeconds(AIIntervalTime);
+                    //if (!agent.hasPath || timeStuck > 1f)
+                    if (ReachedDestination())
+                    {
+                        logger.LogDebug("Rat King has reached destination, idling...");
+                        yield return new WaitForSeconds(configRatKingIdleTime.Value);
+                        logger.LogDebug("Finished idling, choosing a new position...");
+                        break;
+                    }
+                }
+            }
+        }
+
+        IEnumerator RoamCoroutine()
         {
             yield return null;
             if (allAINodes == null || allAINodes.Length == 0)
@@ -373,7 +408,11 @@ namespace HeavyItemSCPs.Items.SCP323
             while (roamCoroutine != null)
             {
                 targetNode = Utils.GetRandomNode(isOutside)?.transform;
-                if (targetNode == null) { yield break; }
+                if (targetNode == null)
+                {
+                    logger.LogError("Couldnt find random node");
+                    yield break;
+                }
                 yield return null;
 
                 logger.LogDebug("Setting destination to position");
