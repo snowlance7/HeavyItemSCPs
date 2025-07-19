@@ -488,7 +488,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 }
                 else
                 {
-                    targetPlayer = null;
+                    targetPlayer = null!;
                 }
 
                 return true;
@@ -501,7 +501,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
             else
             {
-                targetPlayer = null;
+                targetPlayer = null!;
             }
 
             return true;
