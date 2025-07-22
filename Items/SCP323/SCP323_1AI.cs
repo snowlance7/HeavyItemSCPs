@@ -54,6 +54,8 @@ namespace HeavyItemSCPs.Items.SCP323
 
         Vector3 targetPlayerLastSeenPos;
 
+        int hashSpeed;
+
         // Constants
         const string maskedName = "MaskedPlayerEnemy";
         const float huntingRange = 50f;
@@ -93,6 +95,7 @@ namespace HeavyItemSCPs.Items.SCP323
             SetOutsideOrInside();
 
             timeSinceSeenPlayer = Mathf.Infinity;
+            hashSpeed = Animator.StringToHash("speed");
 
             logger.LogDebug("SCP-323-1 Spawned");
         }
@@ -144,6 +147,11 @@ namespace HeavyItemSCPs.Items.SCP323
                 localPlayer.insanityLevel += Time.deltaTime;
                 localPlayer.IncreaseFearLevelOverTime(0.1f, 0.5f);
             }
+        }
+
+        public void LateUpdate()
+        {
+            creatureAnimator.SetFloat(hashSpeed, agent.velocity.magnitude / 2);
         }
 
         public override void DoAIInterval()
@@ -344,6 +352,23 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
+        bool ReachedDestination()
+        {
+            // Check if we've reached the destination
+            if (!agent.pathPending)
+            {
+                if (agent.remainingDistance <= agent.stoppingDistance)
+                {
+                    if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public void RoamStop()
         {
             logger.LogDebug("Start roaming");
@@ -368,12 +393,12 @@ namespace HeavyItemSCPs.Items.SCP323
             roamCoroutine = StartCoroutine(RoamCoroutine());
         }
 
-        IEnumerator RoamCoroutine() // TODO: use this instead?
+        /*IEnumerator RoamCoroutine() // TODO: use this instead?
         {
             yield return null;
-            while (ratCoroutine != null && agent.enabled)
+            while (roamCoroutine != null && agent.enabled)
             {
-                targetNode = GetRandomNode();
+                targetNode = Utils.GetRandomNode(isOutside)?.transform;
                 Vector3 position = RoundManager.Instance.GetNavMeshPosition(targetNode.position, RoundManager.Instance.navHit, 1.75f, agent.areaMask);
                 if (!SetDestinationToPosition(position, true))
                 {
@@ -386,14 +411,11 @@ namespace HeavyItemSCPs.Items.SCP323
                     //if (!agent.hasPath || timeStuck > 1f)
                     if (ReachedDestination())
                     {
-                        logger.LogDebug("Rat King has reached destination, idling...");
-                        yield return new WaitForSeconds(configRatKingIdleTime.Value);
-                        logger.LogDebug("Finished idling, choosing a new position...");
                         break;
                     }
                 }
             }
-        }
+        }*/
 
         IEnumerator RoamCoroutine()
         {
@@ -415,8 +437,8 @@ namespace HeavyItemSCPs.Items.SCP323
                 }
                 yield return null;
 
-                logger.LogDebug("Setting destination to position");
-                while (SetDestinationToPosition(targetNode.position, checkForPath: true) && Vector3.Distance(transform.position, targetNode.position) > 1f)
+                logger.LogDebug("Setting destination to position: " + targetNode.position.ToString());
+                while (SetDestinationToPosition(targetNode.position, true) && Vector3.Distance(transform.position, targetNode.position) > 1f)
                 {
                     yield return new WaitForSeconds(AIIntervalTime);
                 }

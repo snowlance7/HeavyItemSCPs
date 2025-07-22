@@ -18,7 +18,7 @@ using HeavyItemSCPs.Items.SCP178;
 
 namespace HeavyItemSCPs.Items.SCP427
 {
-    internal class SCP427Behavior : PhysicsProp
+    internal class SCP427Behavior : PhysicsProp // TODO: Make it so transform timer doesnt go up if player is damaged but the longer they hold it while not taking damage, the faster the transform timer gets. Using it always increases transform timer at max speed.
     {
         private static ManualLogSource logger = LoggerInstance;
 
