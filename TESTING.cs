@@ -63,6 +63,10 @@ namespace HeavyItemSCPs
 
             switch (args[0])
             {
+                case "/search":
+                    if (SCP323_1AI.Instance == null) { break; }
+                    SCP323_1AI.Instance.StartSearch(localPlayer.transform.position);
+                    break;
                 case "/moving":
                     Utils.disableMoving = !Utils.disableMoving;
                     HUDManager.Instance.DisplayTip("DisableMoving: ", Utils.disableMoving.ToString());

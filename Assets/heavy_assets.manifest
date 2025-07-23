@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 2235208518
+CRC: 3337374291
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 46247f66208e588ae14211f8a03336e1
+    Hash: 5963316d9c19d6184f7f73ba9304c280
   TypeTreeHash:
     serializedVersion: 2
-    Hash: cf55b59969ffcabf1adf03b5e32bd407
+    Hash: e145e85edf7dbd63a33f75f5b89ad2b8
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 46247f66208e588ae14211f8a03336e1
+    Hash: 5963316d9c19d6184f7f73ba9304c280
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -124,10 +124,10 @@ Assets:
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset
 - Assets/ModAssets/SCP178/SCP1781Part_2.asset
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset
-- Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset
 - Assets/ModAssets/SCP323/SCP323_1Enemy.asset
 - Assets/ModAssets/SCP513/SCP513_1Enemy.asset
+- Assets/ModAssets/SCP513/SoundEffectObject.prefab
 - Assets/ModAssets/SCP513/SCP513Item.asset
 - Assets/ModAssets/SCP178/SCP1781Enemy.asset
 - Assets/ModAssets/SCP323/SCP323Item.asset

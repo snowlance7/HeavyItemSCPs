@@ -70,6 +70,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Assets\" />
       <Folder Include="ThunderStore\HeavyItemSCPs\" />
     </ItemGroup>
 

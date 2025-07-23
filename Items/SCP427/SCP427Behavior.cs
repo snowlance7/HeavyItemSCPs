@@ -34,6 +34,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         int hashOpen;
 
+        public static float localPlayerHoldTimeMultiplier;
         public static float localPlayerHoldTime;
         public static float localPlayerDamageResist;
         //bool transformingEntity = false;
@@ -56,6 +57,8 @@ namespace HeavyItemSCPs.Items.SCP427
         float lootBugTransformTime;
         float birdTransformTime;
         float otherEnemyTransformTime;
+        float timeToMaxTransformSpeed = 60f;
+        float timeToMinTransformSpeed = 30f;
 
         public override void Start()
         {
@@ -94,6 +97,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void Update()
         {
             base.Update();
+            logger.LogDebug(localPlayerHoldTimeMultiplier); // TODO: Remove this
 
             timeSpawned += Time.deltaTime;
 
@@ -131,40 +135,52 @@ namespace HeavyItemSCPs.Items.SCP427
                 // Heal player
                 HealPlayer(healthPerSecondOpen);
 
-                if (isOpen && timeToTransform > 0)
+                /*if (SCP500Compatibility.IsLocalPlayerAffectedBySCP500 || playerHeldBy.health < 100)
                 {
-                    if (SCP500Compatibility.IsLocalPlayerAffectedBySCP500) { return; }
+                    localPlayerHoldTime = 0f;
+                    localPlayerHoldTimeMultiplier = 0f;
+                    return;
+                }*/
 
-                    // Increasing time held by local player
-                    localPlayerHoldTime += Time.deltaTime;
-
-                    // Play passive transformation sound
-                    if (localPlayerHoldTime >= timeToTransform / 2 && localPlayerHoldTime <= timeToTransform / 2 + 1f && !playedPassiveTransformationSound)
-                    {
-                        logger.LogDebug("Playing 1/2 transform sound");
-                        ItemSFX.PlayOneShot(PassiveTransformationSFX, 1f);
-                        playedPassiveTransformationSound = true;
-                    }
-
-                    if (localPlayerHoldTime >= timeToTransform * 0.75f)
-                    {
-                        localPlayer.drunkness = 0.05f;
-
-                        float t = Mathf.InverseLerp(timeToTransform * 0.75f, timeToTransform, localPlayerHoldTime);
-                        localPlayerDamageResist = Mathf.Lerp(0.25f, 1f, t);
-                    }
-
-                    // Transform player if time is up
-                    if (localPlayerHoldTime >= timeToTransform)
-                    {
-                        logger.LogDebug("Transforming player");
-                        TransformPlayer(playerHeldBy);
-                    }
+                if (localPlayerHoldTimeMultiplier < 1f)
+                {
+                    localPlayerHoldTimeMultiplier += Time.deltaTime / localPlayerHoldTimeMultiplier;
+                    localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
                 }
+
+                if (isOpen) { localPlayerHoldTimeMultiplier = 1f; }
+
+                // Increasing time held by local player
+                localPlayerHoldTime += Time.deltaTime * localPlayerHoldTimeMultiplier;
+
+                // Play passive transformation sound
+                if (localPlayerHoldTime >= timeToTransform / 2 && localPlayerHoldTime <= timeToTransform / 2 + 1f && !playedPassiveTransformationSound)
+                {
+                    logger.LogDebug("Playing 1/2 transform sound");
+                    ItemSFX.PlayOneShot(PassiveTransformationSFX, 1f);
+                    playedPassiveTransformationSound = true;
+                }
+
+                if (localPlayerHoldTime >= timeToTransform * 0.75f)
+                {
+                    localPlayer.drunkness = 0.05f;
+
+                    float t = Mathf.InverseLerp(timeToTransform * 0.75f, timeToTransform, localPlayerHoldTime);
+                    localPlayerDamageResist = Mathf.Lerp(0.25f, 1f, t);
+                }
+
+                // Transform player if time is up
+                if (localPlayerHoldTime >= timeToTransform)
+                {
+                    logger.LogDebug("Transforming player");
+                    TransformPlayer(playerHeldBy);
+                }
+
+                return;
             }
-            else if (enemyHeldBy != null) // Held by enemy
+            if (enemyHeldBy != null) // Held by enemy
             {
-                if (!(IsServerOrHost)) { return; }
+                if (!IsServerOrHost) { return; }
 
                 if (timeSinceLastHeal > 1f)
                 {
@@ -184,7 +200,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (enemyHeldBy.enemyType.name == "BaboonHawk")
                 {
-                    if (birdTransformTime > 0)
+                    if (birdTransformTime >= 0)
                     {
                         if (EnemyHoldTimes[enemyHeldBy] >= birdTransformTime)
                         {
@@ -195,7 +211,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 }
                 else if (enemyHeldBy.enemyType.name == "HoarderBug")
                 {
-                    if (lootBugTransformTime > 0)
+                    if (lootBugTransformTime >= 0)
                     {
                         if (EnemyHoldTimes[enemyHeldBy] >= lootBugTransformTime)
                         {
@@ -206,7 +222,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 }
                 else
                 {
-                    if (otherEnemyTransformTime > 0)
+                    if (otherEnemyTransformTime >= 0)
                     {
                         if (EnemyHoldTimes[enemyHeldBy] >= otherEnemyTransformTime)
                         {
@@ -215,6 +231,12 @@ namespace HeavyItemSCPs.Items.SCP427
                         }
                     }
                 }
+            }
+
+            if (localPlayerHoldTimeMultiplier > 0f)
+            {
+                localPlayerHoldTimeMultiplier -= Time.deltaTime / timeToMinTransformSpeed;
+                localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
             }
         }
 
