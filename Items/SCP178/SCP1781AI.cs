@@ -77,6 +77,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 path1 = new NavMeshPath();
                 openDoorSpeedMultiplier = enemyType.doorSpeedMultiplier;
                 serverPosition = base.transform.position;
+                ventAnimationFinished = true;
             }
             catch (Exception arg)
             {
@@ -385,9 +386,11 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             base.OnCollideWithPlayer(other);
             PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
-            if (player == null) { return; }
+            if (player == null || !player.isPlayerControlled || player != localPlayer || inSpecialAnimation || isEnemyDead) { return; }
+            logger.LogDebug("pass1");
             //if (currentBehaviourStateIndex == (int)State.Roaming) { return; }
-            if (timeSinceDamagePlayer > 2f) { return; }
+            if (timeSinceDamagePlayer < 2f) { return; }
+            logger.LogDebug("pass2");
 
             timeSinceDamagePlayer = 0f;
             CollidedWithPlayerServerRpc(player.actualClientId);
@@ -396,34 +399,34 @@ namespace HeavyItemSCPs.Items.SCP178
         // RPC's
 
         [ServerRpc(RequireOwnership = false)]
-        private void CollidedWithPlayerServerRpc(ulong clientId)
+        public void CollidedWithPlayerServerRpc(ulong clientId)
         {
             if (!IsServerOrHost) { return; }
-            if (IsServerOrHost)
+
+            PlayerControllerB player = PlayerFromId(clientId);
+
+            logger.LogDebug("Collided with player: " + player.playerUsername);
+
+            if (targetPlayer != null && targetPlayer == player)
             {
-                PlayerControllerB player = PlayerFromId(clientId);
+                DoAttackAnimation();
+                creatureSFX.PlayOneShot(creatureSFX.clip, 1f);
+                player.DamagePlayer(playerDamage);
 
-                if (targetPlayer != null && targetPlayer == player)
+                if (!targetPlayer.isPlayerControlled)
                 {
-                    DoAttackAnimation();
-                    creatureSFX.PlayOneShot(creatureSFX.clip, 1f);
-                    player.DamagePlayer(playerDamage);
-
-                    if (!targetPlayer.isPlayerControlled)
+                    if (SCP178Behavior.Instance.PlayersAngerLevels.ContainsKey(targetPlayer))
                     {
-                        if (SCP178Behavior.Instance.PlayersAngerLevels.ContainsKey(targetPlayer))
-                        {
-                            SCP178Behavior.Instance.PlayersAngerLevels.Remove(targetPlayer);
-                        }
-                        targetPlayer = null;
+                        SCP178Behavior.Instance.PlayersAngerLevels.Remove(targetPlayer);
                     }
+                    targetPlayer = null;
                 }
-                else
+            }
+            else
+            {
+                if (SCP178Behavior.Instance.wearing && player == lastPlayerHeldBy)
                 {
-                    if (SCP178Behavior.Instance.wearing && player == lastPlayerHeldBy)
-                    {
-                        SCP178Behavior.Instance.AddAngerToPlayer(player, 10);
-                    }
+                    SCP178Behavior.Instance.AddAngerToPlayer(player, 10);
                 }
             }
         }

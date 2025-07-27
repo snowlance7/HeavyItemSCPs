@@ -150,6 +150,7 @@ namespace HeavyItemSCPs.Items.SCP178
                 SCP1783DVision.Instance.Enable3DVision(wearing);
             }
 
+            
             if (lastPlayerHeldBy.drunkness < 0.2f) { lastPlayerHeldBy.drunkness = 0.2f; }
             SpawnEntities(!lastPlayerHeldBy.isInsideFactory);
         }
@@ -182,7 +183,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
                     int maxCount = GetMaxCount(outside);
                     int count = 0;
-                    List<GameObject> nodes = outside ? RoundManager.Instance.outsideAINodes.ToList() : RoundManager.Instance.insideAINodes.ToList();
+                    List<GameObject> nodes = outside ? Utils.outsideAINodes.ToList() : Utils.insideAINodes.ToList();
                     nodes.Shuffle();
                     foreach (var node in nodes)
                     {

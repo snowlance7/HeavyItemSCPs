@@ -22,9 +22,9 @@ namespace HeavyItemSCPs
 
         public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
         public static bool testing = false;
-        public static bool spawningAllowed = false; // TODO
+        public static bool spawningAllowed = true; // TODO
         public static bool trailerMode = false;
-        public static bool disableTargetting = true;
+        public static bool disableTargetting = false;
         public static bool disableMoving = false;
 
         public static GameObject[] insideAINodes

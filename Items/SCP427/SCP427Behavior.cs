@@ -97,7 +97,6 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void Update()
         {
             base.Update();
-            logger.LogDebug(localPlayerHoldTimeMultiplier); // TODO: Remove this
 
             timeSpawned += Time.deltaTime;
 
@@ -114,20 +113,34 @@ namespace HeavyItemSCPs.Items.SCP427
 
             timeSinceLastHeal += Time.deltaTime;
 
-            //logger.LogDebug($"Time held by local player: {timeSCP427HeldByLocalPlayer}");
+            //logger.LogDebug($"Time held by local player: {localPlayerHoldTime}");
+            //logger.LogDebug(localPlayerHoldTimeMultiplier); // TODO: Remove this
+
+            itemAnimator.SetBool(hashOpen, isOpen);
 
             if (playerHeldBy == null || playerHeldBy != localPlayer)
             {
+                if (localPlayerHoldTimeMultiplier > 0f)
+                {
+                    localPlayerHoldTimeMultiplier -= Time.deltaTime / timeToMinTransformSpeed;
+                    localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
+                }
+
                 if (localPlayerHoldTime > 0f)
                 {
-                    localPlayerHoldTime -= Time.deltaTime * 0.5f;
+                    localPlayerHoldTime -= Time.deltaTime * (1 - localPlayerHoldTimeMultiplier);
+                }
+                else
+                {
+                    localPlayerHoldTime = 0f;
                 }
                 playedPassiveTransformationSound = false;
+                return;
             }
 
             if (playerHeldBy != null) // Held by local player
             {
-                itemAnimator.SetBool(hashOpen, isOpen);
+                //itemAnimator.SetBool(hashOpen, isOpen);
 
                 // If player is local player, then continue
                 if (playerHeldBy != localPlayer) { return; }
@@ -144,7 +157,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (localPlayerHoldTimeMultiplier < 1f)
                 {
-                    localPlayerHoldTimeMultiplier += Time.deltaTime / localPlayerHoldTimeMultiplier;
+                    localPlayerHoldTimeMultiplier += Time.deltaTime / timeToMaxTransformSpeed; // TODO: Test this
                     localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
                 }
 
@@ -232,12 +245,6 @@ namespace HeavyItemSCPs.Items.SCP427
                     }
                 }
             }
-
-            if (localPlayerHoldTimeMultiplier > 0f)
-            {
-                localPlayerHoldTimeMultiplier -= Time.deltaTime / timeToMinTransformSpeed;
-                localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
-            }
         }
 
         public override void ItemActivate(bool used, bool buttonDown = true)
@@ -274,11 +281,13 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.DiscardItem();
             isOpen = false;
+            enemyHeldBy = null;
         }
 
         public void TransformPlayer(PlayerControllerB player)
         {
             logger.LogDebug("Transforming player");
+            player.DropAllHeldItems();
             StartCoroutine(TransformPlayerCoroutine(player));
         }
 
@@ -287,11 +296,19 @@ namespace HeavyItemSCPs.Items.SCP427
             player.KillPlayer(Vector3.zero, true, CauseOfDeath.Unknown, 3);
             ItemSFX.PlayOneShot(FullTransformationSFX, 1f);
 
+            if (player.deadBody != null)
+            {
+                player.deadBody.canBeGrabbedBackByPlayers = false;
+                player.deadBody.grabBodyObject.grabbable = false;
+                player.deadBody.grabBodyObject.grabbableToEnemies = false;
+            }
+
             yield return new WaitForSeconds(4f);
 
-            if (player.isPlayerDead)
+            if (player.deadBody != null && player.isPlayerDead)
             {
-                Vector3 spawnPos = player.deadBody.transform.position;
+                Vector3 spawnPos = player.deadBody.grabBodyObject.transform.position;
+                spawnPos = RoundManager.Instance.GetNavMeshPosition(spawnPos);
 
                 player.deadBody.DeactivateBody(setActive: false); // TODO: Test this
                 SpawnSCP4271ServerRpc(spawnPos, SCP4271AI.MaterialVariants.Player);
@@ -372,20 +389,18 @@ namespace HeavyItemSCPs.Items.SCP427
         [ServerRpc(RequireOwnership = false)]
         public void SpawnSCP4271ServerRpc(Vector3 spawnPos, SCP4271AI.MaterialVariants variant)
         {
-            if (IsServerOrHost)
+            if (!IsServerOrHost) { return; }
+            logger.LogDebug("Spawning SCP-427-1");
+
+            GameObject scpObj = Instantiate(SCP4271Prefab, spawnPos, Quaternion.identity);
+            SCP4271AI scp = scpObj.GetComponent<SCP4271AI>();
+            scp.NetworkObject.Spawn(destroyWithScene: true);
+            RoundManager.Instance.SpawnedEnemies.Add(scp);
+
+            if (variant != SCP4271AI.MaterialVariants.None)
             {
-                logger.LogDebug("Spawning SCP-427-1");
-
-                GameObject scpObj = Instantiate(SCP4271Prefab, spawnPos, Quaternion.identity);
-                SCP4271AI scp = scpObj.GetComponent<SCP4271AI>();
-                scp.NetworkObject.Spawn(destroyWithScene: true);
-                RoundManager.Instance.SpawnedEnemies.Add(scp);
-
-                if (variant != SCP4271AI.MaterialVariants.None)
-                {
-                    logger.LogDebug("Got net obj for SCP-427-1");
-                    scp.SetMaterialVariantClientRpc(variant);
-                }
+                logger.LogDebug("Got net obj for SCP-427-1");
+                scp.SetMaterialVariantClientRpc(variant);
             }
         }
     }
@@ -406,14 +421,22 @@ namespace HeavyItemSCPs.Items.SCP427
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DamagePlayer))]
         public static void DamagePlayerPrefix(PlayerControllerB __instance, ref int damageNumber)
         {
-            if (SCP427Behavior.Instance == null) { return; }
-            if (SCP427Behavior.Instance.playerHeldBy == null) { return; }
-            if (SCP427Behavior.Instance.playerHeldBy != localPlayer) { return; }
-            if (SCP427Behavior.localPlayerHoldTime < SCP427Behavior.Instance.timeToTransform * 0.75f) { return; }
+            try
+            {
+                if (SCP427Behavior.Instance == null) { return; }
+                if (SCP427Behavior.Instance.playerHeldBy == null) { return; }
+                if (SCP427Behavior.Instance.playerHeldBy != localPlayer) { return; }
+                if (SCP427Behavior.localPlayerHoldTime < SCP427Behavior.Instance.timeToTransform * 0.75f) { return; }
 
-            int initialDamage = damageNumber;
-            damageNumber = (int)(damageNumber * (1 - SCP427Behavior.localPlayerDamageResist));
-            logger.LogDebug($"SCP-427: Resisting {SCP427Behavior.localPlayerDamageResist * 100f}% damage, {initialDamage} -> {damageNumber}"); // TODO: Test this
+                int initialDamage = damageNumber;
+                damageNumber = (int)(damageNumber * (1 - SCP427Behavior.localPlayerDamageResist));
+                logger.LogDebug($"SCP-427: Resisting {SCP427Behavior.localPlayerDamageResist * 100f}% damage, {initialDamage} -> {damageNumber}"); // TODO: Test this
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e);
+                return;
+            }
         }
     }
 }

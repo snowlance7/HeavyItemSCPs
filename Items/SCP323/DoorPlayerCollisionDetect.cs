@@ -15,14 +15,13 @@ namespace HeavyItemSCPs.Items.SCP323
 
         float doorFlyingTime = 3f;
 
-        bool hitPlayer = false;
+        bool hitPlayer;
         bool isActive = true;
         public Vector3 force;
-        int damage;
+        int doorBashDamage => config3231DoorBashDamage.Value;
 
         public void Start()
         {
-            damage = config3231DoorBashDamage.Value;
             StartCoroutine(DisableAfterDelay());
         }
         
@@ -31,23 +30,23 @@ namespace HeavyItemSCPs.Items.SCP323
             if (isActive && !hitPlayer && other.CompareTag("Player"))
             {
                 PlayerControllerB player = other.GetComponent<PlayerControllerB>();
+                if (player != localPlayer) { return; }
                 logger.LogDebug("Door hit player " + player.playerUsername);
-                player.DamagePlayer(damage, true, true, CauseOfDeath.Inertia, 0, false, force);
+                player.DamagePlayer(doorBashDamage, true, true, CauseOfDeath.Inertia, 0, false, force);
                 StartCoroutine(AddForceToPlayer(player));
                 hitPlayer = true;
             }
         }
 
-        IEnumerator AddForceToPlayer(PlayerControllerB player)
+        private IEnumerator AddForceToPlayer(PlayerControllerB player)
         {
-            Rigidbody rb = player.playerRigidbody;
+            PlayerControllerB player2 = player;
+            Rigidbody rb = player2.playerRigidbody;
             rb.isKinematic = false;
             rb.velocity = Vector3.zero;
-            player.externalForceAutoFade += force;
-
+            player2.externalForceAutoFade += force;
             yield return new WaitForSeconds(0.5f);
-            yield return new WaitUntil(() => player.thisController.isGrounded || player.isInHangarShipRoom);
-
+            yield return new WaitUntil(() => player2.thisController.isGrounded || player2.isInHangarShipRoom);
             rb.isKinematic = true;
         }
 

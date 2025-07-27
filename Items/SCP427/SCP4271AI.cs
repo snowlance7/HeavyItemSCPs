@@ -691,9 +691,9 @@ namespace HeavyItemSCPs.Items.SCP427
             if (throwingPlayerDisabled) { return; }
             if (inSpecialAnimation) { return; }
             if (heldObject != null) { DropItem(transform.position); }
-            PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other, false, true);
-            if (player == null || timeSinceDamagePlayer < 2f) { return; }
-
+            PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
+            if (player == null || !player.isPlayerControlled || player != localPlayer || isEnemyDead) { return; }
+            if (timeSinceDamagePlayer < 2f) { return; }
             logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
             timeSinceDamagePlayer = 0f;
 

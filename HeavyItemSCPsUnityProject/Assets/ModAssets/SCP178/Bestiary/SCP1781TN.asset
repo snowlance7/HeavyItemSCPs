@@ -21,8 +21,9 @@ MonoBehaviour:
     Scientific name: SCP-178-1
 
 
-    Whatever
-    you do, DONT LET THEM FIND OUT THAT YOU CAN SEE THEM!'
+    They
+    are always there, watching us...whatever you do, MAKE SURE THEY DONT FIND OUT
+    THAT YOU CAN SEE THEM! IF THEY KNOW YOU CAN SEE THEM, YOURE ALREADY DEAD.'
   terminalEvent: 
   clearPreviousText: 1
   maxCharactersToType: 35

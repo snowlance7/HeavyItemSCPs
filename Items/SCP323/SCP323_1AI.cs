@@ -21,12 +21,8 @@ namespace HeavyItemSCPs.Items.SCP323
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public NetworkAnimator networkAnimator;
-        public AudioClip doorWooshSFX;
-        public AudioClip metalDoorSmashSFX;
-        public AudioClip bashSFX;
         public AudioClip roarSFX;
         public AudioClip slashSFX;
-        public AudioClip[] walkingSFX;
         public AudioClip[] growlSFX;
         public AudioClip roamingNoisesSFX; // TODO: Set up
         public AudioClip eatingCorpseSFX;
@@ -36,7 +32,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
         DeadBodyInfo? targetPlayerCorpse;
         EnemyAI? targetEnemyCorpse;
-        DoorLock? doorLock;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         EnemyAI? targetEnemy;
@@ -64,12 +59,6 @@ namespace HeavyItemSCPs.Items.SCP323
         const int minHPToDoMaxDamage = 5;
 
         // Config Values
-        float doorBashForce => config3231DoorBashForce.Value;
-        float doorBashDamage => config3231DoorBashDamage.Value;
-        int doorBashAOEDamage => config3231DoorBashAOEDamage.Value;
-        float doorBashAOERange => config3231DoorBashAOERange.Value;
-        bool despawnDoorAfterBash => config3231DespawnDoorAfterBash.Value;
-        float despawnDoorAfterBashTime => config3231DespawnDoorAfterBashTime.Value;
         int maxHP => config3231MaxHP.Value;
         int maxDamage => config3231MaxDamage.Value;
         int minDamage => config3231MinDamage.Value;
@@ -606,15 +595,14 @@ namespace HeavyItemSCPs.Items.SCP323
             base.OnCollideWithPlayer(other);
             if (Utils.disableTargetting) { return; }
             if (timeSinceDamage <= 1f) { return; }
-            PlayerControllerB player = MeetsStandardPlayerCollisionConditions(other);
-            if (player != null && player.isPlayerControlled && !inSpecialAnimation && !isEnemyDead)
-            {
-                timeSinceDamage = 0f;
-                int damageAmount = enraged ? 999 : GetPlayerDamage();
-                logger.LogDebug("Doing " + damageAmount + " damage to player");
-                DoAnimationServerRpc("claw");
-                player.DamagePlayer(damageAmount, true, true, CauseOfDeath.Mauling);
-            }
+            PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
+            if (player == null || !player.isPlayerControlled || player != localPlayer || inSpecialAnimation || isEnemyDead) { return; }
+
+            timeSinceDamage = 0f;
+            int damageAmount = enraged ? 999 : GetPlayerDamage();
+            logger.LogDebug("Doing " + damageAmount + " damage to player");
+            DoAnimationServerRpc("claw");
+            player.DamagePlayer(damageAmount, true, true, CauseOfDeath.Mauling);
         }
 
         public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null!)
@@ -639,110 +627,6 @@ namespace HeavyItemSCPs.Items.SCP323
             {
                 timeSinceSeenPlayer = 0f;
                 networkAnimator.SetTrigger("roar");
-            }
-        }
-
-        public void BeginBashDoor(DoorLock _doorLock)
-        {
-            logger.LogDebug("BeginBashDoor called");
-            inSpecialAnimation = true;
-            doorLock = _doorLock;
-            creatureAnimator.SetTrigger("punch");
-        }
-
-        public void BashDoor()
-        {
-            DoDamageToNearbyPlayers();
-
-            var steelDoorObj = doorLock.transform.parent.transform.parent.gameObject;
-            var doorMesh = steelDoorObj.transform.Find("DoorMesh").gameObject;
-
-            GameObject flyingDoorPrefab = new GameObject("FlyingDoor");
-            BoxCollider tempCollider = flyingDoorPrefab.AddComponent<BoxCollider>();
-            tempCollider.isTrigger = true;
-            tempCollider.size = new Vector3(1f, 1.5f, 3f);
-
-            flyingDoorPrefab.AddComponent<DoorPlayerCollisionDetect>();
-
-            AudioSource tempAS = flyingDoorPrefab.AddComponent<AudioSource>();
-            tempAS.spatialBlend = 1;
-            tempAS.maxDistance = 60;
-            tempAS.rolloffMode = AudioRolloffMode.Linear;
-            tempAS.volume = 1f;
-
-            var flyingDoor = UnityEngine.Object.Instantiate(flyingDoorPrefab, doorLock.transform.position, doorLock.transform.rotation);
-            doorMesh.transform.SetParent(flyingDoor.transform);
-
-            GameObject.Destroy(flyingDoorPrefab);
-
-            Rigidbody rb = flyingDoor.AddComponent<Rigidbody>();
-            rb.mass = 1f;
-            rb.useGravity = true;
-            rb.isKinematic = true;
-
-            // Determine which direction to apply the force
-            Vector3 doorForward = flyingDoor.transform.position + flyingDoor.transform.right * 2f;
-            Vector3 doorBackward = flyingDoor.transform.position - flyingDoor.transform.right * 2f;
-            Vector3 direction;
-
-            if (Vector3.Distance(doorForward, transform.position) < Vector3.Distance(doorBackward, transform.position))
-            {
-                // Wendigo is at front of door
-                direction = (doorBackward - doorForward).normalized;
-                flyingDoor.transform.position = flyingDoor.transform.position - flyingDoor.transform.right;
-            }
-            else
-            {
-                // Wendigo is at back of door
-                direction = (doorForward - doorBackward).normalized;
-                flyingDoor.transform.position = flyingDoor.transform.position + flyingDoor.transform.right;
-            }
-
-            Vector3 upDirection = transform.TransformDirection(Vector3.up).normalized * 0.1f;
-            Vector3 playerHitDirection = (direction + upDirection).normalized;
-            flyingDoor.GetComponent<DoorPlayerCollisionDetect>().force = playerHitDirection * doorBashForce;
-
-            // Release the Rigidbody from kinematic state
-            rb.isKinematic = false;
-
-            // Add an impulse force to the door
-            rb.AddForce(direction * doorBashForce, ForceMode.Impulse);
-
-            AudioSource doorAudio = flyingDoor.GetComponent<AudioSource>();
-            doorAudio.PlayOneShot(bashSFX, 1f);
-
-            string flowType = RoundManager.Instance.dungeonGenerator.Generator.DungeonFlow.name;
-            if (flowType == "Level1Flow" || flowType == "Level1FlowExtraLarge" || flowType == "Level1Flow3Exits" || flowType == "Level3Flow")
-            {
-                doorAudio.PlayOneShot(metalDoorSmashSFX, 0.8f);
-            }
-
-            doorAudio.PlayOneShot(doorWooshSFX, 1f);
-
-            doorCollisionDetectScript.triggering = false;
-            doorLock = null!;
-            inSpecialAnimation = false;
-
-            if (despawnDoorAfterBash)
-            {
-                Destroy(flyingDoor, despawnDoorAfterBashTime);
-            }
-        } // TODO: Add explosion damage TODO: Use Hamunii's reworked method
-
-        /*[Debug  :HeavyItemSCPs] Level1Flow
-        [Debug  :HeavyItemSCPs] Level2Flow
-        [Debug  :HeavyItemSCPs] Level1FlowExtraLarge
-        [Debug  :HeavyItemSCPs] Level1Flow3Exits
-        [Debug  :HeavyItemSCPs] Level3Flow*/
-
-        void DoDamageToNearbyPlayers()
-        {
-            foreach(var player in StartOfRound.Instance.allPlayerScripts)
-            {
-                if (Vector3.Distance(player.transform.position, transform.position) <= doorBashAOERange)
-                {
-                    player.DamagePlayer(doorBashAOEDamage, true, true, CauseOfDeath.Blast, 8);
-                }
             }
         }
 
@@ -841,7 +725,7 @@ namespace HeavyItemSCPs.Items.SCP323
             SwitchToBehaviourStateOnLocalClient((int)State.Roaming);
         }
 
-        void PlayFootstepSFX()
+        public void PlayFootstepSFX()
         {
             if (currentBehaviourStateIndex == (int)State.BloodSearch) { return; }
 
@@ -854,6 +738,11 @@ namespace HeavyItemSCPs.Items.SCP323
             creatureSFX.pitch = UnityEngine.Random.Range(0.93f, 1.07f);
             creatureSFX.PlayOneShot(StartOfRound.Instance.footstepSurfaces[currentFootstepSurfaceIndex].clips[index], 0.6f);
             previousFootstepClip = index;
+        }
+
+        public void BashDoor()
+        {
+            doorCollisionDetectScript.BashDoor();
         }
 
         void GetCurrentMaterialStandingOn()

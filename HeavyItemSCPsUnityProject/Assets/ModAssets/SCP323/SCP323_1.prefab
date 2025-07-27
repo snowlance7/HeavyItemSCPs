@@ -10258,6 +10258,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mainScript: {fileID: 5987687110115636116}
+  doorWooshSFX: {fileID: 8300000, guid: d53007fa8e28c0f48892c48bbd09bbce, type: 3}
+  metalDoorSmashSFX: {fileID: 8300000, guid: 3c957eb5b4353fc428e66ac76d749e0a, type: 3}
+  bashSFX: {fileID: 8300000, guid: 9497e6e1974f5b44d90d5190d81a2434, type: 3}
   triggering: 0
 --- !u!1 &1521408973438670330
 GameObject:
