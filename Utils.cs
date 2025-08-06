@@ -13,7 +13,7 @@ using static HeavyItemSCPs.Plugin;
 using static UnityEngine.Rendering.DebugUI;
 
 namespace HeavyItemSCPs
-{
+{ 
     public static class Utils
     {
         private static ManualLogSource logger = LoggerInstance;

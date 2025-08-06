@@ -148,7 +148,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             RoundManager.Instance.RefreshEnemiesList();
             HoarderBugAI.RefreshGrabbableObjectsInMapList();
-
+            
             timeSinceSeenPlayer = Mathf.Infinity;
 
             hashSpeed = Animator.StringToHash("speed");
@@ -546,7 +546,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
             bool outside = Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position);
             logger.LogDebug("Setting enemy outside: " + outside.ToString());
-            SetEnemyOutsideClientRpc(true);
+            SetEnemyOutsideClientRpc(outside);
         }
 
         bool MoveTowardsScrapInLineOfSight()

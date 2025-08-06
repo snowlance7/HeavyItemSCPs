@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem.Utilities;
 using UnityEngine.ProBuilder.Csg;
 using UnityEngine.UIElements;
 using static HeavyItemSCPs.Plugin;
@@ -947,6 +948,7 @@ namespace HeavyItemSCPs.Items.SCP513
             IEnumerator ForceSuicideCoroutine(bool hasShotgun, bool hasMask)
             {
                 yield return null;
+                int itemSlotIndex;
 
                 if (hasShotgun) // Shotgun
                 {
@@ -960,6 +962,7 @@ namespace HeavyItemSCPs.Items.SCP513
                         if (slot.itemProperties.name == "Shotgun")
                         {
                             shotgun = (ShotgunItem)slot;
+                            itemSlotIndex = localPlayer.ItemSlots.IndexOf(shotgun); // TODO: Test this
                         }
                     }
 
@@ -976,6 +979,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     Utils.FreezePlayer(localPlayer, true);
                     localPlayer.activatingItem = true;
                     HauntedMaskItem? mask = null;
+                    
 
                     foreach (var slot in localPlayer.ItemSlots)
                     {
@@ -983,6 +987,7 @@ namespace HeavyItemSCPs.Items.SCP513
                         if (slot.itemProperties.name == "ComedyMask" || slot.itemProperties.name == "TragedyMask")
                         {
                             mask = (HauntedMaskItem)slot;
+                            itemSlotIndex = localPlayer.ItemSlots.IndexOf(mask);
                         }
                     }
 
@@ -1010,6 +1015,7 @@ namespace HeavyItemSCPs.Items.SCP513
                         if (slot.itemProperties.name == "Knife")
                         {
                             knife = (KnifeItem)slot;
+                            itemSlotIndex = localPlayer.ItemSlots.IndexOf(knife);
                         }
                     }
 
