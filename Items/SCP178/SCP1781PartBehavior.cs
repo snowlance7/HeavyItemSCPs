@@ -13,11 +13,17 @@ namespace HeavyItemSCPs.Items.SCP178
         public GameObject ScanNode;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
+        float timeSinceSpawn;
+
         public override void Update()
         {
             base.Update();
 
-            EnableMesh(SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearingOnLocalClient);
+            timeSinceSpawn += Time.deltaTime;
+
+            if (timeSinceSpawn < 5f) { return; }
+
+            //EnableMesh(SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearingOnLocalClient); // TODO: Enable this
         }
 
         public void EnableMesh(bool enable)

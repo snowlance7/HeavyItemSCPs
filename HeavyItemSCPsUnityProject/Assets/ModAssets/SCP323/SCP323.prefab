@@ -120,6 +120,7 @@ Transform:
   m_Children:
   - {fileID: 4469226093463930795}
   - {fileID: 9082468844856379911}
+  - {fileID: 7287415323273469942}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &6602258303074370997
@@ -312,6 +313,7 @@ MonoBehaviour:
   MeshObj: {fileID: 1497352537173118679}
   SCP3231Prefab: {fileID: 2381925397762389571, guid: d05849edad1dbde4099ea78426b940b9,
     type: 3}
+  turnCompass: {fileID: 7287415323273469942}
   AttachedToWendigo: {fileID: 0}
 --- !u!114 &8355691983343552484
 MonoBehaviour:
@@ -329,6 +331,37 @@ MonoBehaviour:
   overridingLowPass: 0
   lowPassOverride: 20000
   debugLog: 0
+--- !u!1 &8078158162055884157
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7287415323273469942}
+  m_Layer: 6
+  m_Name: TurnCompass
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7287415323273469942
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8078158162055884157}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2271731249963111737}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9139282977299227352
 GameObject:
   m_ObjectHideFlags: 0

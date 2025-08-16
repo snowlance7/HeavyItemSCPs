@@ -4,9 +4,12 @@ using HarmonyLib;
 using LethalLib.Modules;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.InputSystem.Utilities;
+using UnityEngine.UI;
 using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.Items.SCP323
@@ -23,6 +26,7 @@ namespace HeavyItemSCPs.Items.SCP323
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GameObject MeshObj;
         public GameObject SCP3231Prefab;
+        public Transform turnCompass;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         public static AttachState testState = AttachState.None;
@@ -38,19 +42,27 @@ namespace HeavyItemSCPs.Items.SCP323
         Vector3 posOffsetWendigo = new Vector3(-0.125f, 0.075f, -0.18f);
         Vector3 rotOffsetWendigo = new Vector3(125f, 10f, 3f);
 
-        float timeSinceInsanityIncrease;
+        //float timeSinceInsanityIncrease;
         bool attaching;
         bool skullOn;
         Coroutine? transformingCoroutine;
-        float timeSpawned = 0f;
+        float timeSinceSpawn;
+        float timeSinceInchForward;
+        float timeSinceJumpForward;
+        bool jumping;
+        Coroutine? lungeCoroutine;
+
+        Dictionary<PlayerControllerB, float> playersMadness = new Dictionary<PlayerControllerB, float>();
+        PlayerControllerB? playerHighestMadness;
 
         public SCP323_1AI AttachedToWendigo = null!;
 
+        public HashSet<PlayerControllerB> playersHeldBy = [];
+
         // Config variables
-        float distanceToIncreaseInstanity => config323DistanceToIncreaseInsanity.Value;
-        int insanityHolding => config323InsanityHolding.Value;
-        int insanityWearing => config323InsanityWearing.Value;
-        int insanityToTransform => config323InsanityToTransform.Value;
+        float distanceToIncreaseInsanity => config323DistanceToIncreaseInsanity.Value;
+        //int insanityHolding => config323InsanityHolding.Value;
+        //int insanityWearing => config323InsanityWearing.Value;
         bool showInsanity => config323ShowInsanity.Value;
 
         public ThreatType type => ThreatType.Player;
@@ -67,11 +79,11 @@ namespace HeavyItemSCPs.Items.SCP323
             base.OnNetworkSpawn();
             if (Instance != null && Instance != this)
             {
-                logger.LogDebug("There is already a SCP-513 in the scene. Removing this one.");
+                logger.LogDebug("There is already a SCP-323 in the scene. Removing this one.");
                 return;
             }
             Instance = this;
-            logger.LogDebug("Finished spawning SCP-513");
+            logger.LogDebug("Finished spawning SCP-323");
         }
 
         public override void OnNetworkDespawn()
@@ -80,6 +92,7 @@ namespace HeavyItemSCPs.Items.SCP323
             if (Instance == this)
             {
                 Instance = null;
+                if (!Utils.localPlayerFrozen) { return; }
                 Utils.FreezePlayer(localPlayer, false);
             }
         }
@@ -88,52 +101,70 @@ namespace HeavyItemSCPs.Items.SCP323
         {
             base.Update();
 
-            timeSpawned += Time.deltaTime;
+            timeSinceSpawn += Time.deltaTime;
+            timeSinceInchForward += Time.deltaTime;
+            timeSinceJumpForward += Time.deltaTime;
 
             if (Instance != this)
             {
                 grabbable = false;
-                if (IsServerOrHost && timeSpawned > 3f)
+                if (IsServerOrHost && timeSinceSpawn > 3f)
                 {
                     NetworkObject.Despawn(true);
                 }
                 return;
             }
 
-            if (PlayerIsTargetable(localPlayer) && Vector3.Distance(transform.position, localPlayer.transform.position) < distanceToIncreaseInstanity)
+            playerHighestMadness = null;
+
+            foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
             {
-                if (showInsanity) // TODO: Test this
+                if (!playersMadness.ContainsKey(player)) { playersMadness.Add(player, 0); }
+
+                float madness = Mathf.Max(playersMadness[player], player.insanityLevel);
+                player.insanityLevel = madness;
+
+                if (PlayerIsTargetable(player) && Vector3.Distance(transform.position, player.transform.position) < distanceToIncreaseInsanity) // TODO: Make sure PlayerIsTargetable is working
                 {
-                    playerHeldBy.playersManager.fearLevel = playerHeldBy.insanityLevel / 50;
-                }
-
-                timeSinceInsanityIncrease += Time.unscaledDeltaTime;
-
-                if (timeSinceInsanityIncrease > 10f)
-                {
-                    timeSinceInsanityIncrease = 0f;
-
-                    if (playerHeldBy != null)
+                    if (playerHighestMadness == null || playersMadness[player] > playersMadness[playerHighestMadness])
                     {
-                        if (localPlayer == playerHeldBy)
-                        {
-                            if (skullOn)
-                            {
-                                playerHeldBy.insanityLevel += insanityWearing;
-                            }
-                            else
-                            {
-                                playerHeldBy.insanityLevel += insanityHolding;
-                            }
+                        playerHighestMadness = player;
+                    }
 
-                            if (playerHeldBy.insanityLevel >= insanityToTransform)
-                            {
-                                AttemptTransformLocalPlayer();
-                                return;
-                            }
+                    if (playerHeldBy != null && player == playerHeldBy)
+                    {
+                        if (showInsanity) // TODO: Test this
+                        {
+                            player.playersManager.fearLevel = madness / player.maxInsanityLevel;
+                        }
+
+                        if (skullOn)
+                        {
+                            madness += Time.deltaTime * 1f;
+                        }
+                        else
+                        {
+                            madness += Time.deltaTime * 0.5f;
+                        }
+
+                        if (madness >= player.maxInsanityLevel && localPlayer == player)
+                        {
+                            AttemptTransformLocalPlayer();
+                            return;
                         }
                     }
+                    else
+                    {
+                        madness -= Time.deltaTime * 0.1f;
+                    }
                 }
+                else
+                {
+                    madness -= Time.deltaTime * 0.5f;
+                }
+
+                madness = Mathf.Clamp(madness, 0f, player.maxInsanityLevel);
+                playersMadness[player] = madness;
             }
         }
 
@@ -149,9 +180,63 @@ namespace HeavyItemSCPs.Items.SCP323
                 transform.position += positionOffset;
                 return;
             }
+            // TODO: Get grenade throw logic from washing machine mod and ask chatgpt to make a cleaner version? brain hurts...
+            if (!jumping && playerHeldBy == null && playerHighestMadness != null && (playersHeldBy.Contains(playerHighestMadness) || playersMadness[playerHighestMadness] > playerHighestMadness.maxInsanityLevel / 2))
+            {
+                PlayerControllerB player = playerHighestMadness;
+                turnCompass.LookAt(player.gameplayCamera.transform.position);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), (playersMadness[player] / 2) * Time.deltaTime);
+
+                Vector3 directionToPlayer = (player.transform.position - transform.position).normalized;
+                
+                if (lungeCoroutine == null && Vector3.Dot(transform.forward, directionToPlayer) > 0.9f) // withing ~20 degrees
+                {
+                    // Can move
+                    if (timeSinceJumpForward > 10f)
+                    {
+                        lungeCoroutine = StartCoroutine(LungeOrJumpAtPlayer(player.transform, 0.5f, 0, 1f));
+                    }
+
+                    if (timeSinceInchForward > 2f)
+                    {
+                        lungeCoroutine = StartCoroutine(LungeOrJumpAtPlayer(player.transform, 1f, 1f, 1f));
+                    }
+                }
+            }
 
             base.LateUpdate();
         }
+
+        IEnumerator LungeOrJumpAtPlayer(Transform player, float distance, float jumpHeight, float duration)
+        {
+            Vector3 start = transform.position;
+            Vector3 dirToPlayer = (player.position - start).normalized;
+            Vector3 end = start + dirToPlayer * distance;
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+
+                // Ease-out curve (starts fast, slows at end)
+                t = 1f - Mathf.Pow(1f - t, 3f);
+
+                // Horizontal motion
+                Vector3 horizontalPos = Vector3.Lerp(start, end, t);
+
+                // Vertical arc (parabola) — will be 0 if jumpHeight is 0
+                float height = 4 * jumpHeight * t * (1 - t);
+
+                // Apply combined motion
+                transform.position = horizontalPos + Vector3.up * height;
+
+                yield return null;
+            }
+
+            lungeCoroutine = null;
+        }
+
 
         public override void GrabItem()
         {
@@ -168,19 +253,21 @@ namespace HeavyItemSCPs.Items.SCP323
                 transform.localScale = new Vector3(0.31f, 0.31f, 0.31f);
                 AttachedToWendigo = null!;
             }
+
+            playersHeldBy.Add(playerHeldBy);
         }
 
         public override void ItemActivate(bool used, bool buttonDown = true)
         {
             base.ItemActivate(used, buttonDown);
 
-            if (Utils.testing)
+            /*if (Utils.testing)
             {
                 playerHeldBy.playerBodyAnimator.SetBool("HoldMask", buttonDown);
                 skullOn = buttonDown;
                 playerHeldBy.activatingItem = buttonDown;
                 return;
-            }
+            }*/
             
             if (playerHeldBy != null)
             {
@@ -242,11 +329,12 @@ namespace HeavyItemSCPs.Items.SCP323
             logger.LogDebug("Attempting to transform local player.");
             if (!StartOfRound.Instance.shipIsLeaving && (!StartOfRound.Instance.inShipPhase || !(StartOfRound.Instance.testRoom == null)) && !attaching)
             {
-                playerHeldBy.SwitchToItemSlot(0, this);
+                int itemSlotIndex = localPlayer.ItemSlots.IndexOf(this);
+                localPlayer.SwitchToItemSlot(itemSlotIndex, this);
                 if (!isPocketed)
                 {
                     attaching = true;
-                    playerHeldBy.activatingItem = true;
+                    localPlayer.activatingItem = true;
                     TransformPlayerServerRpc();
                 }
             }
@@ -280,33 +368,27 @@ namespace HeavyItemSCPs.Items.SCP323
             }
             
             logger.LogDebug("Starting transformation animation coroutine.");
-            if (transformingCoroutine != null)
+
+            IEnumerator DoTransformationAnimationCoroutine(PlayerControllerB player)
             {
-                StopCoroutine(transformingCoroutine);
-                transformingCoroutine = null;
-            }
-            transformingCoroutine = StartCoroutine(DoTransformationAnimationCoroutine(player)); // TODO: Test this
-        }
+                logger.LogDebug("Doing transformation animation coroutine.");
+                yield return new WaitForSecondsRealtime(5f);
 
-        IEnumerator DoTransformationAnimationCoroutine(PlayerControllerB player)
-        {
-            logger.LogDebug("Doing transformation animation coroutine.");
-            yield return new WaitForSecondsRealtime(5f);
+                player.DropAllHeldItemsAndSync();
 
-            player.DropAllHeldItemsAndSync();
+                Vector3 spawnPos = player.transform.position;
+                player.KillPlayer(Vector3.zero, false, CauseOfDeath.Bludgeoning);
 
-            Vector3 spawnPos = player.transform.position;
-            player.KillPlayer(Vector3.zero, false, CauseOfDeath.Bludgeoning);
+                yield return new WaitForSeconds(1f);
 
-            yield return new WaitForSeconds(1f);
-
-            if (player != null)
-            {
-                if (player.isPlayerDead)
+                if (player != null)
                 {
-                    FinishTransformation(spawnPos);
+                    if (player.isPlayerDead)
+                    {
+                        FinishTransformation(spawnPos);
+                    }
+                    StopTransformation(player);
                 }
-                StopTransformation(player);
             }
         }
 
@@ -351,7 +433,7 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
-        // IVisibleThreat Settings
+        #region IVisibleThreat Settings
 
         ThreatType IVisibleThreat.type
         {
@@ -423,18 +505,18 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public bool IsThreatDead()
         {
-            return true;
+            return false; // TODO: Test this
         }
+
+        #endregion
 
         // RPCs
 
         [ServerRpc(RequireOwnership = false)]
         void TransformPlayerServerRpc()
         {
-            if (IsServerOrHost)
-            {
-                TransformPlayerClientRpc();
-            }
+            if (!IsServerOrHost) { return; }
+            TransformPlayerClientRpc();
         }
 
         [ClientRpc]
@@ -447,10 +529,8 @@ namespace HeavyItemSCPs.Items.SCP323
         [ServerRpc(RequireOwnership = false)]
         public void ChangeAttachStateServerRpc(AttachState state)
         {
-            if (IsServerOrHost)
-            {
-                ChangeAttachStateClientRpc(state);
-            }
+            if (!IsServerOrHost) { return; }
+            ChangeAttachStateClientRpc(state);
         }
 
         [ClientRpc]
@@ -462,10 +542,8 @@ namespace HeavyItemSCPs.Items.SCP323
         [ServerRpc(RequireOwnership = false)]
         public void ChangeSizeServerRpc(float size)
         {
-            if (IsServerOrHost)
-            {
-                ChangeSizeClientRpc(size);
-            }
+            if (!IsServerOrHost) { return; }
+            ChangeSizeClientRpc(size);
         }
 
         [ClientRpc]

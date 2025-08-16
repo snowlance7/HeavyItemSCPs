@@ -144,7 +144,7 @@ namespace HeavyItemSCPs
             harmony.PatchAll();
 
             InitializeNetworkBehaviours();
-
+            
             // Configs
             // SCP-427
             configEnableSCP427 = Config.Bind("SCP-427", "Enable SCP-427", true, "Whether or not SCP-427 can spawn as scrap.");
@@ -204,7 +204,7 @@ namespace HeavyItemSCPs
             config323LevelRarities = Config.Bind("SCP-323 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config323CustomLevelRarities = Config.Bind("SCP-323 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
 
-            config323DistanceToIncreaseInsanity = Config.Bind("SCP-323", "Distance to increase insanity", 10f, "The distance you need to be from SCP-323 for it to start decreasing your insanity.");
+            config323DistanceToIncreaseInsanity = Config.Bind("SCP-323", "Distance to increase insanity", 5f, "The distance you need to be from SCP-323 for it to start decreasing your insanity.");
             config323InsanityHolding = Config.Bind("SCP-323", "Insanity holding", 10, "The amount of insanity you will gain every 10 seconds when you are holding SCP-323.");
             config323InsanityWearing = Config.Bind("SCP-323", "Insanity wearing", 10, "The amount of insanity you will gain every 10 seconds when you are wearing SCP-323.");
             config323InsanityToTransform = Config.Bind("SCP-323", "Insanity to transform", 50, "You will be forced to transform when you reach this insanity value. It cannot be stopped.");
@@ -239,7 +239,7 @@ namespace HeavyItemSCPs
             config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
             config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
-
+            
             // Loading Assets
             string sAssemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 

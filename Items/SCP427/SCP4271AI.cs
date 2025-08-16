@@ -69,7 +69,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public static float BaseAcceleration = 30f; // default 42f
         public static float SpeedIncreaseRate = 4f; // default 5f
 
-        public static bool throwingPlayerDisabled; // TESTING REMOVE LATER
+        public static bool DEBUG_throwingPlayerDisabled; // TESTING REMOVE LATER
 
         public float heldObjectVerticalOffset = 6f; // TODO: Get this from testing
 
@@ -688,16 +688,15 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
         {
             base.OnCollideWithPlayer(other);
-            if (throwingPlayerDisabled) { return; }
             if (inSpecialAnimation) { return; }
+            if (timeSinceDamagePlayer < 2f) { return; }
             if (heldObject != null) { DropItem(transform.position); }
             PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
             if (player == null || !player.isPlayerControlled || player != localPlayer || isEnemyDead) { return; }
-            if (timeSinceDamagePlayer < 2f) { return; }
             logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
             timeSinceDamagePlayer = 0f;
 
-            if (timeSinceThrowingPlayer > 10f)
+            if (timeSinceThrowingPlayer > 10f && !DEBUG_throwingPlayerDisabled)
             {
                 logger.LogDebug("Throwing player");
 

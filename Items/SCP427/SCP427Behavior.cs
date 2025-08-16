@@ -109,7 +109,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 return;
             }
 
-            if (StartOfRound.Instance.inShipPhase) { return; }
+            if ((StartOfRound.Instance.inShipPhase || !StartOfRound.Instance.shipHasLanded) && !Utils.inTestRoom) { return; }
 
             timeSinceLastHeal += Time.deltaTime;
 
@@ -251,7 +251,7 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.ItemActivate(used, buttonDown);
 
-            isOpen = !StartOfRound.Instance.inShipPhase && buttonDown;
+            isOpen = ((!StartOfRound.Instance.inShipPhase && StartOfRound.Instance.shipHasLanded) || Utils.inTestRoom) && buttonDown;
 
             if (isOpen) ItemSFX.Play();
             else ItemSFX.Stop();

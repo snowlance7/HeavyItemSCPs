@@ -948,7 +948,7 @@ namespace HeavyItemSCPs.Items.SCP513
             IEnumerator ForceSuicideCoroutine(bool hasShotgun, bool hasMask)
             {
                 yield return null;
-                int itemSlotIndex;
+                int itemSlotIndex = 0;
 
                 if (hasShotgun) // Shotgun
                 {
@@ -968,7 +968,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     if (shotgun == null) { logger.LogError("Couldnt find shotgun"); yield break; }
 
-                    localPlayer.SwitchToItemSlot(0, shotgun);
+                    localPlayer.SwitchToItemSlot(itemSlotIndex, shotgun);
 
                     SCP513Behavior.Instance!.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
 
@@ -993,7 +993,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     if (mask == null) { logger.LogError("Couldnt find mask"); yield break; }
 
-                    localPlayer.SwitchToItemSlot(0, mask);
+                    localPlayer.SwitchToItemSlot(itemSlotIndex, mask);
 
                     yield return new WaitForSeconds(1f);
 
@@ -1021,7 +1021,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     if (knife == null) { logger.LogError("Couldnt find knife"); yield break; }
 
-                    localPlayer.SwitchToItemSlot(0, knife);
+                    localPlayer.SwitchToItemSlot(itemSlotIndex, knife);
 
                     float elapsedTime = 0f;
 

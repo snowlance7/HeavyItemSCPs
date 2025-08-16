@@ -76,8 +76,8 @@ namespace HeavyItemSCPs
                     HUDManager.Instance.DisplayTip("DisableTargetting: ", Utils.disableTargetting.ToString());
                     break;
                 case "/playerThrowing":
-                    SCP4271AI.throwingPlayerDisabled = !SCP4271AI.throwingPlayerDisabled;
-                    HUDManager.Instance.DisplayTip("ThrowingPlayerDisabled", SCP4271AI.throwingPlayerDisabled.ToString());
+                    SCP4271AI.DEBUG_throwingPlayerDisabled = !SCP4271AI.DEBUG_throwingPlayerDisabled;
+                    HUDManager.Instance.DisplayTip("ThrowingPlayerDisabled", SCP4271AI.DEBUG_throwingPlayerDisabled.ToString());
                     break;
                 case "/allEvents":
                     HallucinationManager.Instance?.RunAllEvents(int.Parse(args[1]));
