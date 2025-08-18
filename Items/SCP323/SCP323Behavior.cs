@@ -27,6 +27,10 @@ namespace HeavyItemSCPs.Items.SCP323
         public GameObject MeshObj;
         public GameObject SCP3231Prefab;
         public Transform turnCompass;
+
+        public AnimationCurve grenadeFallCurve = new AnimationCurve(new Keyframe(0f, 0f, 2f, 2f), new Keyframe(1f, 1f, 0f, 0f)); // arch 0 1
+        public AnimationCurve grenadeVerticalFallCurve = new AnimationCurve(new Keyframe(0f, 0f, -2f, -2f), new Keyframe(1f, 1f, 0f, 0f)); // dip 0 1
+        public AnimationCurve grenadeVerticalFallCurveNoBounce = new AnimationCurve(new Keyframe(0f, 0f, -2f, -2f), new Keyframe(1f, 1f, 0f, 0f)); // dip 0 1
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         public static AttachState testState = AttachState.None;
@@ -50,7 +54,6 @@ namespace HeavyItemSCPs.Items.SCP323
         float timeSinceInchForward;
         float timeSinceJumpForward;
         bool jumping;
-        Coroutine? lungeCoroutine;
 
         Dictionary<PlayerControllerB, float> playersMadness = new Dictionary<PlayerControllerB, float>();
         PlayerControllerB? playerHighestMadness;
@@ -189,52 +192,87 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 Vector3 directionToPlayer = (player.transform.position - transform.position).normalized;
                 
-                if (lungeCoroutine == null && Vector3.Dot(transform.forward, directionToPlayer) > 0.9f) // withing ~20 degrees
+                if (Vector3.Dot(transform.forward, directionToPlayer) > 0.9f) // withing ~20 degrees
                 {
                     // Can move
                     if (timeSinceJumpForward > 10f)
                     {
-                        lungeCoroutine = StartCoroutine(LungeOrJumpAtPlayer(player.transform, 0.5f, 0, 1f));
+                        timeSinceJumpForward = 0f;
+                        //LungeAtPlayer((player.transform.position - transform.position).normalized, 1f, 1f);
+                        LungeAtPlayer(transform.forward, 1f, 1f);
                     }
 
-                    if (timeSinceInchForward > 2f)
+                    /*if (timeSinceInchForward > 2f)
                     {
-                        lungeCoroutine = StartCoroutine(LungeOrJumpAtPlayer(player.transform, 1f, 1f, 1f));
-                    }
+                        timeSinceInchForward = 0f;
+                        LungeAtPlayer((player.transform.position - transform.position).normalized, 0.5f, 0f);
+                    }*/
                 }
             }
 
             base.LateUpdate();
         }
 
-        IEnumerator LungeOrJumpAtPlayer(Transform player, float distance, float jumpHeight, float duration)
+        void LungeAtPlayer(Vector3 direction, float distance, float jumpHeight)
         {
-            Vector3 start = transform.position;
-            Vector3 dirToPlayer = (player.position - start).normalized;
-            Vector3 end = start + dirToPlayer * distance;
+            grenadeFallCurve = new AnimationCurve(new Keyframe(0f, 0f, jumpHeight, jumpHeight), new Keyframe(1f, 1f, 0f, 0f));
+            grenadeVerticalFallCurve = new AnimationCurve(new Keyframe(0f, 0f, -jumpHeight, -jumpHeight), new Keyframe(1f, 1f, 0f, 0f));
+            grenadeVerticalFallCurveNoBounce = new AnimationCurve(new Keyframe(0f, 0f, -jumpHeight, -jumpHeight), new Keyframe(1f, 1f, 0f, 0f));
 
-            float elapsed = 0f;
-            while (elapsed < duration)
+            startFallingPosition = transform.position;
+            logger.LogDebug("Start: " + startFallingPosition);
+
+            targetFloorPosition = transform.position + direction * distance;
+            logger.LogDebug("End: " + targetFloorPosition);
+
+            hasHitGround = false;
+            fallTime = 0f;
+        }
+
+
+
+        public override void FallWithCurve()
+        {
+            // Log initial state
+            logger.LogDebug($"cFallWithCurve called. Start Position: {startFallingPosition}, Target Position: {targetFloorPosition}, Initial cfallTime: {fallTime}");
+
+            float magnitude = (startFallingPosition - targetFloorPosition).magnitude;
+            logger.LogDebug($"Calculated magnitude: {magnitude}");
+
+            // Log rotation interpolation
+            Quaternion targetRotation = Quaternion.Euler(itemProperties.restingRotation.x, base.transform.eulerAngles.y, itemProperties.restingRotation.z);
+            base.transform.rotation = Quaternion.Lerp(base.transform.rotation, targetRotation, 14f * Time.deltaTime / magnitude);
+            logger.LogDebug($"Updated rotation to: {base.transform.rotation.eulerAngles}");
+
+            // Log position interpolation for primary fall
+            base.transform.localPosition = Vector3.Lerp(startFallingPosition, targetFloorPosition, grenadeFallCurve.Evaluate(fallTime));
+            logger.LogDebug($"Updated primary fall position to: {base.transform.localPosition}");
+
+            // Conditional logging for vertical fall curve
+            if (magnitude > 5f)
             {
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-
-                // Ease-out curve (starts fast, slows at end)
-                t = 1f - Mathf.Pow(1f - t, 3f);
-
-                // Horizontal motion
-                Vector3 horizontalPos = Vector3.Lerp(start, end, t);
-
-                // Vertical arc (parabola) — will be 0 if jumpHeight is 0
-                float height = 4 * jumpHeight * t * (1 - t);
-
-                // Apply combined motion
-                transform.position = horizontalPos + Vector3.up * height;
-
-                yield return null;
+                logger.LogDebug("Magnitude > 5, using grenadeVerticalFallCurveNoBounce.");
+                base.transform.localPosition = Vector3.Lerp(
+                    new Vector3(base.transform.localPosition.x, startFallingPosition.y, base.transform.localPosition.z),
+                    new Vector3(base.transform.localPosition.x, targetFloorPosition.y, base.transform.localPosition.z),
+                    grenadeVerticalFallCurveNoBounce.Evaluate(fallTime)
+                );
+            }
+            else
+            {
+                logger.LogDebug("Magnitude <= 5, using grenadeVerticalFallCurve.");
+                base.transform.localPosition = Vector3.Lerp(
+                    new Vector3(base.transform.localPosition.x, startFallingPosition.y, base.transform.localPosition.z),
+                    new Vector3(base.transform.localPosition.x, targetFloorPosition.y, base.transform.localPosition.z),
+                    grenadeVerticalFallCurve.Evaluate(fallTime)
+                );
             }
 
-            lungeCoroutine = null;
+            // Log updated position and fallTime
+            logger.LogDebug($"Updated local position after vertical fall: {base.transform.localPosition}");
+
+            fallTime += Mathf.Abs(Time.deltaTime * 12f / magnitude);
+            logger.LogDebug($"Updated cfallTime to: {fallTime}");
         }
 
 
