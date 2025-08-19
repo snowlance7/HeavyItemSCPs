@@ -27,10 +27,6 @@ namespace HeavyItemSCPs.Items.SCP323
         public GameObject MeshObj;
         public GameObject SCP3231Prefab;
         public Transform turnCompass;
-
-        public AnimationCurve grenadeFallCurve = new AnimationCurve(new Keyframe(0f, 0f, 2f, 2f), new Keyframe(1f, 1f, 0f, 0f)); // arch 0 1
-        public AnimationCurve grenadeVerticalFallCurve = new AnimationCurve(new Keyframe(0f, 0f, -2f, -2f), new Keyframe(1f, 1f, 0f, 0f)); // dip 0 1
-        public AnimationCurve grenadeVerticalFallCurveNoBounce = new AnimationCurve(new Keyframe(0f, 0f, -2f, -2f), new Keyframe(1f, 1f, 0f, 0f)); // dip 0 1
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         public static AttachState testState = AttachState.None;
@@ -100,9 +96,86 @@ namespace HeavyItemSCPs.Items.SCP323
             }
         }
 
+        void CustomUpdate()
+        {
+            if (currentUseCooldown >= 0f)
+            {
+                currentUseCooldown -= Time.deltaTime;
+            }
+            if (base.IsOwner)
+            {
+                if (isBeingUsed && itemProperties.requiresBattery)
+                {
+                    if (insertedBattery.charge > 0f)
+                    {
+                        if (!itemProperties.itemIsTrigger)
+                        {
+                            insertedBattery.charge -= Time.deltaTime / itemProperties.batteryUsage;
+                        }
+                    }
+                    else if (!insertedBattery.empty)
+                    {
+                        insertedBattery.empty = true;
+                        if (isBeingUsed)
+                        {
+                            Debug.Log("Use up batteries local");
+                            isBeingUsed = false;
+                            UseUpBatteries();
+                            isSendingItemRPC++;
+                            UseUpItemBatteriesServerRpc();
+                        }
+                    }
+                }
+                if (!wasOwnerLastFrame)
+                {
+                    wasOwnerLastFrame = true;
+                }
+            }
+            else if (wasOwnerLastFrame)
+            {
+                wasOwnerLastFrame = false;
+            }
+            if (!isHeld && parentObject == null && !jumping)
+            {
+                if (fallTime < 1f)
+                {
+                    reachedFloorTarget = false;
+                    FallWithCurve();
+                    if (base.transform.localPosition.y - targetFloorPosition.y < 0.05f && !hasHitGround)
+                    {
+                        PlayDropSFX();
+                        OnHitGround();
+                    }
+                    return;
+                }
+                if (!reachedFloorTarget)
+                {
+                    if (!hasHitGround)
+                    {
+                        PlayDropSFX();
+                        OnHitGround();
+                    }
+                    reachedFloorTarget = true;
+                    if (floorYRot == -1)
+                    {
+                        base.transform.rotation = Quaternion.Euler(itemProperties.restingRotation.x, base.transform.eulerAngles.y, itemProperties.restingRotation.z);
+                    }
+                    else
+                    {
+                        base.transform.rotation = Quaternion.Euler(itemProperties.restingRotation.x, (float)(floorYRot + itemProperties.floorYOffset) + 90f, itemProperties.restingRotation.z);
+                    }
+                }
+                //base.transform.localPosition = targetFloorPosition;
+            }
+            else if (isHeld || isHeldByEnemy)
+            {
+                reachedFloorTarget = false;
+            }
+        }
+
         public override void Update()
         {
-            base.Update();
+            CustomUpdate();
 
             timeSinceSpawn += Time.deltaTime;
             timeSinceInchForward += Time.deltaTime;
@@ -126,6 +199,12 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 float madness = Mathf.Max(playersMadness[player], player.insanityLevel);
                 player.insanityLevel = madness;
+
+
+                if (localPlayer == player) // TODO: TEST AND TWEAK MADNESS VALUES
+                {
+                    logger.LogDebug("madness: " + madness);
+                }
 
                 if (PlayerIsTargetable(player) && Vector3.Distance(transform.position, player.transform.position) < distanceToIncreaseInsanity) // TODO: Make sure PlayerIsTargetable is working
                 {
@@ -158,7 +237,7 @@ namespace HeavyItemSCPs.Items.SCP323
                     }
                     else
                     {
-                        madness -= Time.deltaTime * 0.1f;
+                        madness += Time.deltaTime * 0.1f;
                     }
                 }
                 else
@@ -184,25 +263,25 @@ namespace HeavyItemSCPs.Items.SCP323
                 return;
             }
             // TODO: Get grenade throw logic from washing machine mod and ask chatgpt to make a cleaner version? brain hurts...
-            if (!jumping && playerHeldBy == null && playerHighestMadness != null && (playersHeldBy.Contains(playerHighestMadness) || playersMadness[playerHighestMadness] > playerHighestMadness.maxInsanityLevel / 2))
+            if (!jumping && !isHeld && playerHeldBy == null && playerHighestMadness != null && (playersHeldBy.Contains(playerHighestMadness) || playersMadness[playerHighestMadness] > playerHighestMadness.maxInsanityLevel / 2))
             {
                 PlayerControllerB player = playerHighestMadness;
-                turnCompass.LookAt(player.gameplayCamera.transform.position);
+                turnCompass.LookAt(player.transform.position);
                 transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), (playersMadness[player] / 2) * Time.deltaTime);
 
                 Vector3 directionToPlayer = (player.transform.position - transform.position).normalized;
                 
-                if (Vector3.Dot(transform.forward, directionToPlayer) > 0.9f) // withing ~20 degrees
+                if (!jumping && Vector3.Dot(transform.forward, directionToPlayer) > 0.9f) // withing ~20 degrees
                 {
                     // Can move
-                    if (timeSinceJumpForward > 10f)
+                    /*if (timeSinceJumpForward > 10f)
                     {
                         timeSinceJumpForward = 0f;
                         //LungeAtPlayer((player.transform.position - transform.position).normalized, 1f, 1f);
-                        LungeAtPlayer(transform.forward, 1f, 1f);
+                        LungeAtPlayer(transform.forward, 1f, 1f, 1f);
                     }
 
-                    /*if (timeSinceInchForward > 2f)
+                    if (timeSinceInchForward > 2f)
                     {
                         timeSinceInchForward = 0f;
                         LungeAtPlayer((player.transform.position - transform.position).normalized, 0.5f, 0f);
@@ -213,66 +292,42 @@ namespace HeavyItemSCPs.Items.SCP323
             base.LateUpdate();
         }
 
-        void LungeAtPlayer(Vector3 direction, float distance, float jumpHeight)
+        public void LungeAtPlayer(Vector3 direction, float distance, float jumpHeight, float duration)
         {
-            grenadeFallCurve = new AnimationCurve(new Keyframe(0f, 0f, jumpHeight, jumpHeight), new Keyframe(1f, 1f, 0f, 0f));
-            grenadeVerticalFallCurve = new AnimationCurve(new Keyframe(0f, 0f, -jumpHeight, -jumpHeight), new Keyframe(1f, 1f, 0f, 0f));
-            grenadeVerticalFallCurveNoBounce = new AnimationCurve(new Keyframe(0f, 0f, -jumpHeight, -jumpHeight), new Keyframe(1f, 1f, 0f, 0f));
-
-            startFallingPosition = transform.position;
-            logger.LogDebug("Start: " + startFallingPosition);
-
-            targetFloorPosition = transform.position + direction * distance;
-            logger.LogDebug("End: " + targetFloorPosition);
-
-            hasHitGround = false;
-            fallTime = 0f;
+            grabbable = false;
+            jumping = true;
+            StartCoroutine(LungeAtPlayerRoutine(direction, distance, jumpHeight, duration));
         }
 
-
-
-        public override void FallWithCurve()
+        IEnumerator LungeAtPlayerRoutine(Vector3 direction, float distance, float jumpHeight, float duration)
         {
-            // Log initial state
-            logger.LogDebug($"cFallWithCurve called. Start Position: {startFallingPosition}, Target Position: {targetFloorPosition}, Initial cfallTime: {fallTime}");
+            Vector3 start = transform.position;
+            targetFloorPosition = start + direction * distance;
+            targetFloorPosition = GetItemFloorPosition(targetFloorPosition);
 
-            float magnitude = (startFallingPosition - targetFloorPosition).magnitude;
-            logger.LogDebug($"Calculated magnitude: {magnitude}");
-
-            // Log rotation interpolation
-            Quaternion targetRotation = Quaternion.Euler(itemProperties.restingRotation.x, base.transform.eulerAngles.y, itemProperties.restingRotation.z);
-            base.transform.rotation = Quaternion.Lerp(base.transform.rotation, targetRotation, 14f * Time.deltaTime / magnitude);
-            logger.LogDebug($"Updated rotation to: {base.transform.rotation.eulerAngles}");
-
-            // Log position interpolation for primary fall
-            base.transform.localPosition = Vector3.Lerp(startFallingPosition, targetFloorPosition, grenadeFallCurve.Evaluate(fallTime));
-            logger.LogDebug($"Updated primary fall position to: {base.transform.localPosition}");
-
-            // Conditional logging for vertical fall curve
-            if (magnitude > 5f)
+            float elapsed = 0f;
+            while (elapsed < duration && !isHeld)
             {
-                logger.LogDebug("Magnitude > 5, using grenadeVerticalFallCurveNoBounce.");
-                base.transform.localPosition = Vector3.Lerp(
-                    new Vector3(base.transform.localPosition.x, startFallingPosition.y, base.transform.localPosition.z),
-                    new Vector3(base.transform.localPosition.x, targetFloorPosition.y, base.transform.localPosition.z),
-                    grenadeVerticalFallCurveNoBounce.Evaluate(fallTime)
-                );
-            }
-            else
-            {
-                logger.LogDebug("Magnitude <= 5, using grenadeVerticalFallCurve.");
-                base.transform.localPosition = Vector3.Lerp(
-                    new Vector3(base.transform.localPosition.x, startFallingPosition.y, base.transform.localPosition.z),
-                    new Vector3(base.transform.localPosition.x, targetFloorPosition.y, base.transform.localPosition.z),
-                    grenadeVerticalFallCurve.Evaluate(fallTime)
-                );
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+
+                // Ease-out curve (starts fast, slows at targetFloorPosition)
+                t = 1f - Mathf.Pow(1f - t, 3f);
+
+                // Horizontal motion
+                Vector3 horizontalPos = Vector3.Lerp(start, targetFloorPosition, t);
+
+                // Vertical arc (parabola) — will be 0 if jumpHeight is 0
+                float height = 4 * jumpHeight * t * (1 - t);
+
+                // Apply combined motion
+                transform.position = horizontalPos + Vector3.up * height;
+
+                yield return null;
             }
 
-            // Log updated position and fallTime
-            logger.LogDebug($"Updated local position after vertical fall: {base.transform.localPosition}");
-
-            fallTime += Mathf.Abs(Time.deltaTime * 12f / magnitude);
-            logger.LogDebug($"Updated cfallTime to: {fallTime}");
+            jumping = false;
+            grabbable = true;
         }
 
 
