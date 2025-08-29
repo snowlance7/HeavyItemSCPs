@@ -23,7 +23,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (timeSinceSpawn < 5f) { return; }
 
-            //EnableMesh(SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearingOnLocalClient); // TODO: Enable this
+            EnableMesh(SCP178Behavior.Instance != null && SCP178Behavior.Instance.wearingOnLocalClient);
         }
 
         public void EnableMesh(bool enable)

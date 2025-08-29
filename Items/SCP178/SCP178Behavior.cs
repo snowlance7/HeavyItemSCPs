@@ -151,7 +151,7 @@ namespace HeavyItemSCPs.Items.SCP178
             }
 
             
-            if (lastPlayerHeldBy.drunkness < 0.2f) { lastPlayerHeldBy.drunkness = 0.2f; }
+            if (lastPlayerHeldBy.drunkness < 0.2f && enable) { lastPlayerHeldBy.drunkness = 0.2f; }
             SpawnEntities(!lastPlayerHeldBy.isInsideFactory);
         }
 

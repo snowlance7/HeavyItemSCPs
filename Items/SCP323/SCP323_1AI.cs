@@ -213,13 +213,14 @@ namespace HeavyItemSCPs.Items.SCP323
                         {
                             if (enraged) { SetEnragedClientRpc(false); }
                         }
+                        return;
                     }
 
-                    /*if (!TargetClosestPlayerOrMasked())
+                    if (!TargetClosestPlayerOrMasked())
                     {
                         SwitchToBehaviourClientRpc((int)State.Roaming);
                         return;
-                    }*/
+                    }
 
                     if (targetPlayer != null && targetPlayer.isPlayerControlled)
                     {
@@ -235,7 +236,7 @@ namespace HeavyItemSCPs.Items.SCP323
                             timeSinceSeenPlayer = 0f;
                             targetPlayerLastSeenPos = targetPlayer.transform.position;
                         }
-                        if (timeSinceSeenPlayer < timeToLosePlayer || Vector3.Distance(targetPlayer.transform.position, transform.position) >= huntingRange)
+                        if (timeSinceSeenPlayer < timeToLosePlayer || Vector3.Distance(targetPlayer.transform.position, transform.position) <= huntingRange)
                         {
                             SetDestinationToPosition(targetPlayer.transform.position);
                             return;

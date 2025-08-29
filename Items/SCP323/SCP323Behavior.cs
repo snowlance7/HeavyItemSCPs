@@ -73,6 +73,11 @@ namespace HeavyItemSCPs.Items.SCP323
             Transforming
         }
 
+        public override void ActivatePhysicsTrigger(Collider other)
+        {
+            logger.LogDebug("Collided with skull");
+        }
+
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
@@ -201,12 +206,9 @@ namespace HeavyItemSCPs.Items.SCP323
                 player.insanityLevel = madness;
 
 
-                if (localPlayer == player) // TODO: TEST AND TWEAK MADNESS VALUES
-                {
-                    logger.LogDebug("madness: " + madness);
-                }
+                //if (localPlayer == player) { logger.LogDebug("madness: " + madness); } // TODO: TEST AND TWEAK MADNESS VALUES
 
-                if (PlayerIsTargetable(player) && Vector3.Distance(transform.position, player.transform.position) < distanceToIncreaseInsanity) // TODO: Make sure PlayerIsTargetable is working
+                if (PlayerIsTargetable(player) && Vector3.Distance(transform.position, player.transform.position) < distanceToIncreaseInsanity)
                 {
                     if (playerHighestMadness == null || playersMadness[player] > playersMadness[playerHighestMadness])
                     {
@@ -215,11 +217,6 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     if (playerHeldBy != null && player == playerHeldBy)
                     {
-                        if (showInsanity) // TODO: Test this
-                        {
-                            player.playersManager.fearLevel = madness / player.maxInsanityLevel;
-                        }
-
                         if (skullOn)
                         {
                             madness += Time.deltaTime * 1f;
@@ -229,10 +226,18 @@ namespace HeavyItemSCPs.Items.SCP323
                             madness += Time.deltaTime * 0.5f;
                         }
 
-                        if (madness >= player.maxInsanityLevel && localPlayer == player)
+                        if (localPlayer == player)
                         {
-                            AttemptTransformLocalPlayer();
-                            return;
+                            if (showInsanity) // TODO: Test this
+                            {
+                                player.playersManager.fearLevel = madness / player.maxInsanityLevel;
+                            }
+
+                            if (madness >= player.maxInsanityLevel)
+                            {
+                                AttemptTransformLocalPlayer();
+                                return;
+                            }
                         }
                     }
                     else
@@ -262,7 +267,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 transform.position += positionOffset;
                 return;
             }
-            // TODO: Get grenade throw logic from washing machine mod and ask chatgpt to make a cleaner version? brain hurts...
+
             if (!jumping && !isHeld && playerHeldBy == null && playerHighestMadness != null && (playersHeldBy.Contains(playerHighestMadness) || playersMadness[playerHighestMadness] > playerHighestMadness.maxInsanityLevel / 2))
             {
                 PlayerControllerB player = playerHighestMadness;
@@ -271,39 +276,44 @@ namespace HeavyItemSCPs.Items.SCP323
 
                 Vector3 directionToPlayer = (player.transform.position - transform.position).normalized;
                 
-                if (!jumping && Vector3.Dot(transform.forward, directionToPlayer) > 0.9f) // withing ~20 degrees
+                if (!jumping && Vector3.Dot(transform.forward, directionToPlayer) > 0.9f && IsServerOrHost) // withing ~20 degrees
                 {
                     // Can move
-                    /*if (timeSinceJumpForward > 10f)
+                    if (timeSinceJumpForward > 10f)
                     {
                         timeSinceJumpForward = 0f;
-                        //LungeAtPlayer((player.transform.position - transform.position).normalized, 1f, 1f);
-                        LungeAtPlayer(transform.forward, 1f, 1f, 1f);
+
+                        targetFloorPosition = transform.position + transform.forward * 1f;
+                        targetFloorPosition = GetItemFloorPosition(targetFloorPosition);
+
+                        LungeClientRpc(targetFloorPosition, 1f, 1f);
                     }
 
-                    if (timeSinceInchForward > 2f)
+                    if (timeSinceInchForward > 5f)
                     {
                         timeSinceInchForward = 0f;
-                        LungeAtPlayer((player.transform.position - transform.position).normalized, 0.5f, 0f);
-                    }*/
+
+                        targetFloorPosition = transform.position + transform.forward * 0.5f;
+                        targetFloorPosition = GetItemFloorPosition(targetFloorPosition);
+
+                        LungeClientRpc(targetFloorPosition, 0f, 1f);
+                    }
                 }
             }
 
             base.LateUpdate();
         }
 
-        public void LungeAtPlayer(Vector3 direction, float distance, float jumpHeight, float duration)
+        public void Lunge(Vector3 targetPosition, float jumpHeight, float duration)
         {
             grabbable = false;
             jumping = true;
-            StartCoroutine(LungeAtPlayerRoutine(direction, distance, jumpHeight, duration));
+            StartCoroutine(LungeRoutine(targetPosition, jumpHeight, duration));
         }
 
-        IEnumerator LungeAtPlayerRoutine(Vector3 direction, float distance, float jumpHeight, float duration)
+        IEnumerator LungeRoutine(Vector3 targetPosition, float jumpHeight, float duration)
         {
             Vector3 start = transform.position;
-            targetFloorPosition = start + direction * distance;
-            targetFloorPosition = GetItemFloorPosition(targetFloorPosition);
 
             float elapsed = 0f;
             while (elapsed < duration && !isHeld)
@@ -604,6 +614,12 @@ namespace HeavyItemSCPs.Items.SCP323
         #endregion
 
         // RPCs
+
+        [ClientRpc]
+        void LungeClientRpc(Vector3 targetPosition, float jumpHeight, float duration)
+        {
+            Lunge(targetPosition, jumpHeight, duration);
+        }
 
         [ServerRpc(RequireOwnership = false)]
         void TransformPlayerServerRpc()
