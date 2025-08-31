@@ -1,23 +1,24 @@
 ﻿using BepInEx.Logging;
+using Dissonance;
 using GameNetcodeStuff;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
-using UnityEngine;
-using UnityEngine.Rendering.HighDefinition;
-using static HeavyItemSCPs.Plugin;
-using UnityEngine.Animations.Rigging;
-using UnityEngine.UIElements.Experimental;
-using UnityEngine.Android;
 using Unity.Netcode.Components;
-using System;
+using UnityEngine;
 using UnityEngine.AI;
-using Dissonance;
+using UnityEngine.Android;
+using UnityEngine.Animations.Rigging;
+using UnityEngine.Rendering.HighDefinition;
+using UnityEngine.UIElements.Experimental;
+using static HeavyItemSCPs.Plugin;
+using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    public class SCP1781AI : EnemyAI
+    public class SCP1781AI : NetworkBehaviour
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -26,9 +27,24 @@ namespace HeavyItemSCPs.Items.SCP178
         public GameObject Mesh;
         public ScanNodeProperties ScanNode;
         public NetworkAnimator networkAnimator;
+        public NavMeshAgent agent;
+        public Animator creatureAnimator;
+        public AudioSource creatureSFX;
+        public AudioSource creatureVoice;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         PlayerControllerB lastPlayerHeldBy { get { return SCP178Behavior.Instance!.lastPlayerHeldBy!; } }
+
+        public bool inSpecialAnimation;
+        public State currentBehaviorState;
+        private float updateDestinationInterval;
+        public float AIIntervalTime;
+        private bool moveTowardsDestination;
+        private Vector3 destination;
+
+        public State currentBehaviourState;
+        private State previousBehaviourStateIndex;
+        PlayerControllerB? targetPlayer;
 
         public bool meshEnabledOnClient;
         public Vector3 spawnPosition;
@@ -56,6 +72,9 @@ namespace HeavyItemSCPs.Items.SCP178
         // Configs
         int maxAnger = 100;
         int playerDamage = 40;
+        private NavMeshPath path1;
+        private bool isOutside;
+        private GameObject[] allAINodes;
 
         public enum State
         {
@@ -64,26 +83,8 @@ namespace HeavyItemSCPs.Items.SCP178
             Chasing
         }
 
-        public override void Start()
+        public void Start()
         {
-            try
-            {
-                overlapColliders = new Collider[1];
-                thisNetworkObject = NetworkObject;
-                /*thisEnemyIndex = RoundManager.Instance.numberOfEnemiesInScene;
-                RoundManager.Instance.numberOfEnemiesInScene++;
-                RoundManager.Instance.SpawnedEnemies.Add(this);*/
-
-                path1 = new NavMeshPath();
-                openDoorSpeedMultiplier = enemyType.doorSpeedMultiplier;
-                serverPosition = base.transform.position;
-                ventAnimationFinished = true;
-            }
-            catch (Exception arg)
-            {
-                logger.LogError($"Error when initializing enemy variables for {base.gameObject.name} : {arg}");
-            }
-
             hashSpeed = Animator.StringToHash("speed");
             hashAngryIdle = Animator.StringToHash("angryIdle");
 
@@ -99,7 +100,19 @@ namespace HeavyItemSCPs.Items.SCP178
             logger.LogDebug("SCP-178-1 Spawned");
         }
 
-        public override void Update()
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+            SCP178Behavior.Instance.SCP1781Instances.Add(this);
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            SCP178Behavior.Instance.SCP1781Instances.Remove(this);
+        }
+
+        public void Update()
         {
             timeSinceDamagePlayer += Time.deltaTime;
 
@@ -111,7 +124,7 @@ namespace HeavyItemSCPs.Items.SCP178
             timeSinceEmoteUsed += Time.deltaTime;
             timeSinceLastAngerCalc += Time.deltaTime;
 
-            if (currentBehaviourStateIndex == (int)State.Observing)
+            if (currentBehaviorState == State.Observing)
             {
                 turnCompass.LookAt(lastPlayerHeldBy.gameplayCamera.transform.position);
                 transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 10f * Time.deltaTime);
@@ -146,9 +159,12 @@ namespace HeavyItemSCPs.Items.SCP178
             isBeingObserved = PlayerHasLineOfSightToMe(lastPlayerHeldBy);
         }
 
-        public override void DoAIInterval()
+        public void DoAIInterval()
         {
-            base.DoAIInterval();
+            if (moveTowardsDestination)
+            {
+                agent.SetDestination(destination);
+            }
 
             if (!IsNearbyPlayer(lastPlayerHeldBy, renderDistance))
             {
@@ -160,27 +176,27 @@ namespace HeavyItemSCPs.Items.SCP178
                 return;
             }
 
-            if (currentBehaviourStateIndex != (int)State.Chasing && TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
+            if (currentBehaviorState != State.Chasing && TargetPlayerIfClose() && IsWithinWanderingRadius(2f))
             {
                 if (wanderingRoutine != null)
                 {
                     StopCoroutine(wanderingRoutine);
                     wanderingRoutine = null;
                 }
-                SwitchToBehaviourClientRpc((int)State.Chasing);
+                SwitchToBehaviourClientRpc(State.Chasing);
                 networkAnimator.SetTrigger("run");
                 return;
             }
 
-            switch (currentBehaviourStateIndex)
+            switch (currentBehaviorState)
             {
-                case (int)State.Roaming:
+                case State.Roaming:
                     agent.speed = 2f;
                     agent.stoppingDistance = 0f;
 
                     if (isBeingObserved)
                     {
-                        SwitchToBehaviourClientRpc((int)State.Observing);
+                        SwitchToBehaviourClientRpc(State.Observing);
                         StopCoroutine(wanderingRoutine);
                         wanderingRoutine = null!;
                         break;
@@ -191,13 +207,13 @@ namespace HeavyItemSCPs.Items.SCP178
                     }
                     break;
 
-                case (int)State.Observing:
+                case State.Observing:
                     agent.speed = 0f;
                     agent.stoppingDistance = 0f;
 
                     if (!isBeingObserved && postObservationTimer > stareTime)
                     {
-                        SwitchToBehaviourClientRpc((int)State.Roaming);
+                        SwitchToBehaviourClientRpc(State.Roaming);
                         return;
                     }
                     if (timeSinceLastAngerCalc > 1f && isBeingObserved && observationTimer > observationGracePeriod)
@@ -207,7 +223,7 @@ namespace HeavyItemSCPs.Items.SCP178
                     }
                     break;
 
-                case (int)State.Chasing:
+                case State.Chasing:
                     agent.speed = 10f;
                     agent.stoppingDistance = 2.5f;
 
@@ -217,14 +233,14 @@ namespace HeavyItemSCPs.Items.SCP178
                     }
                     else
                     {
-                        SwitchToBehaviourClientRpc((int)State.Roaming);
+                        SwitchToBehaviourClientRpc(State.Roaming);
                         return;
                     }
 
                     break;
 
                 default:
-                    logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
+                    logger.LogWarning("Invalid state: " + currentBehaviorState);
                     break;
             }
         }
@@ -242,6 +258,26 @@ namespace HeavyItemSCPs.Items.SCP178
             base.OnDestroy();
             if (SCP178Behavior.Instance == null) { return; }
             SCP178Behavior.Instance.SCP1781Instances.Remove(this);
+        }
+
+        public bool SetDestinationToPosition(Vector3 position, bool checkForPath = false)
+        {
+            if (checkForPath)
+            {
+                position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
+                path1 = new NavMeshPath();
+                if (!agent.CalculatePath(position, path1))
+                {
+                    return false;
+                }
+                if (Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 2.7f)) > 1.55f)
+                {
+                    return false;
+                }
+            }
+            moveTowardsDestination = true;
+            destination = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, -1f);
+            return true;
         }
 
         public bool IsNearbyPlayer(PlayerControllerB player, float distance)
@@ -347,11 +383,6 @@ namespace HeavyItemSCPs.Items.SCP178
             SCP178Behavior.Instance.AddAngerToPlayer(lastPlayerHeldBy, anger);
         }
 
-        public override void EnableEnemyMesh(bool enable, bool overrideDoNotSet)
-        {
-            return;
-        }
-
         public void EnableMesh(bool enable)
         {
             if (meshEnabledOnClient == enable) { return; }
@@ -360,10 +391,8 @@ namespace HeavyItemSCPs.Items.SCP178
             meshEnabledOnClient = enable;
         }
 
-        public override void HitEnemy(int force = 1, PlayerControllerB? playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
+        public void HitEnemy(int force = 1, PlayerControllerB? playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
         {
-            base.HitEnemy(force, playerWhoHit, playHitSFX, hitID);
-
             if (playerWhoHit != null)
             {
                 SCP178Behavior.Instance!.AddAngerToPlayer(playerWhoHit, 30);
@@ -382,13 +411,12 @@ namespace HeavyItemSCPs.Items.SCP178
             }
         }
 
-        public override void OnCollideWithPlayer(Collider other) // TODO: Rework
+        public void OnCollideWithPlayer(Collider other) // TODO: Rework
         {
-            base.OnCollideWithPlayer(other);
             PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
-            if (player == null || !player.isPlayerControlled || player != localPlayer || inSpecialAnimation || isEnemyDead) { return; }
+            if (player == null || !player.isPlayerControlled || player != localPlayer || inSpecialAnimation) { return; }
             logger.LogDebug("pass1");
-            //if (currentBehaviourStateIndex == (int)State.Roaming) { return; }
+            //if (currentBehaviorState == (int)State.Roaming) { return; }
             if (timeSinceDamagePlayer < 2f) { return; }
             logger.LogDebug("pass2");
 
@@ -396,7 +424,36 @@ namespace HeavyItemSCPs.Items.SCP178
             CollidedWithPlayerServerRpc(player.actualClientId);
         }
 
+        public void SetEnemyOutside(bool outside)
+        {
+            isOutside = outside;
+            if (outside)
+            {
+                allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+            }
+            else
+            {
+                allAINodes = GameObject.FindGameObjectsWithTag("AINode");
+            }
+        }
+
         // RPC's
+
+        [ClientRpc]
+        public void SetEnemyOutsideClientRpc(bool outside)
+        {
+            SetEnemyOutside(outside);
+        }
+
+        [ClientRpc]
+        public void SwitchToBehaviourClientRpc(State state)
+        {
+            if (currentBehaviourState != state)
+            {
+                previousBehaviourStateIndex = currentBehaviourState;
+                currentBehaviourState = state;
+            }
+        }
 
         [ServerRpc(RequireOwnership = false)]
         public void CollidedWithPlayerServerRpc(ulong clientId)

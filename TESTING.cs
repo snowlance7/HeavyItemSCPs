@@ -38,7 +38,7 @@ namespace HeavyItemSCPs
         {
             if (!Utils.testing) { return; }
 
-            //SCP323Behavior.Instance.LungeAtPlayer(SCP323Behavior.Instance.transform.forward, 1f, 1f, 1f);
+            logger.LogDebug(SCP323Behavior.Instance?.madness);
             /*SpikeRoofTrap spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(localPlayer.transform.position);
             logger.LogDebug(spikeTrap.name);
             logger.LogDebug(spikeTrap.gameObject.name);

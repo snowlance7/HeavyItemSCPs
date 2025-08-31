@@ -53,7 +53,7 @@ namespace HeavyItemSCPs.Items.SCP178
             base.OnNetworkDespawn();
             if (Instance == this)
             {
-                Instance = null;
+                Instance = null!;
             }
             if (IsServerOrHost)
             {
@@ -192,8 +192,7 @@ namespace HeavyItemSCPs.Items.SCP178
                         GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
                         SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
                         scp.NetworkObject.Spawn(destroyWithScene: true);
-                        scp.SetEnemyOutside(outside);
-                        SCP1781Instances.Add(scp);
+                        scp.SetEnemyOutsideClientRpc(outside);
                         count++;
                     }
 
@@ -227,7 +226,6 @@ namespace HeavyItemSCPs.Items.SCP178
                         if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
                         //RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
                         entity.NetworkObject.Despawn(true);
-                        SCP1781Instances.Remove(entity);
                     }
                 }
                 finally
