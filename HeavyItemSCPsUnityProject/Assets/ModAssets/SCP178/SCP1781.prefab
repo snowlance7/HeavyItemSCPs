@@ -1444,8 +1444,6 @@ MonoBehaviour:
   networkAnimator: {fileID: 4381592755811922584}
   meshEnabledOnClient: 0
   spawnPosition: {x: 0, y: 0, z: 0}
-  observingPlayer: {fileID: 0}
-  lastObservingPlayer: {fileID: 0}
 --- !u!95 &5575627037565433227
 Animator:
   serializedVersion: 5
@@ -1484,7 +1482,7 @@ MonoBehaviour:
     Layer: 0
     OriginatingState: -591664801
     DestinationState: 1610114027
-    TransitionDuration: 0.1
+    TransitionDuration: 0
     TriggerNameHash: -1874503049
     TransitionIndex: 0
   m_Animator: {fileID: 5575627037565433227}
@@ -2209,7 +2207,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2431958852480367354
 Transform:
   m_ObjectHideFlags: 0

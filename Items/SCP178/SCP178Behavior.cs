@@ -7,6 +7,7 @@ using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
+using static HeavyItemSCPs.Items.SCP178.SCP1781AI;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
@@ -20,7 +21,6 @@ namespace HeavyItemSCPs.Items.SCP178
         public static SCP178Behavior Instance { get; private set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
-        public List<SCP1781AI> SCP1781Instances = [];
         public Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
 
         readonly Vector3 posOffsetWearing = new Vector3(-0.275f, -0.15f, -0.05f);
@@ -28,13 +28,15 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public PlayerControllerB? lastPlayerHeldBy;
 
-        float despawnTimer;
         Coroutine? spawnCoroutine;
 
         public bool wearing;
         public bool wearingOnLocalClient;
-        float timeSpawned;
+        float spawnTime;
         bool isOutside;
+
+        public float AIIntervalTime = 0.5f;
+        private float updateDestinationInterval;
 
         public override void OnNetworkSpawn()
         {
@@ -53,7 +55,7 @@ namespace HeavyItemSCPs.Items.SCP178
             base.OnNetworkDespawn();
             if (Instance == this)
             {
-                Instance = null!;
+                Instance = null;
             }
             if (IsServerOrHost)
             {
@@ -65,28 +67,15 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             base.Update();
 
-            timeSpawned += Time.deltaTime;
+            spawnTime += Time.deltaTime;
             
             if (Instance != this)
             {
-                if (IsServerOrHost && timeSpawned > 3f)
+                if (IsServerOrHost && spawnTime > 3f)
                 {
                     NetworkObject.Despawn(true);
                 }
                 return;
-            }
-
-            if (wearing)
-            {
-                despawnTimer = config1781DespawnTime.Value;
-            }
-            else
-            {
-                despawnTimer -= Time.deltaTime;
-                if (despawnTimer <= 0 && spawnCoroutine == null)
-                {
-                    DespawnEntities();
-                }
             }
 
             if (playerHeldBy != null)
@@ -94,11 +83,30 @@ namespace HeavyItemSCPs.Items.SCP178
                 lastPlayerHeldBy = playerHeldBy;
             }
 
-            if (lastPlayerHeldBy == null || despawnTimer <= 0) { return; }
-            
-            if (!lastPlayerHeldBy.isInsideFactory != isOutside)
+            if (updateDestinationInterval >= 0f)
             {
-                SetOutside(!lastPlayerHeldBy.isInsideFactory);
+                updateDestinationInterval -= Time.deltaTime;
+            }
+            else
+            {
+                DoAIInterval();
+                updateDestinationInterval = AIIntervalTime;
+            }
+        }
+
+        public void DoAIInterval()
+        {
+            if (Instances.Count <= 0 || spawnCoroutine != null) { return; }
+
+            foreach (var instance in Instances)
+            {
+                instance.isBeingObserved = instance.PlayerHasLineOfSightToMe(lastPlayerHeldBy);
+
+                if ((wearingOnLocalClient || PlayersAngerLevels[localPlayer] >= maxAnger) && instance.renderer.isVisible) // TODO: Use chatgpts method for checking if player is in cameras view idk
+
+                // Host stuff
+                if (!IsServerOrHost) { continue; }
+
             }
         }
 
@@ -192,7 +200,8 @@ namespace HeavyItemSCPs.Items.SCP178
                         GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
                         SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
                         scp.NetworkObject.Spawn(destroyWithScene: true);
-                        scp.SetEnemyOutsideClientRpc(outside);
+                        scp.SetEnemyOutside(outside);
+                        SCP1781Instances.Add(scp);
                         count++;
                     }
 
@@ -226,6 +235,7 @@ namespace HeavyItemSCPs.Items.SCP178
                         if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
                         //RoundManager.Instance.DespawnEnemyOnServer(entity.NetworkObject);
                         entity.NetworkObject.Despawn(true);
+                        SCP1781Instances.Remove(entity);
                     }
                 }
                 finally
