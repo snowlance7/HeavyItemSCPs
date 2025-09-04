@@ -38,7 +38,9 @@ namespace HeavyItemSCPs
         {
             if (!Utils.testing) { return; }
 
-            logger.LogDebug(SCP323Behavior.Instance?.madness);
+            logger.LogDebug("InsideAINodes: " + Utils.insideAINodes.Length.ToString());
+            logger.LogDebug("OutsideAINodes: " + Utils.outsideAINodes.Length.ToString());
+            //logger.LogDebug(SCP323Behavior.Instance?.madness);
             /*SpikeRoofTrap spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(localPlayer.transform.position);
             logger.LogDebug(spikeTrap.name);
             logger.LogDebug(spikeTrap.gameObject.name);

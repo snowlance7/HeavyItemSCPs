@@ -29,6 +29,8 @@ namespace HeavyItemSCPs
 
         public static bool localPlayerFrozen = false;
 
+        public static GameObject[] allAINodes => insideAINodes.Concat(outsideAINodes).ToArray();
+
         public static GameObject[] insideAINodes
         {
             get

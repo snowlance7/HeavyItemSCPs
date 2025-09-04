@@ -75,18 +75,13 @@ namespace HeavyItemSCPs
         public static ConfigEntry<float> config178SeeScrapRange;
 
         // SCP-178-1 Configs
-        public static ConfigEntry<int> config1781MaxCountInside;
-        public static ConfigEntry<int> config1781MaxCountOutside;
-        public static ConfigEntry<float> config1781RenderDistance;
-        public static ConfigEntry<float> config1781DespawnTime;
         public static ConfigEntry<float> config1781WanderingWaitTime;
         public static ConfigEntry<float> config1781WanderingRadius;
         public static ConfigEntry<float> config1781PostObservationTime;
         public static ConfigEntry<float> config1781DistanceToAddAnger;
         public static ConfigEntry<float> config1781ObservationGracePeriod;
-        public static ConfigEntry<bool> config1781UsePercentageBasedCount;
-        public static ConfigEntry<float> config1781MaxPercentCountInside;
-        public static ConfigEntry<float> config1781MaxPercentCountOutside;
+        public static ConfigEntry<int> config1781MinCount;
+        public static ConfigEntry<int> config1781MaxCount;
 
         // SCP-323
         public static ConfigEntry<bool> configEnableSCP323;
@@ -184,18 +179,13 @@ namespace HeavyItemSCPs
             config178SeeScrapRange = Config.Bind("SCP-178", "See Scrap Range", 50f, "Changes the range at which the 3D glasses can see scrap.");
 
             // SCP-1781
-            config1781MaxCountOutside = Config.Bind("SCP-1781", "Max count outside", 50, "The maximum number of SCP-178-1 instances that can be spawned outside. -1 spawns on all ai nodes.");
-            config1781MaxCountInside = Config.Bind("SCP-1781", "Max count inside", 50, "The maximum number of SCP-178-1 instances that can be spawned inside. -1 spawns on all ai nodes.");
-            config1781RenderDistance = Config.Bind("SCP-1781", "Render distance", 30f, "The distance at which SCP-178-1 instances will run their AI. Any instances outside this distance will be disabled, still showing the model but not moving around. Lower values can help with performance. -1 disables this feature.");
-            config1781DespawnTime = Config.Bind("SCP-1781", "Despawn time", 30f, "The time it takes for SCP-178-1 instances to despawn when not wearing the glasses.");
             config1781PostObservationTime = Config.Bind("SCP-1781", "Post observation time", 5f, "The time it takes for SCP-178-1 instances to return to their roaming phase after being stared at.");
             config1781WanderingRadius = Config.Bind("SCP-1781", "Wandering radius", 5f, "The radius around SCP-178-1 spawn position that they will roam around in.");
             config1781WanderingWaitTime = Config.Bind("SCP-1781", "Wandering wait time", 5f, "When spawned, SCP-178-1 will pick a random position in their wandering radius and walk to it. This determines how long they will wait until picking another position to walk to.");
             config1781DistanceToAddAnger = Config.Bind("SCP-1781", "Distance to add anger", 10f, "The distance you need to be from SCP-178-1 to increase their anger meter when looking at them.");
-            config1781ObservationGracePeriod = Config.Bind("SCP-1781", "Observation grace period", 1f, "The time it takes for SCP-178-1 instances to start getting angry after staring at them.");
-            config1781UsePercentageBasedCount = Config.Bind("SCP-1781 Percentage Based", "Use percentage based count", true, "If true, when putting on the 3D glasses, instead of using max count, it will get the amount of AI nodes and times it by this value to get the amount of SCP-178-1 instances it should spawn.");
-            config1781MaxPercentCountInside = Config.Bind("SCP-1781 Percentage Based", "Max percent count inside", 0.5f, "The percentage of inside AI nodes that should have SCP-178-1 instances spawned on them.");
-            config1781MaxPercentCountOutside = Config.Bind("SCP-1781 Percentage Based", "Max percent count outside", 0.5f, "The percentage of outside AI nodes that should have SCP-178-1 instances spawned on them.");
+            config1781ObservationGracePeriod = Config.Bind("SCP-1781", "Observation grace period", 0.5f, "The time it takes for SCP-178-1 instances to start getting angry after staring at them.");
+            config1781MinCount = Config.Bind("SCP-1781", "Min Count", 50, "The minimum number of SCP-178-1 instances that can be spawned.");
+            config1781MaxCount = Config.Bind("SCP-1781", "Max Count", 100, "The maximum number of SCP-178-1 instances that can be spawned.");
 
             // SCP-323
             configEnableSCP323 = Config.Bind("SCP-323", "Enable SCP-323", true, "Whether or not SCP-323 can spawn as scrap.");
