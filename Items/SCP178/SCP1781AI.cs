@@ -25,7 +25,7 @@ namespace HeavyItemSCPs.Items.SCP178
         public SkinnedMeshRenderer renderer;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-        public static SCP1781AI[] Instances = [];
+        public static List<SCP1781AI> Instances = [];
 
         public static Dictionary<PlayerControllerB, int> PlayersAngerLevels = new Dictionary<PlayerControllerB, int>();
 
@@ -67,6 +67,9 @@ namespace HeavyItemSCPs.Items.SCP178
         public static int maxAnger = 100;
         int playerDamage = 40;
         float activeTimeAfterVisible = 15f;
+        private float updateDestinationInterval;
+        private float AIIntervalTime = 0.2f;
+        private Vector3 lastPosition;
 
         public enum State
         {
@@ -91,7 +94,21 @@ namespace HeavyItemSCPs.Items.SCP178
             timeSinceVisible = Mathf.Infinity;
             timeSinceLastStaredAt = Mathf.Infinity;
 
+            enabled = false;
+
             logger.LogDebug("SCP-178-1 Spawned");
+        }
+
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+            Instances.Add(this);
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+            Instances.Remove(this);
         }
 
         public void OnEnable() // TODO
@@ -99,7 +116,6 @@ namespace HeavyItemSCPs.Items.SCP178
             logger.LogDebug("SCP1781AI enabled");
             timeSinceVisible = 0f;
             creatureAnimator.enabled = true;
-            agent.enabled = true;
 
             if (TargetPlayerIfClose())
             {
@@ -119,7 +135,6 @@ namespace HeavyItemSCPs.Items.SCP178
             StopAllCoroutines();
             wanderingRoutine = null;
             creatureAnimator.enabled = false;
-            agent.enabled = false;
         }
 
         public void Update()
@@ -148,10 +163,36 @@ namespace HeavyItemSCPs.Items.SCP178
                     timeSinceLastStaredAt += Time.deltaTime;
                 }
             }
+
+            if (updateDestinationInterval >= 0f)
+            {
+                updateDestinationInterval -= Time.deltaTime;
+            }
+            else
+            {
+                DoAIInterval();
+                updateDestinationInterval = AIIntervalTime;
+            }
+        }
+
+        public void LateUpdate()
+        {
+            Vector3 delta = transform.position - lastPosition;
+            float speed = delta.magnitude / Time.deltaTime;
+
+            creatureAnimator.SetFloat(hashSpeed, speed);
+            creatureAnimator.SetBool(hashAngryIdle, isBeingObserved);
+
+            lastPosition = transform.position;
         }
 
         public void DoAIInterval()
         {
+            if (lastPlayerHeldBy != null)
+            {
+                isBeingObserved = IsPlayerLookingAtMe(lastPlayerHeldBy);
+            }
+
             if (!IsServerOrHost) { return; }
 
             if (moveTowardsDestination)
@@ -178,8 +219,11 @@ namespace HeavyItemSCPs.Items.SCP178
 
                     if (isBeingObserved)
                     {
-                        StopCoroutine(wanderingRoutine);
-                        wanderingRoutine = null;
+                        if (wanderingRoutine != null)
+                        {
+                            StopCoroutine(wanderingRoutine);
+                            wanderingRoutine = null;
+                        }
                         SwitchToBehaviorClientRpc(State.Observing);
                         break;
                     }
@@ -221,12 +265,6 @@ namespace HeavyItemSCPs.Items.SCP178
                     logger.LogWarning("Invalid state: " + currentBehaviorState);
                     break;
             }
-        }
-
-        public void LateUpdate()
-        {
-            creatureAnimator.SetFloat(hashSpeed, agent.velocity.magnitude / 2);
-            creatureAnimator.SetBool(hashAngryIdle, isBeingObserved);
         }
 
         public void Teleport(Vector3 position)
@@ -289,7 +327,7 @@ namespace HeavyItemSCPs.Items.SCP178
             return targetPlayer != null;
         }
 
-        public bool PlayerHasLineOfSightToMe(PlayerControllerB player)
+        public bool IsPlayerLookingAtMe(PlayerControllerB player)
         {
             if (Physics.Raycast(player.gameplayCamera.transform.position, player.gameplayCamera.transform.forward, out RaycastHit hit, distanceToAddAnger, LayerMask.GetMask("Enemies")))
             {
@@ -298,6 +336,40 @@ namespace HeavyItemSCPs.Items.SCP178
 
             return false;
         }
+
+        /*public bool IsVisibleToLocalPlayer()
+        {
+            if (renderer.isVisible) // quick frustum culling check
+            {
+                Vector3 start = localPlayer.gameplayCamera.transform.position;
+                Vector3 end = renderer.bounds.center; // more reliable than transform.position
+                Vector3 dir = (end - start).normalized;
+                //float dist = dir.magnitude;
+
+                if (Physics.Raycast(localPlayer.gameplayCamera.transform.position, dir, out RaycastHit hit, 100, LayerMask.GetMask("Enemies")))
+                {
+                    return hit.collider.gameObject.transform.parent.gameObject == gameObject;
+                }
+            }
+            return false;
+        }*/
+
+        public bool IsVisibleToLocalPlayer() // TODO: TEST THIS
+        {
+            if (renderer.isVisible) // quick frustum culling check
+            {
+                Vector3 start = localPlayer.gameplayCamera.transform.position;
+                Vector3 end = renderer.bounds.center;
+
+                if (!Physics.Linecast(start, end, StartOfRound.Instance.collidersAndRoomMask))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
 
         IEnumerator WanderingCoroutine()
         {
@@ -344,16 +416,10 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             if (observationTimer < observationGracePeriod || !isBeingObserved) { return; }
 
-            int anger = 1;
-
-            bool wearing178 = Instance != null && Instance.wearing;
             bool isSpeaking = lastPlayerHeldBy?.voicePlayerState != null && lastPlayerHeldBy.voicePlayerState.IsSpeaking; // TODO: Test this
-            logger.LogDebug("wearing178: " + wearing178);
             logger.LogDebug("isSpeaking: " + isSpeaking);
 
-            if (!wearing178) { return; }
-
-            anger = isSpeaking ? 4 : 2;
+            int anger = isSpeaking ? 4 : 2;
 
             if (lastPlayerHeldBy!.performingEmote && timeSinceEmoteUsed > 5f)
             {

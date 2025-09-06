@@ -357,9 +357,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1929762859541022382}
-  - component: {fileID: 6419632751018081509}
   - component: {fileID: 6174356766116024041}
   - component: {fileID: 7023684509751081287}
+  - component: {fileID: 1076012146173638725}
   m_Layer: 19
   m_Name: Collision
   m_TagString: Enemy
@@ -382,21 +382,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2362200179104228966}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6419632751018081509
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 742970940175145247}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d7127b8f98ca8ec9896b384a71d39a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mainScript: {fileID: 2676510965657837896}
-  canCollideWithEnemies: 0
-  onlyCollideWhenGrounded: 0
 --- !u!65 &6174356766116024041
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -445,6 +430,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1076012146173638725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 742970940175145247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1436429493, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mainScript: {fileID: 2676510965657837896}
+  timeSinceCollision: 0
 --- !u!1 &749974967181303970
 GameObject:
   m_ObjectHideFlags: 0
@@ -1176,7 +1175,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8653913138916151759}
   - component: {fileID: 7590834170620229891}
-  - component: {fileID: 9087444249114832640}
+  - component: {fileID: 467847332730556143}
   m_Layer: 19
   m_Name: AttackArea
   m_TagString: Enemy
@@ -1220,7 +1219,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.9036676, y: 1.7915367, z: 0.73903215}
   m_Center: {x: -0.039479356, y: 0.053110838, z: 0.2028269}
---- !u!114 &9087444249114832640
+--- !u!114 &467847332730556143
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1229,12 +1228,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1997114848533678400}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d7127b8f98ca8ec9896b384a71d39a2, type: 3}
+  m_Script: {fileID: 1436429493, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   mainScript: {fileID: 2676510965657837896}
-  canCollideWithEnemies: 0
-  onlyCollideWhenGrounded: 0
+  timeSinceCollision: 0
 --- !u!1 &2016720193739766057
 GameObject:
   m_ObjectHideFlags: 0
@@ -1339,111 +1337,19 @@ MonoBehaviour:
   m_Script: {fileID: -2099154595, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyType: {fileID: 11400000, guid: b6d1ff872bd792f47b8ce919b6f6c8ff, type: 2}
-  skinnedMeshRenderers: []
-  meshRenderers: []
-  creatureAnimator: {fileID: 5575627037565433227}
-  creatureVoice: {fileID: 529318978177289933}
-  creatureSFX: {fileID: 8669848577270497101}
-  eye: {fileID: 5974121703261632193}
-  dieSFX: {fileID: 0}
-  enemyBehaviourStates:
-  - name: Roaming
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  - name: Observing
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  - name: Chasing
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  currentBehaviourState:
-    name: 
-    VoiceClip: {fileID: 0}
-    playOneShotVoice: 0
-    SFXClip: {fileID: 0}
-    playOneShotSFX: 0
-    IsAnimTrigger: 0
-    parameterString: 
-    boolValue: 0
-  currentBehaviourStateIndex: 0
-  previousBehaviourStateIndex: 0
-  currentOwnershipOnThisClient: 0
-  isInsidePlayerShip: 0
-  AIIntervalTime: 0.3
-  inSpecialAnimation: 0
-  inSpecialAnimationWithPlayer: {fileID: 0}
-  serverPosition: {x: 0, y: 0, z: 0}
-  serverRotation: {x: 0, y: 0, z: 0}
-  agent: {fileID: 6808325797464284330}
-  allAINodes: []
-  targetNode: {fileID: 0}
-  favoriteSpot: {fileID: 0}
-  tempDist: 0
-  mostOptimalDistance: 0
-  pathDistance: 0
-  thisNetworkObject: {fileID: 0}
-  thisEnemyIndex: 0
-  isClientCalculatingAI: 0
-  updatePositionThreshold: 99999
-  targetPlayer: {fileID: 0}
-  movingTowardsTargetPlayer: 0
-  moveTowardsDestination: 0
-  destination: {x: 0, y: 0, z: 0}
-  addPlayerVelocityToDestination: 0
-  syncMovementSpeed: 0
-  timeSinceSpawn: 0
-  exitVentAnimationTime: 0
-  ventAnimationFinished: 0
-  isEnemyDead: 0
-  daytimeEnemyLeaving: 0
-  enemyHP: 0
-  openDoorSpeedMultiplier: 0
-  useSecondaryAudiosOnAnimatedObjects: 0
-  currentSearch:
-    unsearchedNodes: []
-    currentTargetNode: {fileID: 0}
-    nextTargetNode: {fileID: 0}
-    waitingForTargetNode: 0
-    choseTargetNode: 0
-    currentSearchStartPosition: {x: 0, y: 0, z: 0}
-    loopSearch: 0
-    timesFinishingSearch: 0
-    nodesEliminatedInCurrentSearch: 0
-    inProgress: 0
-    calculatingNodeInSearch: 0
-    searchWidth: 0
-    searchPrecision: 0
-    randomized: 0
-    onlySearchNodesInLOS: 0
-  DebugEnemy: 0
-  stunnedIndefinitely: 0
-  stunNormalizedTimer: 0
-  postStunInvincibilityTimer: 0
-  stunnedByPlayer: {fileID: 0}
-  debugEnemyAI: 0
-  isOutside: 0
   turnCompass: {fileID: 4231645115743633025}
   Mesh: {fileID: 4166604209619222119}
   ScanNode: {fileID: 5243006703238088094}
-  networkAnimator: {fileID: 4381592755811922584}
+  agent: {fileID: 6808325797464284330}
+  creatureAnimator: {fileID: 5575627037565433227}
+  creatureSFX: {fileID: 8669848577270497101}
+  creatureVoice: {fileID: 529318978177289933}
+  renderer: {fileID: 8550072356309361335}
+  targetPlayer: {fileID: 0}
+  currentBehaviorState: 0
   meshEnabledOnClient: 0
   spawnPosition: {x: 0, y: 0, z: 0}
+  isBeingObserved: 0
 --- !u!95 &5575627037565433227
 Animator:
   serializedVersion: 5
@@ -2207,7 +2113,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2431958852480367354
 Transform:
   m_ObjectHideFlags: 0

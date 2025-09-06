@@ -148,12 +148,12 @@ namespace HeavyItemSCPs.Items.SCP427
                 // Heal player
                 HealPlayer(healthPerSecondOpen);
 
-                /*if (SCP500Compatibility.IsLocalPlayerAffectedBySCP500 || playerHeldBy.health < 100)
+                if (SCP500Compatibility.IsLocalPlayerAffectedBySCP500 || playerHeldBy.health < 100)
                 {
                     localPlayerHoldTime = 0f;
                     localPlayerHoldTimeMultiplier = 0f;
                     return;
-                }*/
+                }
 
                 if (localPlayerHoldTimeMultiplier < 1f)
                 {

@@ -79,19 +79,20 @@ namespace HeavyItemSCPs.Items.SCP178
                 lastPlayerHeldBy = playerHeldBy;
             }
 
-            if (Instances == null || Instances.Length == 0)
+            if (Instances == null || Instances.Count == 0)
                 return;
 
             // Run one batch per interval
             if (Time.frameCount % Mathf.CeilToInt(updateInterval / Time.deltaTime) == 0)
             {
+                //logger.LogDebug("Running batch");
                 RunBatch();
             }
         }
 
         void RunBatch()
         {
-            int total = Instances.Length;
+            int total = Instances.Count;
             if (total == 0) return;
 
             // How many to process per batch (spread evenly)
@@ -108,11 +109,6 @@ namespace HeavyItemSCPs.Items.SCP178
                     if (wearingOnLocalClient && instance.renderer.isVisible)
                     {
                         instance.EnableServerRpc();
-                    }
-
-                    if (instance.enabled && IsServerOrHost)
-                    {
-                        instance.DoAIInterval();
                     }
                 }
 
@@ -172,13 +168,16 @@ namespace HeavyItemSCPs.Items.SCP178
 
             
             if (lastPlayerHeldBy.drunkness < 0.2f && enable) { lastPlayerHeldBy.drunkness = 0.2f; }
+            SpawnEntities();
         }
 
         public void SpawnEntities()
         {
             if (!IsServerOrHost) { return; }
             if (spawnCoroutine != null) { return; }
-            if (!StartOfRound.Instance.shipHasLanded) { return; }
+            if (StartOfRound.Instance.inShipPhase) { return; }
+            if (SCP1781AI.Instances.Count > 0) { return; }
+            logger.LogDebug("Trying to spawn entities");
 
             IEnumerator SpawnEntitiesCoroutine()
             {
@@ -186,33 +185,25 @@ namespace HeavyItemSCPs.Items.SCP178
                 {
                     yield return null;
 
-                    if (SCP1781AI.Instances.Length == 0)
+                    if (SCP1781AI.Instances.Count == 0)
                     {
-                        int spawnCount = config1781MaxCount.Value;
-
-                        for (int i = 0; i < spawnCount; i++)
+                        int maxCount = UnityEngine.Random.Range(config1781MinCount.Value, config1781MaxCount.Value);
+                        int count = 0;
+                        List<GameObject> nodes = Utils.allAINodes.ToList();
+                        nodes.Shuffle();
+                        foreach (var node in nodes)
                         {
                             yield return null;
-                            GameObject spawnableEnemy = Instantiate(SCP1781Prefab, Vector3.zero, Quaternion.identity);
+                            if (count >= maxCount) { break; }
+                            logger.LogDebug("Count: " + count);
+                            GameObject spawnableEnemy = Instantiate(SCP1781Prefab, node.transform.position, Quaternion.identity);
                             SCP1781AI scp = spawnableEnemy.GetComponent<SCP1781AI>();
                             scp.NetworkObject.Spawn(destroyWithScene: true);
+                            count++;
                         }
-                    }
 
-                    int maxCount = UnityEngine.Random.Range(config1781MinCount.Value, config1781MaxCount.Value);
-                    int count = 0;
-                    List<GameObject> nodes = Utils.allAINodes.ToList();
-                    nodes.Shuffle();
-                    foreach (var node in nodes)
-                    {
-                        yield return null;
-                        if (count >= maxCount) { break; }
-                        SCP1781AI scp = SCP1781AI.Instances[count];
-                        scp.Teleport(node.transform.position);
-                        count++;
+                        logger.LogDebug($"Spawned {SCP1781AI.Instances.Count} SCP-178-1 instances");
                     }
-
-                    logger.LogDebug($"Spawned {SCP1781AI.Instances.Length} SCP-178-1 instances");
                 }
                 finally
                 {
@@ -226,16 +217,17 @@ namespace HeavyItemSCPs.Items.SCP178
         public void DespawnEntities()
         {
             if (!IsServerOrHost) { return; }
-            if (SCP1781AI.Instances.Length <= 0) { return; }
+            if (SCP1781AI.Instances.Count <= 0) { return; }
+
+            List<SCP1781AI> entities = SCP1781AI.Instances.ToList();
+            SCP1781AI.Instances = [];
 
             logger.LogDebug("Despawning SCP-178-1 Instances");
-            foreach (var entity in SCP1781AI.Instances)
+            foreach (var entity in entities)
             {
                 //if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
                 entity.NetworkObject.Despawn(true);
             }
-
-            SCP1781AI.Instances = [];
         }
     }
 
@@ -260,16 +252,6 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 PlayersAngerLevels.Clear();
                 SCP178Behavior.Instance.DespawnEntities();
-            }
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnShipLandedMiscEvents))]
-        public static void OnShipLandedMiscEventsPostfix()
-        {
-            if (configEnableSCP178.Value && SCP178Behavior.Instance != null)
-            {
-                SCP178Behavior.Instance.SpawnEntities();
             }
         }
     }
