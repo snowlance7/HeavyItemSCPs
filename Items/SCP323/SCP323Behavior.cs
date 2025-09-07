@@ -396,6 +396,8 @@ namespace HeavyItemSCPs.Items.SCP323
                     StopTransformation(player);
                 }
             }
+
+            StartCoroutine(DoTransformationAnimationCoroutine(player));
         }
 
         void FinishTransformation(Vector3 spawnPos) // TODO: Test this

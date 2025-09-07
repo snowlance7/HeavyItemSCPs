@@ -18,7 +18,7 @@ using HeavyItemSCPs.Items.SCP178;
 
 namespace HeavyItemSCPs.Items.SCP427
 {
-    internal class SCP427Behavior : PhysicsProp // TODO: Make it so transform timer doesnt go up if player is damaged but the longer they hold it while not taking damage, the faster the transform timer gets. Using it always increases transform timer at max speed.
+    internal class SCP427Behavior : PhysicsProp
     {
         private static ManualLogSource logger = LoggerInstance;
 
@@ -299,8 +299,6 @@ namespace HeavyItemSCPs.Items.SCP427
             if (player.deadBody != null)
             {
                 player.deadBody.canBeGrabbedBackByPlayers = false;
-                player.deadBody.grabBodyObject.grabbable = false;
-                player.deadBody.grabBodyObject.grabbableToEnemies = false;
             }
 
             yield return new WaitForSeconds(4f);
@@ -310,7 +308,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 Vector3 spawnPos = player.deadBody.grabBodyObject.transform.position;
                 spawnPos = RoundManager.Instance.GetNavMeshPosition(spawnPos);
 
-                player.deadBody.DeactivateBody(setActive: false); // TODO: Test this
+                player.deadBody.DeactivateBody(setActive: false);
                 SpawnSCP4271ServerRpc(spawnPos, SCP4271AI.MaterialVariants.Player);
             }
 

@@ -158,7 +158,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead || stunNormalizedTimer > 0f || inSpecialAnimation)
             {
-                logger.LogDebug("Skipping DoAIInterval");
+                //logger.LogDebug("Skipping DoAIInterval");
                 return;
             };
 

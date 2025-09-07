@@ -62,14 +62,15 @@ namespace HeavyItemSCPs.Items.SCP178
         int hashSpeed;
         int hashAngryIdle;
         public bool isBeingObserved;
+        private Vector3 lastPosition;
+        private float updateDestinationInterval;
+        private float AIIntervalTime = 0.2f;
 
         // Configs
         public static int maxAnger = 100;
         int playerDamage = 40;
         float activeTimeAfterVisible = 15f;
-        private float updateDestinationInterval;
-        private float AIIntervalTime = 0.2f;
-        private Vector3 lastPosition;
+        float renderDistance = 20f;
 
         public enum State
         {
@@ -202,11 +203,8 @@ namespace HeavyItemSCPs.Items.SCP178
 
             if (currentBehaviorState != State.Chasing && TargetPlayerIfClose())
             {
-                if (wanderingRoutine != null)
-                {
-                    StopCoroutine(wanderingRoutine);
-                    wanderingRoutine = null;
-                }
+                StopAllCoroutines();
+                wanderingRoutine = null;
                 SwitchToBehaviorClientRpc(State.Chasing);
                 return;
             }
@@ -219,11 +217,8 @@ namespace HeavyItemSCPs.Items.SCP178
 
                     if (isBeingObserved)
                     {
-                        if (wanderingRoutine != null)
-                        {
-                            StopCoroutine(wanderingRoutine);
-                            wanderingRoutine = null;
-                        }
+                        StopAllCoroutines();
+                        wanderingRoutine = null;
                         SwitchToBehaviorClientRpc(State.Observing);
                         break;
                     }
@@ -333,40 +328,28 @@ namespace HeavyItemSCPs.Items.SCP178
             {
                 return hit.collider.gameObject.transform.parent.gameObject == gameObject;
             }
-
+            
             return false;
         }
 
-        /*public bool IsVisibleToLocalPlayer()
-        {
-            if (renderer.isVisible) // quick frustum culling check
-            {
-                Vector3 start = localPlayer.gameplayCamera.transform.position;
-                Vector3 end = renderer.bounds.center; // more reliable than transform.position
-                Vector3 dir = (end - start).normalized;
-                //float dist = dir.magnitude;
-
-                if (Physics.Raycast(localPlayer.gameplayCamera.transform.position, dir, out RaycastHit hit, 100, LayerMask.GetMask("Enemies")))
-                {
-                    return hit.collider.gameObject.transform.parent.gameObject == gameObject;
-                }
-            }
-            return false;
-        }*/
-
-        public bool IsVisibleToLocalPlayer() // TODO: TEST THIS
+        /*public bool IsVisibleToLocalPlayer() // TODO: TEST THIS
         {
             if (renderer.isVisible) // quick frustum culling check
             {
                 Vector3 start = localPlayer.gameplayCamera.transform.position;
                 Vector3 end = renderer.bounds.center;
 
-                if (!Physics.Linecast(start, end, StartOfRound.Instance.collidersAndRoomMask))
+                if (!Physics.Linecast(start, end, StartOfRound.Instance.collidersAndRoomMask, QueryTriggerInteraction.Ignore))
                 {
                     return true;
                 }
             }
             return false;
+        }*/
+
+        public bool IsNearbyLocalPlayer()
+        {
+            return Vector3.Distance(localPlayer.transform.position, transform.position) < renderDistance;
         }
 
 

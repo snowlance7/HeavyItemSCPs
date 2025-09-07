@@ -222,7 +222,7 @@ namespace HeavyItemSCPs.Items.SCP427
         {
             base.DoAIInterval();
 
-            logger.LogDebug(currentSpeed);
+            //logger.LogDebug(currentSpeed);
 
             if (isEnemyDead || StartOfRound.Instance.allPlayersDead || inSpecialAnimation)
             {

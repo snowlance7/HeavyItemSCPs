@@ -79,6 +79,12 @@ namespace HeavyItemSCPs.Items.SCP178
                 lastPlayerHeldBy = playerHeldBy;
             }
 
+            if (!PlayersAngerLevels.ContainsKey(localPlayer))
+            {
+                PlayersAngerLevels.Add(localPlayer, 0);
+                AddAngerToPlayerServerRpc(localPlayer.actualClientId, 0);
+            }
+
             if (Instances == null || Instances.Count == 0)
                 return;
 
@@ -103,10 +109,9 @@ namespace HeavyItemSCPs.Items.SCP178
                 var instance = Instances[batchIndex];
                 if (instance != null)
                 {
-                    bool hidden = instance.transform.position == Vector3.zero;
-                    instance.EnableMesh(wearingOnLocalClient && !hidden);
+                    instance.EnableMesh(wearingOnLocalClient);
 
-                    if (wearingOnLocalClient && instance.renderer.isVisible)
+                    if ((wearingOnLocalClient || PlayersAngerLevels[localPlayer] > maxAnger) && instance.IsNearbyLocalPlayer())
                     {
                         instance.EnableServerRpc();
                     }
@@ -228,6 +233,31 @@ namespace HeavyItemSCPs.Items.SCP178
                 //if (entity == null || !entity.NetworkObject.IsSpawned) { continue; }
                 entity.NetworkObject.Despawn(true);
             }
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void AddAngerToPlayerServerRpc(ulong clientId, int anger)
+        {
+            if (!IsServerOrHost) { return; }
+            AddAngerToPlayerClientRpc(clientId, anger);
+        }
+
+        [ClientRpc]
+        public void AddAngerToPlayerClientRpc(ulong clientId, int anger)
+        {
+            PlayerControllerB player = PlayerFromId(clientId);
+
+            //logger.LogDebug("AddAngerToPlayer: " + player.playerUsername + " " + anger);
+            if (!PlayersAngerLevels.ContainsKey(player))
+            {
+                PlayersAngerLevels.Add(player, anger);
+            }
+            else
+            {
+                PlayersAngerLevels[player] += anger;
+            }
+
+            logger.LogDebug($"Anger for {player.playerUsername}: {PlayersAngerLevels[player]}");
         }
     }
 
