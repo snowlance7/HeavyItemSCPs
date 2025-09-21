@@ -14,7 +14,7 @@ using static Netcode.Transports.Facepunch.FacepunchTransport;
 
 namespace HeavyItemSCPs.Items.SCP323
 {
-    internal class SCP323_1AI : EnemyAI, IVisibleThreat // TODO: Make it so he targets masked if hes really low on hunger so he can heal and chase the player faster
+    internal class SCP323_1AI : EnemyAI, IVisibleThreat
     {
         private static ManualLogSource logger = LoggerInstance;
         public static SCP323_1AI? Instance { get; private set; }
@@ -59,17 +59,16 @@ namespace HeavyItemSCPs.Items.SCP323
         const int minHPToDoMaxDamage = 5;
 
         // Config Values
-        int maxHP => config3231MaxHP.Value;
-        int maxDamage => config3231MaxDamage.Value;
-        int minDamage => config3231MinDamage.Value;
-        bool reverseDamage => config3231ReverseDamage.Value;
-        float chaseMaxSpeed => config3231ChaseMaxSpeed.Value;
-        float roamMaxSpeed => config3231RoamMaxSpeed.Value;
-        float roamMinSpeed => config3231RoamMinSpeed.Value;
-        float timeToLosePlayer => config3231TimeToLosePlayer.Value;
-        float searchAfterLosePlayerTime => config3231SearchAfterLosePlayerTime.Value;
-        float playerBloodSenseRange => config3231PlayerBloodSenseRange.Value;
-        float maskedBloodSenseRange => config3231MaskedBloodSenseRange.Value;
+        const int maxHP = 20;
+        const int maxDamage = 50;
+        const int minDamage = 10;
+        const float chaseMaxSpeed = 8.5f;
+        const float roamMaxSpeed = 5f;
+        const float roamMinSpeed = 3f;
+        const float timeToLosePlayer = 5f;
+        const float searchAfterLosePlayerTime = 25f;
+        const float playerBloodSenseRange = 75f;
+        const float maskedBloodSenseRange = 75f;
 
         public enum State
         {
@@ -578,17 +577,10 @@ namespace HeavyItemSCPs.Items.SCP323
 
         int GetPlayerDamage()
         {
-            if (reverseDamage)
-            {
-                // Calculate damage based on linear interpolation between max and min points
-                //float damage = ((maxDamage - minDamage) / (minHPToDoMaxDamage - maxHP)) * (enemyHP - maxHP) + minDamage;
-                float damage = (float)MapValue(minHPToDoMaxDamage, maxHP, maxDamage, minDamage, enemyHP);
-                return (int)Mathf.Clamp(damage, minDamage, maxDamage);  // Ensure damage is within bounds
-            }
-            else
-            {
-                return (int)Mathf.Clamp(maxDamage * decayMultiplier, minDamage, maxDamage);
-            }
+            // Calculate damage based on linear interpolation between max and min points
+            //float damage = ((maxDamage - minDamage) / (minHPToDoMaxDamage - maxHP)) * (enemyHP - maxHP) + minDamage;
+            float damage = (float)MapValue(minHPToDoMaxDamage, maxHP, maxDamage, minDamage, enemyHP);
+            return (int)Mathf.Clamp(damage, minDamage, maxDamage);  // Ensure damage is within bounds
         }
 
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
@@ -950,5 +942,3 @@ namespace HeavyItemSCPs.Items.SCP323
         }
     }
 }
-
-// TODO: statuses: shakecamera, playerstun, drunkness, fear, insanity

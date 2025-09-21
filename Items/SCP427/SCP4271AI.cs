@@ -18,7 +18,7 @@ using static UnityEngine.Rendering.DebugUI;
 
 namespace HeavyItemSCPs.Items.SCP427
 {
-    public class SCP4271AI : EnemyAI, IVisibleThreat // TODO: Needs testing
+    public class SCP4271AI : EnemyAI, IVisibleThreat
     {
         // Run speed for animation: 1.1 or higher
         // Thumper variables for reference:
@@ -71,7 +71,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public static bool DEBUG_throwingPlayerDisabled; // TESTING REMOVE LATER
 
-        public float heldObjectVerticalOffset = 6f; // TODO: Get this from testing
+        public float heldObjectVerticalOffset = 6f;
 
         EnemyAI? targetEnemy;
         GameObject? targetObject;
@@ -108,8 +108,7 @@ namespace HeavyItemSCPs.Items.SCP427
         int hashSpeed;
 
         // Config values
-        DropMethod dropMethod => config4271DropMethod.Value;
-        int maxHealth => config4271MaxHealth.Value;
+        const int maxHealth = 50;
         float distanceToLoseAggro = 30f;
 
         public enum State
@@ -209,7 +208,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         public void LateUpdate()
         {
-            creatureAnimator.SetFloat(hashSpeed, currentSpeed); // TODO: Set this up correctly
+            creatureAnimator.SetFloat(hashSpeed, currentSpeed);
 
             if (facePlayer)
             {
@@ -343,7 +342,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 {
                     yield return new WaitForSeconds(5f);
                     Utils.FreezePlayer(player, false);
-                    //CancelSpecialAnimation(); // TODO: Set this up again to reset and drop player and other things
+                    //CancelSpecialAnimation(); // TODO: Set this up again to reset and drop player and other things???
                 }
                 StartCoroutine(FailsafeCoroutine(player));
                 return;
@@ -371,7 +370,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 // Throw player
                 logger.LogDebug("Applying force: " + throwDirection * throwForce);
-                MakePlayerDrop(player);
+                player.DropAllHeldItemsAndSync();
                 player.playerRigidbody.velocity = Vector3.zero;
                 player.externalForceAutoFade += throwDirection * throwForce;
 
@@ -424,7 +423,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     targetEnemy.HitEnemy(4, null, true);
 
                     targetEnemy = null;
-                    SwitchToBehaviourClientRpc((int)State.Roaming); // TODO: is this necessary?
+                    SwitchToBehaviourClientRpc((int)State.Roaming);
                 }
             }
         }
@@ -578,7 +577,7 @@ namespace HeavyItemSCPs.Items.SCP427
             return true;
         }
 
-        private void DropItem(Vector3 targetFloorPosition) // TODO: This works but needs to be tested on network
+        private void DropItem(Vector3 targetFloorPosition)
         {
             if (heldObject == null)
             {
@@ -696,7 +695,7 @@ namespace HeavyItemSCPs.Items.SCP427
             logger.LogDebug($"{player.playerUsername} collided with SCP-427-1");
             timeSinceDamagePlayer = 0f;
 
-            if (timeSinceThrowingPlayer > 10f && !DEBUG_throwingPlayerDisabled)
+            if (timeSinceThrowingPlayer > 10f)
             {
                 logger.LogDebug("Throwing player");
 
@@ -718,35 +717,7 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        void MakePlayerDrop(PlayerControllerB player)
-        {
-            switch (dropMethod)
-            {
-                case DropMethod.DropHeldItem:
-                    if (player.currentlyHeldObjectServer != null)
-                    {
-                        player.DiscardHeldObject();
-                    }
-                    break;
-                case DropMethod.DropTwoHandedItem:
-                    if (player.currentlyHeldObjectServer != null && player.twoHanded)
-                    {
-                        player.DiscardHeldObject();
-                    }
-                    break;
-                case DropMethod.DropAllItems:
-                    player.DropAllHeldItemsAndSync();
-                    break;
-                default:
-                    if (player.currentlyHeldObjectServer != null && player.currentlyHeldObjectServer.itemProperties.name == "CaveDwellerBaby")
-                    {
-                        player.DiscardHeldObject();
-                    }
-                    break;
-            }
-        }
-
-        public override void OnCollideWithEnemy(Collider other, EnemyAI? collidedEnemy = null) // TODO: TEST THIS
+        public override void OnCollideWithEnemy(Collider other, EnemyAI? collidedEnemy = null)
         {
             base.OnCollideWithEnemy(other, collidedEnemy);
 
@@ -909,5 +880,3 @@ namespace HeavyItemSCPs.Items.SCP427
         }
     }
 }
-
-// TODO: statuses: shakecamera, playerstun, drunkness, fear, insanity

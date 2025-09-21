@@ -52,25 +52,17 @@ namespace HeavyItemSCPs.Items.SCP427
 
         // Configs
 
-        public float timeToTransform;
-        int healthPerSecondOpen;
-        float lootBugTransformTime;
-        float birdTransformTime;
-        float otherEnemyTransformTime;
-        float timeToMaxTransformSpeed = 60f;
-        float timeToMinTransformSpeed = 30f;
+        public const float timeToTransform = 60f;
+        int healthPerSecondOpen => configHealthPerSecondOpen.Value;
+        const float enemyTimeToTransform = 5f;
+        const float timeToMaxTransformSpeed = 30f;
+        const float timeToMinTransformSpeed = 15f;
 
         public override void Start()
         {
             base.Start();
 
             hashOpen = Animator.StringToHash("open");
-
-            timeToTransform = configTimeToTransform.Value;
-            healthPerSecondOpen = configHealthPerSecondOpen.Value;
-            lootBugTransformTime = configHoarderBugTransformTime.Value;
-            birdTransformTime = configBaboonHawkTransformTime.Value;
-            otherEnemyTransformTime = configOtherEnemyTransformTime.Value;
         }
 
         public override void OnNetworkSpawn()
@@ -114,7 +106,6 @@ namespace HeavyItemSCPs.Items.SCP427
             timeSinceLastHeal += Time.deltaTime;
 
             //logger.LogDebug($"Time held by local player: {localPlayerHoldTime}");
-            //logger.LogDebug(localPlayerHoldTimeMultiplier); // TODO: Remove this
 
             itemAnimator.SetBool(hashOpen, isOpen);
 
@@ -135,16 +126,9 @@ namespace HeavyItemSCPs.Items.SCP427
                     localPlayerHoldTime = 0f;
                 }
                 playedPassiveTransformationSound = false;
-                return;
             }
-
-            if (playerHeldBy != null) // Held by local player
+            else // Held by local player
             {
-                //itemAnimator.SetBool(hashOpen, isOpen);
-
-                // If player is local player, then continue
-                if (playerHeldBy != localPlayer) { return; }
-
                 // Heal player
                 HealPlayer(healthPerSecondOpen);
 
@@ -157,7 +141,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (localPlayerHoldTimeMultiplier < 1f)
                 {
-                    localPlayerHoldTimeMultiplier += Time.deltaTime / timeToMaxTransformSpeed; // TODO: Test this
+                    localPlayerHoldTimeMultiplier += Time.deltaTime / timeToMaxTransformSpeed;
                     localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
                 }
 
@@ -211,38 +195,25 @@ namespace HeavyItemSCPs.Items.SCP427
                 EnemyHoldTimes[enemyHeldBy] += Time.deltaTime;
                 //logger.LogDebug($"{enemyHeldBy.enemyType.name} hold time: {EnemyHoldTimes[enemyHeldBy]}");
 
-                if (enemyHeldBy.enemyType.name == "BaboonHawk")
+                if (EnemyHoldTimes[enemyHeldBy] >= enemyTimeToTransform)
                 {
-                    if (birdTransformTime >= 0)
+                    SCP4271AI.MaterialVariants variant = SCP4271AI.MaterialVariants.None;
+                    string logMessage = "Transforming enemy";
+
+                    switch (enemyHeldBy.enemyType.name)
                     {
-                        if (EnemyHoldTimes[enemyHeldBy] >= birdTransformTime)
-                        {
-                            logger.LogDebug("Transforming bird");
-                            TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.BaboonHawk);
-                        }
+                        case "BaboonHawk":
+                            variant = SCP4271AI.MaterialVariants.BaboonHawk;
+                            logMessage = "Transforming bird";
+                            break;
+                        case "HoarderBug":
+                            variant = SCP4271AI.MaterialVariants.Hoarderbug;
+                            logMessage = "Transforming bug";
+                            break;
                     }
-                }
-                else if (enemyHeldBy.enemyType.name == "HoarderBug")
-                {
-                    if (lootBugTransformTime >= 0)
-                    {
-                        if (EnemyHoldTimes[enemyHeldBy] >= lootBugTransformTime)
-                        {
-                            logger.LogDebug("Transforming bug");
-                            TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.Hoarderbug);
-                        }
-                    }
-                }
-                else
-                {
-                    if (otherEnemyTransformTime >= 0)
-                    {
-                        if (EnemyHoldTimes[enemyHeldBy] >= otherEnemyTransformTime)
-                        {
-                            logger.LogDebug("Transforming enemy");
-                            TransformEnemy(enemyHeldBy, SCP4271AI.MaterialVariants.None);
-                        }
-                    }
+
+                    logger.LogDebug(logMessage);
+                    TransformEnemy(enemyHeldBy, variant);
                 }
             }
         }
@@ -267,8 +238,8 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void GrabItemFromEnemy(EnemyAI enemy)
         {
             base.GrabItemFromEnemy(enemy);
-            hasBeenHeld = true;
             enemyHeldBy = enemy;
+            logger.LogDebug("Grabbed by " + enemy.enemyType.enemyName);
         }
 
         public override void PocketItem()
@@ -424,11 +395,11 @@ namespace HeavyItemSCPs.Items.SCP427
                 if (SCP427Behavior.Instance == null) { return; }
                 if (SCP427Behavior.Instance.playerHeldBy == null) { return; }
                 if (SCP427Behavior.Instance.playerHeldBy != localPlayer) { return; }
-                if (SCP427Behavior.localPlayerHoldTime < SCP427Behavior.Instance.timeToTransform * 0.75f) { return; }
+                if (SCP427Behavior.localPlayerHoldTime < SCP427Behavior.timeToTransform * 0.75f) { return; }
 
                 int initialDamage = damageNumber;
                 damageNumber = (int)(damageNumber * (1 - SCP427Behavior.localPlayerDamageResist));
-                logger.LogDebug($"SCP-427: Resisting {SCP427Behavior.localPlayerDamageResist * 100f}% damage, {initialDamage} -> {damageNumber}"); // TODO: Test this
+                logger.LogDebug($"SCP-427: Resisting {SCP427Behavior.localPlayerDamageResist * 100f}% damage, {initialDamage} -> {damageNumber}");
             }
             catch (Exception e)
             {

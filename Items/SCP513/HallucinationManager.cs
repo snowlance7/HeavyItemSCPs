@@ -105,7 +105,7 @@ namespace HeavyItemSCPs.Items.SCP513
         }
 
         // === TIERED SYSTEM ===
-        bool TryStartCoroutine(IEnumerator coroutineMethod, int tier, Action? cleanup = null) // TODO: Needs testing!!!
+        bool TryStartCoroutine(IEnumerator coroutineMethod, int tier, Action? cleanup = null)
         {
             if (activeCoroutine != null)
             {
@@ -702,7 +702,7 @@ namespace HeavyItemSCPs.Items.SCP513
             Vector2 offset2D = UnityEngine.Random.insideUnitCircle * radius;
             Vector3 randomOffset = new Vector3(offset2D.x, 0f, offset2D.y);
 
-            GameObject bodyObj = SpawnDeadBody(localPlayer, localPlayer.transform.position, 0, deathAnimation, randomOffset); // TODO: Test this
+            GameObject bodyObj = SpawnDeadBody(localPlayer, localPlayer.transform.position, 0, deathAnimation, randomOffset);
             GameObject.Destroy(bodyObj, 30f);
         }
 
@@ -759,7 +759,7 @@ namespace HeavyItemSCPs.Items.SCP513
             SCP513_1AI.Instance!.MimicEnemy(enemies[randomIndex]);
         }
 
-        void MimicPlayer() // 2 1 // TODO: Test this
+        void MimicPlayer() // 2 1
         {
             logger.LogDebug("MimicPlayer");
 
@@ -837,7 +837,7 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.Instance.TurnOnAllLights(false);
         }
 
-        void SpawnFakeLandminesAroundPlayer() // 2 5 // TODO: Test this
+        void SpawnFakeLandminesAroundPlayer() // 2 5
         {
             logger.LogDebug("SpawnFakeLandminesAroundPlayer");
             /*
@@ -863,7 +863,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     yield return null;
 
-                    GameObject landmineObj = GameObject.Instantiate(hazards["Landmine"], position, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform); // TODO: Test this, may not work without network object and another player steps on it
+                    GameObject landmineObj = GameObject.Instantiate(hazards["Landmine"], position, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform);
                     Landmine landmine = landmineObj.GetComponentInChildren<Landmine>();
                     landmine.mineActivated = true;
                     landmine.mineAudio.PlayOneShot(landmine.mineDeactivate);
@@ -909,7 +909,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 Vector2 offset2D = UnityEngine.Random.insideUnitCircle * radius;
                 Vector3 randomOffset = new Vector3(offset2D.x, 0f, offset2D.y);
 
-                GameObject bodyObj = SpawnDeadBody(localPlayer, localPlayer.transform.position, 0, deathAnimation, randomOffset); // TODO: Test this
+                GameObject bodyObj = SpawnDeadBody(localPlayer, localPlayer.transform.position, 0, deathAnimation, randomOffset);
                 GameObject.Destroy(bodyObj, 30f);
             }
         }
@@ -962,7 +962,7 @@ namespace HeavyItemSCPs.Items.SCP513
                         if (slot.itemProperties.name == "Shotgun")
                         {
                             shotgun = (ShotgunItem)slot;
-                            itemSlotIndex = localPlayer.ItemSlots.IndexOf(shotgun); // TODO: Test this
+                            itemSlotIndex = localPlayer.ItemSlots.IndexOf(shotgun);
                         }
                     }
 

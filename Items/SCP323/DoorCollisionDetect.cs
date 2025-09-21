@@ -21,9 +21,8 @@ namespace HeavyItemSCPs.Items.SCP323
         DoorLock? doorLock;
         public bool triggering;
         float timeInTrigger = 0f;
-        float doorBashForce => config3231DoorBashForce.Value;
-        bool despawnDoorAfterBash => config3231DespawnDoorAfterBash.Value;
-        float despawnDoorAfterBashTime => config3231DespawnDoorAfterBashTime.Value;
+        const float doorBashForce = 35f;
+        const float despawnDoorAfterBashTime = 3f;
 
         void OnTriggerStay(Collider other) // InteractTrigger
         {
@@ -115,10 +114,7 @@ namespace HeavyItemSCPs.Items.SCP323
             triggering = false;
             doorLock = null;
             mainScript.inSpecialAnimation = false;
-            if (despawnDoorAfterBash)
-            {
-                Destroy(flyingDoor, despawnDoorAfterBashTime);
-            }
+            Destroy(flyingDoor, despawnDoorAfterBashTime);
         }
     }
 }

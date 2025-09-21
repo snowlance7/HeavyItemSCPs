@@ -18,7 +18,7 @@ namespace HeavyItemSCPs.Items.SCP323
         bool hitPlayer;
         bool isActive = true;
         public Vector3 force;
-        int doorBashDamage => config3231DoorBashDamage.Value;
+        const int doorBashDamage = 30;
 
         public void Start()
         {

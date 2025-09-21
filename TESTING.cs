@@ -36,10 +36,11 @@ namespace HeavyItemSCPs
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
+            if (!Utils.isBeta) { return; }
             if (!Utils.testing) { return; }
 
-            logger.LogDebug("InsideAINodes: " + Utils.insideAINodes.Length.ToString());
-            logger.LogDebug("OutsideAINodes: " + Utils.outsideAINodes.Length.ToString());
+            //logger.LogDebug("InsideAINodes: " + Utils.insideAINodes.Length.ToString());
+            //logger.LogDebug("OutsideAINodes: " + Utils.outsideAINodes.Length.ToString());
             //logger.LogDebug(SCP323Behavior.Instance?.madness);
             /*SpikeRoofTrap spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(localPlayer.transform.position);
             logger.LogDebug(spikeTrap.name);
@@ -60,6 +61,8 @@ namespace HeavyItemSCPs
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
         {
+            if (!Utils.isBeta) { return; }
+
             string msg = __instance.chatTextField.text;
             string[] args = msg.Split(" ");
             logger.LogDebug(msg);

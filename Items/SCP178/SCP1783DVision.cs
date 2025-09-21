@@ -102,7 +102,7 @@ namespace HeavyItemSCPs.Items.SCP178
             highlightMaterial = ModAssets!.LoadAsset<Material>("Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat");
         }
 
-        private void Update()
+        public void Update()
         {
             if (!initiated) { return; }
             if (wearingGlasses)
@@ -127,15 +127,12 @@ namespace HeavyItemSCPs.Items.SCP178
                 glasses_volume.weight = glasses_timer / glasses_response_time;
             }
 
-            if (config178SeeScrapThroughWalls.Value)
-            {
-                timeSinceIntervalUpdate += Time.deltaTime;
+            timeSinceIntervalUpdate += Time.deltaTime;
 
-                if (timeSinceIntervalUpdate >= 0.2f)
-                {
-                    timeSinceIntervalUpdate = 0f;
-                    DoIntervalUpdate();
-                }
+            if (timeSinceIntervalUpdate >= 0.2f)
+            {
+                timeSinceIntervalUpdate = 0f;
+                DoIntervalUpdate();
             }
         }
 
@@ -147,11 +144,11 @@ namespace HeavyItemSCPs.Items.SCP178
             }
         }
 
-        void HighlightScrap() // TODO: Test this
+        void HighlightScrap()
         {
             List<GameObject> scrapList = new List<GameObject>();
 
-            RaycastHit[] hits = Physics.RaycastAll(localPlayer.playerEye.transform.position, localPlayer.playerEye.transform.forward, config178SeeScrapRange.Value, LayerMask.GetMask("Props"));
+            RaycastHit[] hits = Physics.RaycastAll(localPlayer.playerEye.transform.position, localPlayer.playerEye.transform.forward, 30f, LayerMask.GetMask("Props"));
 
             foreach (RaycastHit hit in hits)
             {
@@ -197,6 +194,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public void Enable3DVision(bool enable)
         {
+            logger.LogDebug("Enabling 3D Vision");
             if (!(localPlayer == null) && !(camera_object == null))
             {
                 wearingGlasses = enable;

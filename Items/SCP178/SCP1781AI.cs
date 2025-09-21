@@ -43,10 +43,7 @@ namespace HeavyItemSCPs.Items.SCP178
         public bool meshEnabledOnClient;
         public Vector3 spawnPosition;
 
-        float postObservationTime;
         float observationTimer;
-        float observationGracePeriod;
-        float distanceToAddAnger;
         float distanceToStartChase = 5f;
 
         Coroutine? wanderingRoutine;
@@ -56,9 +53,6 @@ namespace HeavyItemSCPs.Items.SCP178
         float timeSinceLastAngerCalc;
         float timeSinceEmoteUsed;
 
-        float wanderingRadius;
-        float wanderWaitTime;
-
         int hashSpeed;
         int hashAngryIdle;
         public bool isBeingObserved;
@@ -67,6 +61,11 @@ namespace HeavyItemSCPs.Items.SCP178
         private float AIIntervalTime = 0.2f;
 
         // Configs
+        const float postObservationTime = 5f;
+        const float wanderingRadius = 5f;
+        const float wanderWaitTime = 5f;
+        const float observationGracePeriod = 0.5f;
+        const float distanceToAddAnger = 10f;
         public static int maxAnger = 100;
         int playerDamage = 40;
         float activeTimeAfterVisible = 15f;
@@ -83,12 +82,6 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             hashSpeed = Animator.StringToHash("speed");
             hashAngryIdle = Animator.StringToHash("angryIdle");
-
-            postObservationTime = config1781PostObservationTime.Value;
-            wanderingRadius = config1781WanderingRadius.Value;
-            wanderWaitTime = config1781WanderingWaitTime.Value;
-            observationGracePeriod = config1781ObservationGracePeriod.Value;
-            distanceToAddAnger = config1781DistanceToAddAnger.Value;
 
             spawnPosition = transform.position;
 
@@ -112,7 +105,7 @@ namespace HeavyItemSCPs.Items.SCP178
             Instances.Remove(this);
         }
 
-        public void OnEnable() // TODO
+        public void OnEnable()
         {
             logger.LogDebug("SCP1781AI enabled");
             timeSinceVisible = 0f;
@@ -300,7 +293,7 @@ namespace HeavyItemSCPs.Items.SCP178
 
         public bool TargetPlayerIfClose()
         {
-            if (targetPlayer != null && !targetPlayer.isPlayerControlled) { targetPlayer = null; } // TODO: Test this
+            if (targetPlayer != null && !targetPlayer.isPlayerControlled) { targetPlayer = null; }
 
             float closestDistance = Mathf.Infinity;
 
@@ -332,7 +325,7 @@ namespace HeavyItemSCPs.Items.SCP178
             return false;
         }
 
-        /*public bool IsVisibleToLocalPlayer() // TODO: TEST THIS
+        /*public bool IsVisibleToLocalPlayer()
         {
             if (renderer.isVisible) // quick frustum culling check
             {
@@ -399,7 +392,7 @@ namespace HeavyItemSCPs.Items.SCP178
         {
             if (observationTimer < observationGracePeriod || !isBeingObserved) { return; }
 
-            bool isSpeaking = lastPlayerHeldBy?.voicePlayerState != null && lastPlayerHeldBy.voicePlayerState.IsSpeaking; // TODO: Test this
+            bool isSpeaking = lastPlayerHeldBy?.voicePlayerState != null && lastPlayerHeldBy.voicePlayerState.IsSpeaking;
             logger.LogDebug("isSpeaking: " + isSpeaking);
 
             int anger = isSpeaking ? 4 : 2;

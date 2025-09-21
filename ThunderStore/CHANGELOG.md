@@ -8,6 +8,8 @@
 - Changed rarity/spawn values for all SCPs
 - Added a lot of performance fixes for SCP-178-1s
 - A lot of bug fixes
+- SCP-427 transform time behavior works differently now
+- Removed a lot of unnecessary config options
 
 ## 1.3.2
 - SCP-427-1 will force the player to drop all items when throwing them (configurable)

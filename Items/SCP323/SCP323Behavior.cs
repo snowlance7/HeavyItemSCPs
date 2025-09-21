@@ -53,9 +53,7 @@ namespace HeavyItemSCPs.Items.SCP323
         public SCP323_1AI AttachedToWendigo = null!;
 
         // Config variables
-        float distanceToIncreaseInsanity => config323DistanceToIncreaseInsanity.Value;
-        //int insanityHolding => config323InsanityHolding.Value;
-        //int insanityWearing => config323InsanityWearing.Value;
+        const float distanceToIncreaseInsanity = 5f;
         bool showInsanity => config323ShowInsanity.Value;
 
         public ThreatType type => ThreatType.Player;
@@ -205,7 +203,7 @@ namespace HeavyItemSCPs.Items.SCP323
                         madness += Time.deltaTime * 0.5f;
                     }
 
-                    if (showInsanity) // TODO: Test this
+                    if (showInsanity)
                     {
                         localPlayer.playersManager.fearLevel = Mathf.Max(madness / localPlayer.maxInsanityLevel, localPlayer.playersManager.fearLevel);
                     }
@@ -309,7 +307,7 @@ namespace HeavyItemSCPs.Items.SCP323
             return false;
         }
 
-        void ChangeAttachState(AttachState newState) // TODO: Test this
+        void ChangeAttachState(AttachState newState)
         {
             switch (newState)
             {
@@ -400,7 +398,7 @@ namespace HeavyItemSCPs.Items.SCP323
             StartCoroutine(DoTransformationAnimationCoroutine(player));
         }
 
-        void FinishTransformation(Vector3 spawnPos) // TODO: Test this
+        void FinishTransformation(Vector3 spawnPos)
         {
             logger.LogDebug("Finishing transformation.");
 
@@ -513,7 +511,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         public bool IsThreatDead()
         {
-            return false; // TODO: Test this
+            return false;
         }
 
         #endregion

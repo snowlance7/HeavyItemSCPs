@@ -18,6 +18,7 @@ namespace HeavyItemSCPs
     {
         private static ManualLogSource logger = LoggerInstance;
 
+        public static bool isBeta = false;
         public static bool debuggingEnabled = true;
         public static bool trailerMode = false;
 
@@ -378,7 +379,7 @@ namespace HeavyItemSCPs
             Vector3 to = RoundManager.Instance.GetNavMeshPosition(toPos, RoundManager.Instance.navHit, 1.75f);
 
             NavMeshPath path = new();
-            return NavMesh.CalculatePath(from, to, -1, path) && Vector3.Distance(path.corners[path.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(to, RoundManager.Instance.navHit, 2.7f)) <= 1.55f; // TODO: Test this
+            return NavMesh.CalculatePath(from, to, -1, path) && Vector3.Distance(path.corners[path.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(to, RoundManager.Instance.navHit, 2.7f)) <= 1.55f;
         }
 
         public static T? GetClosestGameObjectOfType<T>(Vector3 position) where T : Component

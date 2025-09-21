@@ -11,7 +11,7 @@ using static HeavyItemSCPs.Items.SCP178.SCP1781AI;
 
 namespace HeavyItemSCPs.Items.SCP178
 {
-    public class SCP178Behavior : PhysicsProp // TODO: Tooltip errors and game crashes when despawning 278-1s
+    public class SCP178Behavior : PhysicsProp
     {
         private static ManualLogSource logger = LoggerInstance;
 

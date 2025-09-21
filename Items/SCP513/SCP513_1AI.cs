@@ -14,7 +14,7 @@ using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    public class SCP513_1AI : MonoBehaviour // TODO: Changing this to monobehavior and use scp513 for network functions
+    public class SCP513_1AI : MonoBehaviour
     {
         private static ManualLogSource logger = LoggerInstance;
         public static SCP513_1AI? Instance { get; private set; }
@@ -332,7 +332,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     }
                     else
                     {
-                        agent.speed = Vector3.Distance(transform.position, localPlayer.transform.position); // TODO: Test this
+                        agent.speed = Vector3.Distance(transform.position, localPlayer.transform.position);
                         creatureAnimator.SetBool("armsCrossed", false);
                         facePlayer = false;
 
