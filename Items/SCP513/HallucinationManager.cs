@@ -19,7 +19,7 @@ namespace HeavyItemSCPs.Items.SCP513
     public class HallucinationManager : MonoBehaviour
     {
         private static ManualLogSource logger = LoggerInstance;
-        public static HallucinationManager? Instance { get; private set; }
+        //public static HallucinationManager? Instance { get; private set; }
 
         public static HashSet<GrabbableObject> overrideShotguns = [];
         public static Dictionary<GrabbableObject, Vector3> overrideShotgunsPosOffsets = [];

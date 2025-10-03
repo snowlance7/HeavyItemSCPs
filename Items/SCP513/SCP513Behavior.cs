@@ -17,7 +17,7 @@ namespace HeavyItemSCPs.Items.SCP513
     {
         private static ManualLogSource logger = LoggerInstance;
 
-        public static SCP513Behavior? Instance { get; private set; }
+        //public static SCP513Behavior? Instance { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public AudioSource ItemAudio;
@@ -35,7 +35,7 @@ namespace HeavyItemSCPs.Items.SCP513
         float timeHeldByPlayer;
         Vector2 lastCameraAngles;
 
-        public bool localPlayerHaunted;
+        public static bool localPlayerHaunted;
 
         // Configs
         float maxTurnSpeed = 1000f;
@@ -54,16 +54,6 @@ namespace HeavyItemSCPs.Items.SCP513
                     NetworkObject.Despawn(true);
                 }
                 return;
-            }
-
-            if (localPlayerHaunted && SCP513_1AI.Instance == null && !StartOfRound.Instance.inShipPhase && !StartOfRound.Instance.shipIsLeaving)
-            {
-                SpawnBellMan();
-            }
-
-            if (Utils.inTestRoom && localPlayerHaunted && SCP513_1AI.Instance == null)
-            {
-                SpawnBellMan(); // TODO: Spams this for some reason
             }
 
             if (playerHeldBy == null || localPlayer != playerHeldBy)
@@ -137,12 +127,6 @@ namespace HeavyItemSCPs.Items.SCP513
                 logger.LogDebug("Ringing bell from turn speed");
                 RingBellServerRpc();
             }
-        }
-
-        public void SpawnBellMan()
-        {
-            if (SCP513_1AI.Instance != null) { return; }
-            Instantiate(SCP513_1Prefab, Vector3.zero, Quaternion.identity);
         }
 
         [ServerRpc(RequireOwnership = false)]

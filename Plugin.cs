@@ -5,6 +5,7 @@ using GameNetcodeStuff;
 using HarmonyLib;
 using HeavyItemSCPs.Items.SCP178;
 using HeavyItemSCPs.Items.SCP427;
+using HeavyItemSCPs.Items.SCP513;
 using LethalLib.Modules;
 using System;
 using System.Collections.Generic;
@@ -211,6 +212,22 @@ namespace HeavyItemSCPs
             config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
             config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
+        }
+
+        public void Update()
+        {
+            if (SCP513Behavior.localPlayerHaunted)
+            {
+                if (localPlayer.isPlayerDead)
+                {
+                    SCP513Behavior.localPlayerHaunted = false;
+                    return;
+                }
+
+                if (StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) { return; }
+                if (SCP513_1AI.Instance != null) { return; }
+                NetworkHandlerHeavyItemSCPs.Instance?.SpawnBellManOnLocalClient();
+            }
         }
 
         private static void InitializeNetworkBehaviours()

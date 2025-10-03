@@ -152,7 +152,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public void Update()
         {
-            if ((SCP513Behavior.Instance == null || !SCP513Behavior.Instance.localPlayerHaunted) || 
+            if (!SCP513Behavior.localPlayerHaunted || 
                 ((StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) && !inTestRoom))
             {
                 Destroy(gameObject);
@@ -162,7 +162,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (localPlayer.isPlayerDead || !localPlayer.isPlayerControlled)
             {
-                SCP513Behavior.Instance.localPlayerHaunted = false;
+                SCP513Behavior.localPlayerHaunted = false;
                 Destroy(gameObject);
                 return;
             }
@@ -679,9 +679,8 @@ namespace HeavyItemSCPs.Items.SCP513
             RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
             player.insanityLevel = 50f;
             player.JumpToFearLevel(1f);
-            if (localPlayer.drunkness < 0.3f) { localPlayer.drunkness = 0.3f; }
+            if (localPlayer.drunkness < 0.2f) { localPlayer.drunkness = 0.2f; }
             localPlayer.sprintMeter = 0f;
-            localPlayer.DropAllHeldItemsAndSync();
             SwitchToBehavior(State.InActive);
         }
 
