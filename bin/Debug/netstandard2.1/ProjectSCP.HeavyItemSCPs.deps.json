@@ -7,7 +7,7 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "ProjectSCP.HeavyItemSCPs/1.4.0": {
+      "ProjectSCP.HeavyItemSCPs/1.4.2": {
         "dependencies": {
           "BepInEx.Analyzers": "1.0.8",
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.1",
@@ -420,7 +420,7 @@
     }
   },
   "libraries": {
-    "ProjectSCP.HeavyItemSCPs/1.4.0": {
+    "ProjectSCP.HeavyItemSCPs/1.4.2": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

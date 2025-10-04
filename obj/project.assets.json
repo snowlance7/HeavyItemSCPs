@@ -2966,7 +2966,7 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "1.4.0",
+    "version": "1.4.2",
     "restore": {
       "projectUniqueName": "C:\\Users\\snowl\\source\\repos\\HeavyItemSCPs\\HeavyItemSCPs.csproj",
       "projectName": "ProjectSCP.HeavyItemSCPs",

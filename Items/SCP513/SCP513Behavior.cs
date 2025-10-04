@@ -68,8 +68,10 @@ namespace HeavyItemSCPs.Items.SCP513
 
             TrackCameraMovement();
 
-            if (playerHeldBy.isJumping || playerHeldBy.isFallingFromJump || playerHeldBy.isFallingNoJump || playerHeldBy.isSprinting)
+            if (playerHeldBy.isJumping || playerHeldBy.isFallingFromJump || playerHeldBy.isSprinting || playerHeldBy.takingFallDamage)
             {
+                if (timeSinceLastRing < ringCooldown) { return; }
+                if (playerHeldBy.isCrouching || playerHeldBy.inSpecialInteractAnimation) { return; }
                 //logger.LogDebug("Ringing bell from jumping or falling");
                 RingBellServerRpc();
             }
@@ -106,8 +108,8 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (fallDistance > maxFallDistance)
             {
-               // logger.LogDebug("Ringing bell from fall distance");
-                RingBellServerRpc(true);
+                //logger.LogDebug("Ringing bell from fall distance");
+                RingBellServerRpc();
             }
         }
 
@@ -125,18 +127,17 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (cameraTurnSpeed > maxTurnSpeed && timeHeldByPlayer > 1f)
             {
+                if (timeSinceLastRing < ringCooldown) { return; }
+                if (playerHeldBy.isClimbingLadder || playerHeldBy.inSpecialInteractAnimation) { return; }
                 //logger.LogDebug("Ringing bell from turn speed");
                 RingBellServerRpc();
             }
         }
 
         [ServerRpc(RequireOwnership = false)]
-        public void RingBellServerRpc(bool overrideRingCooldown = false)
+        public void RingBellServerRpc()
         {
             if (!IsServerOrHost) { return; }
-
-            if (timeSinceLastRing < ringCooldown && !overrideRingCooldown) { return; }
-            timeSinceLastRing = 0f;
 
             RingBellClientRpc();
         }
@@ -144,6 +145,7 @@ namespace HeavyItemSCPs.Items.SCP513
         [ClientRpc]
         public void RingBellClientRpc()
         {
+            timeSinceLastRing = 0f;
             RoundManager.PlayRandomClip(ItemAudio, BellSFX);
 
             if (localPlayerHaunted) { return; }

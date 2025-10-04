@@ -242,8 +242,6 @@ namespace HeavyItemSCPs
         [HarmonyPostfix, HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.Start))]
         public static void Init()
         {
-            logger.LogDebug("Init");
-
             if (networkPrefab != null)
                 return;
 
@@ -262,7 +260,6 @@ namespace HeavyItemSCPs
 
             UnityEngine.Object.DontDestroyOnLoad(networkPrefab);
             networkPrefab.hideFlags = HideFlags.HideAndDontSave;
-            //networkPrefab.SetActive(false);
 
             NetworkManager.Singleton.AddNetworkPrefab(networkPrefab);
         }

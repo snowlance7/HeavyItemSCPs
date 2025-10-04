@@ -1,3 +1,9 @@
+## 1.4.2
+- Fixed network related issue
+- Version updated
+- SCP-513 will no longer ring when the player holding it is falling, unless they take fall damage
+- SCP-513 will no longer ring when turning suddenly to climb a ladder or in special animation
+
 ## 1.4.1
 - SCP-513-1 does not make players drop their items when colliding with them and the blur effect is decreased
 - Players are no longer unhaunted if SCP-513 is destroyed and will only become unhaunted on death or game restart (configurable)
