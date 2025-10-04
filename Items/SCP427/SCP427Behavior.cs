@@ -70,7 +70,7 @@ namespace HeavyItemSCPs.Items.SCP427
             base.OnNetworkSpawn();
             if (Instance != null && Instance != this)
             {
-                logger.LogDebug("There is already a SCP-427 in the scene. Removing this one.");
+                logger.LogWarning("There is already a SCP-427 in the scene. Removing this one.");
                 return;
             }
             Instance = this;
@@ -170,6 +170,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 if (localPlayerHoldTime >= timeToTransform)
                 {
                     logger.LogDebug("Transforming player");
+                    localPlayerHoldTime = 0f;
                     TransformPlayer(playerHeldBy);
                 }
 
@@ -213,6 +214,7 @@ namespace HeavyItemSCPs.Items.SCP427
                     }
 
                     logger.LogDebug(logMessage);
+                    EnemyHoldTimes[enemyHeldBy] = 0f;
                     TransformEnemy(enemyHeldBy, variant);
                 }
             }

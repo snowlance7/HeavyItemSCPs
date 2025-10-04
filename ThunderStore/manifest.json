@@ -1,6 +1,6 @@
 {
   "name": "HeavyItemSCPs",
-  "version_number": "1.4.0",
+  "version_number": "1.4.1",
   "website_url": "https://github.com/snowlance7/HeavyItemSCPs",
   "description": "A collection of SCP items with a monster attached to it",
   "dependencies": [

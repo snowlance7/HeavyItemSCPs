@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
+using Unity.Services.Authentication;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
 
@@ -17,7 +18,7 @@ namespace HeavyItemSCPs.Items.SCP513
     {
         private static ManualLogSource logger = LoggerInstance;
 
-        //public static SCP513Behavior? Instance { get; private set; }
+        public static SCP513Behavior? Instance { get; private set; }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public AudioSource ItemAudio;
@@ -69,7 +70,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (playerHeldBy.isJumping || playerHeldBy.isFallingFromJump || playerHeldBy.isFallingNoJump || playerHeldBy.isSprinting)
             {
-                logger.LogDebug("Ringing bell from jumping or falling");
+                //logger.LogDebug("Ringing bell from jumping or falling");
                 RingBellServerRpc();
             }
         }
@@ -79,7 +80,7 @@ namespace HeavyItemSCPs.Items.SCP513
             base.OnNetworkSpawn();
             if (Instance != null && Instance != this)
             {
-                logger.LogDebug("There is already a SCP-513 in the scene. Removing this one.");
+                logger.LogWarning("There is already a SCP-513 in the scene. Removing this one.");
                 return;
             }
             Instance = this;
@@ -105,7 +106,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (fallDistance > maxFallDistance)
             {
-                logger.LogDebug("Ringing bell from fall distance");
+               // logger.LogDebug("Ringing bell from fall distance");
                 RingBellServerRpc(true);
             }
         }
@@ -124,7 +125,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (cameraTurnSpeed > maxTurnSpeed && timeHeldByPlayer > 1f)
             {
-                logger.LogDebug("Ringing bell from turn speed");
+                //logger.LogDebug("Ringing bell from turn speed");
                 RingBellServerRpc();
             }
         }
@@ -145,139 +146,48 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             RoundManager.PlayRandomClip(ItemAudio, BellSFX);
 
+            if (localPlayerHaunted) { return; }
+
             if (Vector3.Distance(transform.position, localPlayer.bodyParts[0].transform.position) <= ItemAudio.maxDistance)
             {
+                logger.LogDebug("This player is haunted");
                 localPlayerHaunted = true;
             }
         }
+    }
 
+    [HarmonyPatch]
+    internal class SCP513Patches
+    {
+        private static ManualLogSource logger = LoggerInstance;
 
-
-        [ServerRpc(RequireOwnership = false)]
-        public void SpawnGhostGirlServerRpc(ulong clientId)
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.ConnectClientToPlayerObject))]
+        public static void ConnectClientToPlayerObjectPostfix()
         {
-            if (!IsServerOrHost) { return; }
-
-            foreach (var girl in FindObjectsOfType<DressGirlAI>())
+            try
             {
-                if (girl.hauntingPlayer == localPlayer)
-                {
-                    return;
-                }
+                if (!ES3.KeyExists("LocalPlayerHauntedByBell", GameNetworkManager.Instance.currentSaveFileName)) { return; }
+                SCP513Behavior.localPlayerHaunted = ES3.Load<bool>("LocalPlayerHauntedByBell", GameNetworkManager.Instance.currentSaveFileName);
             }
-
-            List<SpawnableEnemyWithRarity> enemies = Utils.GetEnemies();
-            SpawnableEnemyWithRarity? ghostGirl = enemies.Where(x => x.enemyType.name == "DressGirl").FirstOrDefault();
-            if (ghostGirl == null) { logger.LogError("Ghost girl could not be found"); return; }
-
-            RoundManager.Instance.SpawnEnemyGameObject(Vector3.zero, 0, -1, ghostGirl.enemyType);
-        }
-
-        [ServerRpc]
-        public void MimicEnemyServerRpc(ulong clientId, string enemyName)
-        {
-            if (!IsServerOrHost) { return; }
-
-            logger.LogDebug("Attempting spawn enemy: " + enemyName);
-
-            EnemyType type = Utils.GetEnemies().Where(x => x.enemyType.name == enemyName).FirstOrDefault().enemyType;
-            if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
-
-            EnemyVent? vent = Utils.GetClosestVentToPosition(localPlayer.transform.position);
-            if (vent == null)
+            catch
             {
-                logger.LogError("Couldnt find vent for mimic enemy event.");
                 return;
             }
-
-            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
-            if (!netObj.TryGetComponent(out EnemyAI enemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-            enemy.ChangeOwnershipOfEnemy(clientId);
-            MimicEnemyClientRpc(clientId, enemy.NetworkObject);
         }
 
-        [ClientRpc]
-        public void MimicEnemyClientRpc(ulong clientId, NetworkObjectReference netRef)
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.SaveLocalPlayerValues))]
+        public static void SaveLocalPlayerValuesPostfix()
         {
-            if (!netRef.TryGet(out NetworkObject netObj)) { logger.LogError("Couldnt get netRef in MimicEnemyClientRpc"); return; }
-            if (!netObj.TryGetComponent<EnemyAI>(out EnemyAI enemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-
-            foreach (var collider in enemy.transform.root.gameObject.GetComponentsInChildren<Collider>())
+            try
             {
-                collider.enabled = false;
+                ES3.Save("LocalPlayerHauntedByBell", SCP513Behavior.localPlayerHaunted, GameNetworkManager.Instance.currentSaveFileName);
             }
-
-            if (localPlayer.actualClientId != clientId)
+            catch
             {
-                enemy.EnableEnemyMesh(false, true);
-                enemy.creatureSFX.enabled = false;
-                enemy.creatureVoice.enabled = false;
                 return;
             }
-
-            SCP513_1AI.Instance!.mimicEnemy = enemy;
-        }
-
-        [ServerRpc(RequireOwnership = false)]
-        public void ShotgunSuicideServerRpc(NetworkObjectReference netRef, float duration)
-        {
-            if (!IsServerOrHost) { return; }
-            ShotgunSuicideClientRpc(netRef, duration);
-        }
-
-        [ClientRpc]
-        public void ShotgunSuicideClientRpc(NetworkObjectReference netRef, float duration)
-        {
-            IEnumerator RotateShotgunCoroutine(ShotgunItem shotgun, float duration)
-            {
-                try
-                {
-                    if (!HallucinationManager.overrideShotgunsRotOffsets.ContainsKey(shotgun)) { HallucinationManager.overrideShotgunsRotOffsets.Add(shotgun, shotgun.itemProperties.rotationOffset); }
-                    if (!HallucinationManager.overrideShotgunsPosOffsets.ContainsKey(shotgun)) { HallucinationManager.overrideShotgunsPosOffsets.Add(shotgun, shotgun.itemProperties.positionOffset); }
-                    HallucinationManager.overrideShotguns.Add(shotgun);
-
-                    float elapsedTime = 0f;
-                    Vector3 startRot = shotgun.itemProperties.rotationOffset;
-                    Vector3 endRot = new Vector3(105f, -50f, -50f);
-                    Vector3 startPos = shotgun.itemProperties.positionOffset;
-                    Vector3 endPos = new Vector3(0f, 0.7f, -0.1f);
-
-                    while (elapsedTime < duration)
-                    {
-                        float t = elapsedTime / duration;
-
-                        Vector3 _rotOffset = Vector3.Lerp(startRot, endRot, t);
-                        Vector3 _posOffset = Vector3.Lerp(startPos, endPos, t);
-
-                        HallucinationManager.overrideShotgunsRotOffsets[shotgun] = _rotOffset;
-                        HallucinationManager.overrideShotgunsPosOffsets[shotgun] = _posOffset;
-
-                        elapsedTime += Time.deltaTime;
-                        yield return null;
-                    }
-
-                    yield return new WaitForSeconds(3f);
-
-                    localPlayer.activatingItem = false;
-                    Utils.FreezePlayer(localPlayer, false);
-                    if (Plugin.localPlayer == localPlayer) { shotgun.ShootGunAndSync(false); }
-                    yield return null;
-                    localPlayer.DamagePlayer(100, hasDamageSFX: true, callRPC: false, CauseOfDeath.Gunshots, 0, fallDamage: false, shotgun.shotgunRayPoint.forward * 30f);
-
-                    yield return new WaitForSeconds(1f);
-                }
-                finally
-                {
-                    HallucinationManager.overrideShotguns.Remove(shotgun);
-                    localPlayer.activatingItem = false;
-                    Utils.FreezePlayer(localPlayer, false);
-                }
-            }
-
-            if (!netRef.TryGet(out NetworkObject netObj)) { logger.LogError("Cant get netObj"); return; }
-            if (!netObj.TryGetComponent(out ShotgunItem shotgun)) { logger.LogError("Cant get ShotgunItem"); return; }
-
-            StartCoroutine(RotateShotgunCoroutine(shotgun, duration));
         }
     }
 }

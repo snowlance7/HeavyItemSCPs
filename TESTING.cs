@@ -39,6 +39,8 @@ namespace HeavyItemSCPs
             if (!Utils.isBeta) { return; }
             if (!Utils.testing) { return; }
 
+            HallucinationManager.LogStareArt();
+
             //logger.LogDebug("InsideAINodes: " + Utils.insideAINodes.Length.ToString());
             //logger.LogDebug("OutsideAINodes: " + Utils.outsideAINodes.Length.ToString());
             //logger.LogDebug(SCP323Behavior.Instance?.madness);
@@ -74,12 +76,12 @@ namespace HeavyItemSCPs
                     SCP323_1AI.Instance.StartSearch(localPlayer.transform.position);
                     break;
                 case "/moving":
-                    Utils.disableMoving = !Utils.disableMoving;
-                    HUDManager.Instance.DisplayTip("DisableMoving: ", Utils.disableMoving.ToString());
+                    Utils.DEBUG_disableMoving = !Utils.DEBUG_disableMoving;
+                    HUDManager.Instance.DisplayTip("DisableMoving: ", Utils.DEBUG_disableMoving.ToString());
                     break;
                 case "/targetting":
-                    Utils.disableTargetting = !Utils.disableTargetting;
-                    HUDManager.Instance.DisplayTip("DisableTargetting: ", Utils.disableTargetting.ToString());
+                    Utils.DEBUG_disableTargetting = !Utils.DEBUG_disableTargetting;
+                    HUDManager.Instance.DisplayTip("DisableTargetting: ", Utils.DEBUG_disableTargetting.ToString());
                     break;
                 case "/playerThrowing":
                     SCP4271AI.DEBUG_throwingPlayerDisabled = !SCP4271AI.DEBUG_throwingPlayerDisabled;

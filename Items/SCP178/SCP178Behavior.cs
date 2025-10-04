@@ -41,7 +41,7 @@ namespace HeavyItemSCPs.Items.SCP178
             base.OnNetworkSpawn();
             if (Instance != null && Instance != this)
             {
-                logger.LogDebug("There is already a SCP-178 in the scene. Removing this one.");
+                logger.LogWarning("There is already a SCP-178 instance in the scene. Removing this one.");
                 return;
             }
             Instance = this;
@@ -181,6 +181,7 @@ namespace HeavyItemSCPs.Items.SCP178
             if (!IsServerOrHost) { return; }
             if (spawnCoroutine != null) { return; }
             if (StartOfRound.Instance.inShipPhase) { return; }
+            if (Utils.isOnCompanyMoon || Utils.allAINodes.Length <= 0) { return; }
             if (SCP1781AI.Instances.Count > 0) { return; }
             logger.LogDebug("Trying to spawn entities");
 

@@ -5295,7 +5295,18 @@ MonoBehaviour:
   enemyType: {fileID: 11400000, guid: 133b201488d7fb6cfbcd46e1309fc155, type: 2}
   skinnedMeshRenderers:
   - {fileID: 4039335648358641679}
-  meshRenderers: []
+  meshRenderers:
+  - {fileID: 6368965875323407263}
+  - {fileID: 8581362107677797177}
+  - {fileID: 5469397219679180158}
+  - {fileID: 3660255593981073292}
+  - {fileID: 3518951188311616912}
+  - {fileID: 5454233615683322751}
+  - {fileID: 8232764555527175851}
+  - {fileID: 617891646291995800}
+  - {fileID: 3685735853974427605}
+  - {fileID: 3602808247143515557}
+  - {fileID: 6350833972399001752}
   creatureAnimator: {fileID: 8795972801938305959}
   creatureVoice: {fileID: 5442961157339180124}
   creatureSFX: {fileID: 4269935717684347862}
@@ -5396,6 +5407,7 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 7fb79ee009c5bed4abc7a16176ac1482, type: 2}
   - {fileID: 2100000, guid: 5cdc97a2a1cf2c8469293dc946cca773, type: 2}
   - {fileID: 2100000, guid: 3767223f64e722946b0e78c5a9f84c57, type: 2}
+  heldObjectVerticalOffset: 6
 --- !u!135 &2257078480665725899
 SphereCollider:
   m_ObjectHideFlags: 0

@@ -19,16 +19,17 @@ namespace HeavyItemSCPs
         private static ManualLogSource logger = LoggerInstance;
 
         public static bool isBeta = false;
-        public static bool debuggingEnabled = true;
         public static bool trailerMode = false;
 
         public static bool inTestRoom => StartOfRound.Instance?.testRoom != null;
         public static bool testing = false;
-        public static bool disableSpawning = false;
-        public static bool disableTargetting = false;
-        public static bool disableMoving = false;
+        public static bool DEBUG_disableSpawning = false;
+        public static bool DEBUG_disableTargetting = false;
+        public static bool DEBUG_disableMoving = false;
 
         public static bool localPlayerFrozen = false;
+
+        public static bool isOnCompanyMoon => StartOfRound.Instance?.currentLevel.levelID == 3;
 
         public static GameObject[] allAINodes => insideAINodes.Concat(outsideAINodes).ToArray();
 
@@ -62,8 +63,8 @@ namespace HeavyItemSCPs
             switch (args[0])
             {
                 case "/spawning":
-                    disableSpawning = !disableSpawning;
-                    HUDManager.Instance.DisplayTip("Disable Spawning", disableSpawning.ToString());
+                    DEBUG_disableSpawning = !DEBUG_disableSpawning;
+                    HUDManager.Instance.DisplayTip("Disable Spawning", DEBUG_disableSpawning.ToString());
                     break;
                 case "/hazards":
                     Dictionary<string, GameObject> hazards = Utils.GetAllHazards();
@@ -567,20 +568,20 @@ namespace HeavyItemSCPs
         [HarmonyPrefix, HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnInsideEnemiesFromVentsIfReady))]
         public static bool SpawnInsideEnemiesFromVentsIfReadyPrefix()
         {
-            if (Utils.disableSpawning) { return false; } return true;
+            if (Utils.DEBUG_disableSpawning) { return false; } return true;
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnDaytimeEnemiesOutside))]
         public static bool SpawnDaytimeEnemiesOutsidePrefix()
         {
-            if (Utils.disableSpawning) { return false; }
+            if (Utils.DEBUG_disableSpawning) { return false; }
             return true;
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnEnemiesOutside))]
         public static bool SpawnEnemiesOutsidePrefix()
         {
-            if (Utils.disableSpawning) { return false; }
+            if (Utils.DEBUG_disableSpawning) { return false; }
             return true;
         }
     }

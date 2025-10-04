@@ -431,7 +431,7 @@ namespace HeavyItemSCPs.Items.SCP323
 
         bool FoundClosestPlayerInRange(float range, float senseRange)
         {
-            if (Utils.disableTargetting) { return false; }
+            if (Utils.DEBUG_disableTargetting) { return false; }
             TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: true);
             if (targetPlayer == null)
             {
@@ -439,7 +439,7 @@ namespace HeavyItemSCPs.Items.SCP323
                 TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: false);
                 range = senseRange;
             }
-            return targetPlayer != null && Vector3.Distance(transform.position, targetPlayer.transform.position) < range;
+            return targetPlayer != null && targetPlayer.isPlayerControlled && Vector3.Distance(transform.position, targetPlayer.transform.position) < range;
         }
 
         bool TargetClosestPlayerOrMasked()
@@ -586,7 +586,7 @@ namespace HeavyItemSCPs.Items.SCP323
         public override void OnCollideWithPlayer(Collider other) // This only runs on client
         {
             base.OnCollideWithPlayer(other);
-            if (Utils.disableTargetting) { return; }
+            if (Utils.DEBUG_disableTargetting) { return; }
             if (timeSinceDamage <= 1f) { return; }
             PlayerControllerB player = other.gameObject.GetComponent<PlayerControllerB>();
             if (player == null || !player.isPlayerControlled || player != localPlayer || inSpecialAnimation || isEnemyDead) { return; }

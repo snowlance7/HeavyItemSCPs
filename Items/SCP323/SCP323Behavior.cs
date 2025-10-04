@@ -75,7 +75,7 @@ namespace HeavyItemSCPs.Items.SCP323
             base.OnNetworkSpawn();
             if (Instance != null && Instance != this)
             {
-                logger.LogDebug("There is already a SCP-323 in the scene. Removing this one.");
+                logger.LogWarning("There is already a SCP-323 in the scene. Removing this one.");
                 return;
             }
             Instance = this;
@@ -210,6 +210,8 @@ namespace HeavyItemSCPs.Items.SCP323
 
                     if (madness >= localPlayer.maxInsanityLevel)
                     {
+                        localPlayer.insanityLevel = 0f;
+                        madness = 0f;
                         AttemptTransformLocalPlayer();
                         return;
                     }
@@ -330,9 +332,9 @@ namespace HeavyItemSCPs.Items.SCP323
 
         void AttemptTransformLocalPlayer()
         {
-            logger.LogDebug("Attempting to transform local player.");
             if (!StartOfRound.Instance.shipIsLeaving && (!StartOfRound.Instance.inShipPhase || !(StartOfRound.Instance.testRoom == null)) && !attaching)
             {
+                logger.LogDebug("Attempting to transform local player.");
                 int itemSlotIndex = localPlayer.ItemSlots.IndexOf(this);
                 localPlayer.SwitchToItemSlot(itemSlotIndex, this);
                 if (!isPocketed)

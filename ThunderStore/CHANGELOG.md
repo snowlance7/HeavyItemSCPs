@@ -1,3 +1,13 @@
+## 1.4.1
+- SCP-513-1 does not make players drop their items when colliding with them and the blur effect is decreased
+- Players are no longer unhaunted if SCP-513 is destroyed and will only become unhaunted on death or game restart (configurable)
+- Removed some log spam with ringing SCP-513
+- SCP-513-1 will no longer spawn a ghost girl if one is already spawned
+- SCP-178-1 instances will no longer spawn if on company moon or no AINodes are present
+- SCP-513-1 will no longer spawn if if on company moon or no AINodes are present
+- Fixed some network related issues
+- Added a secret
+
 ## 1.4.0
 - Added SCP-513
 - Added expensive SCP-178-1 body parts you can find only visible with SCP-178

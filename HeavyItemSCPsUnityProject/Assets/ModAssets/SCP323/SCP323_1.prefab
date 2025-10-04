@@ -13858,8 +13858,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyType: {fileID: 11400000, guid: ba839542a049ea243bd9424de680138e, type: 2}
-  skinnedMeshRenderers: []
-  meshRenderers: []
+  skinnedMeshRenderers:
+  - {fileID: 2010611501966915925}
+  meshRenderers:
+  - {fileID: 4069786103809250082}
   creatureAnimator: {fileID: 811936439805366110}
   creatureVoice: {fileID: 5177573427542336338}
   creatureSFX: {fileID: 7857563293805248109}
@@ -13965,12 +13967,8 @@ MonoBehaviour:
   debugEnemyAI: 0
   isOutside: 0
   networkAnimator: {fileID: 1037245701839203287}
-  doorWooshSFX: {fileID: 8300000, guid: d53007fa8e28c0f48892c48bbd09bbce, type: 3}
-  metalDoorSmashSFX: {fileID: 8300000, guid: 3c957eb5b4353fc428e66ac76d749e0a, type: 3}
-  bashSFX: {fileID: 8300000, guid: 9497e6e1974f5b44d90d5190d81a2434, type: 3}
   roarSFX: {fileID: 8300000, guid: bd63956064bc9404d9a14ce2667678cc, type: 3}
   slashSFX: {fileID: 8300000, guid: 284d9e8ec0e3934418d3ea7eff675bed, type: 3}
-  walkingSFX: []
   growlSFX:
   - {fileID: 8300000, guid: 9c2c936a51ed16d40a82b9dac4e83a07, type: 3}
   - {fileID: 8300000, guid: 0101a7eeb4f522444834facd985d8149, type: 3}

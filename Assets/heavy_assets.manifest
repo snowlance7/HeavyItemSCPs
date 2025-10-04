@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 1453596898
+CRC: 3448940294
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 5c9f1b224da4e99d3be948c3396c48ad
+    Hash: c43d0c2f5b1e3a5d365a0c62658b2802
   TypeTreeHash:
     serializedVersion: 2
     Hash: c72be7d59c8f30b6d0fc4b2a74070eac
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: 5c9f1b224da4e99d3be948c3396c48ad
+    Hash: c43d0c2f5b1e3a5d365a0c62658b2802
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -125,6 +125,7 @@ Assets:
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset
 - Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset
 - Assets/ModAssets/SCP178/SCP1781Part_3.asset
+- Assets/ModAssets/SCP513/SCP513_1.prefab
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset
 - Assets/ModAssets/SCP178/SCP1781Part_2.asset
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset

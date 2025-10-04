@@ -345,7 +345,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     if (mimicPlayer == null)
                     {
-                        SwitchToBehavior(State.MimicPlayer);
+                        SwitchToBehavior(State.InActive);
                         return;
                     }
 
@@ -353,7 +353,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     {
                         Utils.MakePlayerInvisible(mimicPlayer, false);
                         mimicPlayer = null;
-                        SwitchToBehavior(State.MimicPlayer);
+                        SwitchToBehavior(State.InActive);
                         return;
                     }
 
@@ -367,7 +367,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     break;
             }
 
-            if (Utils.testing) { return; }
+            if (Utils.testing) { return; } // TODO: Remove this?
 
             if (timeSinceCommonEvent > nextCommonEventTime)
             {
@@ -446,9 +446,9 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public Transform? ChoosePositionInFrontOfPlayer(float minDistance, float maxDistance)
         {
-            logger.LogDebug("Choosing position in front of player");
+            //logger.LogDebug("Choosing position in front of player");
             Transform? result = null;
-            logger.LogDebug(allAINodes.Count() + " ai nodes");
+            //logger.LogDebug(allAINodes.Count() + " ai nodes");
             foreach (var node in allAINodes)
             {
                 if (node == null) { continue; }
@@ -463,7 +463,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 result = node.transform;
             }
 
-            logger.LogDebug($"null: {targetNode == null}");
+            //logger.LogDebug($"null: {targetNode == null}");
             return result;
         }
         public bool PathIsIntersectedByLineOfSight(Vector3 targetPos, bool calculatePathDistance = false, bool avoidLineOfSight = true, bool checkLOSToTargetPlayer = false)
@@ -592,7 +592,7 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 targetNode = allAINodes[0].transform;
             }
-            Transform transform = ChooseClosestNodeToPosition(localPlayer.transform.position, avoidLineOfSight: true);
+            Transform? transform = ChooseClosestNodeToPosition(localPlayer.transform.position, avoidLineOfSight: true);
             if (transform != null)
             {
                 targetNode = transform;
@@ -636,7 +636,7 @@ namespace HeavyItemSCPs.Items.SCP513
                     farthestNodeFromTargetPlayer = ChooseFarthestNodeFromPosition(localPlayer.transform.position);
                 }
 
-                Teleport(farthestNodeFromTargetPlayer.position);
+                Teleport(farthestNodeFromTargetPlayer!.position);
                 HallucinationManager.Instance?.FlickerLights();
                 RoundManager.PlayRandomClip(creatureVoice, BellSFX);
             }
@@ -774,7 +774,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         internal void HitEnemyOnLocalClient(int force, Vector3 hitDirection, PlayerControllerB playerWhoHit, bool playHitSFX, int hitID)
         {
-            throw new System.NotImplementedException();
+            throw new System.NotImplementedException(); // TODO
         }
 
         public void MimicEnemy(string enemyName)
@@ -788,7 +788,8 @@ namespace HeavyItemSCPs.Items.SCP513
                 DespawnMimicEnemy();
             }
 
-            SCP513Behavior.Instance!.MimicEnemyServerRpc(localPlayer.actualClientId, enemyName);
+            if (NetworkHandlerHeavyItemSCPs.Instance == null) { logger.LogError("Cant find NetworkHandlerHeavyItemSCPs"); return; }
+            NetworkHandlerHeavyItemSCPs.Instance.MimicEnemyServerRpc(localPlayer.actualClientId, enemyName);
 
             IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
             {

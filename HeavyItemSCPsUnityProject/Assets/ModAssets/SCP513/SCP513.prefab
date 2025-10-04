@@ -73,7 +73,7 @@ MonoBehaviour:
   subText: 
   scrapValue: 0
   creatureScanID: -1
-  nodeType: 1
+  nodeType: 2
 --- !u!1 &1840457349918929
 GameObject:
   m_ObjectHideFlags: 0
@@ -322,7 +322,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: ddc493017f3f8be4ea7e38d2cd376806, type: 3}
   SCP513_1Prefab: {fileID: 2510840225416614795, guid: 8b92cf7a5f3385146a0773061e5183e7,
     type: 3}
-  BellManInstances: []
+  localPlayerHaunted: 0
 --- !u!1 &36385676838767947
 GameObject:
   m_ObjectHideFlags: 0

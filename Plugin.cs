@@ -30,7 +30,7 @@ namespace HeavyItemSCPs
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         private readonly Harmony harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
         public static PlayerControllerB localPlayer { get { return StartOfRound.Instance.localPlayerController; } }
-        public static PlayerControllerB PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts.Where(x => x.actualClientId == id).First(); }
+        public static PlayerControllerB? PlayerFromId(ulong id) { return StartOfRound.Instance.allPlayerScripts?.Where(x => x.actualClientId == id).FirstOrDefault(); }
 
         public static bool IsServerOrHost { get { return NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost; } }
 
@@ -212,22 +212,6 @@ namespace HeavyItemSCPs
             config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
             config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
-        }
-
-        public void Update()
-        {
-            if (SCP513Behavior.localPlayerHaunted)
-            {
-                if (localPlayer.isPlayerDead)
-                {
-                    SCP513Behavior.localPlayerHaunted = false;
-                    return;
-                }
-
-                if (StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) { return; }
-                if (SCP513_1AI.Instance != null) { return; }
-                NetworkHandlerHeavyItemSCPs.Instance?.SpawnBellManOnLocalClient();
-            }
         }
 
         private static void InitializeNetworkBehaviours()

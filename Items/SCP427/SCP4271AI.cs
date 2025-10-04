@@ -234,7 +234,7 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 case (int)State.Roaming:
 
-                    if (!disableTargetting && FoundClosestPlayerInRange(25f, 5f))
+                    if (!DEBUG_disableTargetting && FoundClosestPlayerInRange(25f, 5f) && targetPlayer != null)
                     {
                         StopSearch(currentSearch);
 
@@ -354,7 +354,7 @@ namespace HeavyItemSCPs.Items.SCP427
             if (heldObject != null)
             {
                 DropItem(lastKnownTargetPlayerPosition);
-                if (Vector3.Distance(lastKnownTargetPlayerPosition, targetPlayer.transform.position) < 1.5f && targetPlayer == localPlayer)
+                if (targetPlayer != null && Vector3.Distance(lastKnownTargetPlayerPosition, targetPlayer.transform.position) < 1.5f && targetPlayer == localPlayer)
                 {
                     targetPlayer.DamagePlayer(15, true, true, CauseOfDeath.Inertia);
                 }
@@ -439,7 +439,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 TargetClosestPlayer(bufferDistance: 1.5f, requireLineOfSight: false);
                 range = senseRange;
             }
-            return targetPlayer != null && Vector3.Distance(transform.position, targetPlayer.transform.position) < range;
+            return targetPlayer != null && targetPlayer.isPlayerControlled && Vector3.Distance(transform.position, targetPlayer.transform.position) < range;
         }
 
         bool FoundClosestPlayerInRange(float range)
@@ -467,7 +467,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private void CalculateAgentSpeed()
         {
-            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0) || Utils.disableMoving)
+            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0) || Utils.DEBUG_disableMoving)
             {
                 //logger.LogDebug("Stopping agent speed");
                 agent.speed = 0f;
@@ -792,9 +792,10 @@ namespace HeavyItemSCPs.Items.SCP427
         // RPC's
 
         [ClientRpc]
-        void ThrowScrapClientRpc(ulong targetClientId)
+        void ThrowScrapClientRpc(ulong clientId)
         {
-            targetPlayer = PlayerFromId(targetClientId);
+            targetPlayer = PlayerFromId(clientId);
+            if (targetPlayer == null) { logger.LogError("Cant get targetPlayer from clientId in ThrowScrapClientRpc"); return; }
             lastKnownTargetPlayerPosition = targetPlayer.transform.position;
             creatureAnimator.SetTrigger("throw");
         }
@@ -841,6 +842,7 @@ namespace HeavyItemSCPs.Items.SCP427
             logger.LogDebug("In ThrowPlayerClientRpc");
             CancelSpecialAnimation();
             targetPlayer = PlayerFromId(clientId);
+            if (targetPlayer == null) { logger.LogError("Cant get targetPlayer from clientId in ThrowPlayerClientRpc"); return; }
             targetPlayer.inAnimationWithEnemy = this;
             inSpecialAnimation = true;
             creatureAnimator.SetTrigger("pickupThrow");

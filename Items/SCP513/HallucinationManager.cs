@@ -16,10 +16,11 @@ using static UnityEngine.VFX.VisualEffectControlTrackController;
 
 namespace HeavyItemSCPs.Items.SCP513
 {
-    public class HallucinationManager : MonoBehaviour
+    public class HallucinationManager : MonoBehaviour // Parented to SCP-513-1 in unity
     {
         private static ManualLogSource logger = LoggerInstance;
-        //public static HallucinationManager? Instance { get; private set; }
+
+        public static HallucinationManager? Instance { get; private set; }
 
         public static HashSet<GrabbableObject> overrideShotguns = [];
         public static Dictionary<GrabbableObject, Vector3> overrideShotgunsPosOffsets = [];
@@ -72,11 +73,11 @@ namespace HeavyItemSCPs.Items.SCP513
             //rareEvents.Add(MimicJester);
             logger.LogDebug("RareEvents: " + rareEvents.Count);
 
-            /*if (Instance != null && Instance != this)
+            if (Instance != null && Instance != this)
             {
                 Destroy(gameObject);
                 return;
-            }*/
+            }
 
             Instance = this;
         }
@@ -89,6 +90,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 return;
             }
         }*/
+
         public void OnDestroy()
         {
             StopAllCoroutines();
@@ -196,6 +198,8 @@ namespace HeavyItemSCPs.Items.SCP513
                     _event.Invoke();
                     yield return new WaitForSeconds(timeBetweenEvents);
                 }
+
+                logger.LogDebug("All events run successfully");
             }
 
             StartCoroutine(RunAllEventsCoroutine(timeBetweenEvents));
@@ -209,18 +213,18 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 case 0:
                     eventIndex = UnityEngine.Random.Range(0, commonEvents.Count);
-                    logger.LogDebug("Running common event 0 at index " + eventIndex);
+                    //logger.LogDebug("Running common event 0 at index " + eventIndex);
                     commonEvents[eventIndex]?.Invoke();
                     break;
                 case 1:
                     eventIndex = UnityEngine.Random.Range(0, uncommonEvents.Count);
-                    logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
+                    //logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
                     uncommonEvents[eventIndex]?.Invoke();
                     break;
                 case 2:
                     StopAllCoroutines();
                     eventIndex = UnityEngine.Random.Range(0, rareEvents.Count);
-                    logger.LogDebug("Running rare event 2 at index " + eventIndex);
+                    //logger.LogDebug("Running rare event 2 at index " + eventIndex);
                     rareEvents[eventIndex]?.Invoke();
                     break;
                 default:
@@ -233,16 +237,16 @@ namespace HeavyItemSCPs.Items.SCP513
             switch (eventRarity)
             {
                 case 0:
-                    logger.LogDebug("Running common event 0 at index " + eventIndex);
+                    //logger.LogDebug("Running common event 0 at index " + eventIndex);
                     commonEvents[eventIndex]?.Invoke();
                     break;
                 case 1:
-                    logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
+                    //logger.LogDebug("Running uncommon event 1 at index " + eventIndex);
                     uncommonEvents[eventIndex]?.Invoke();
                     break;
                 case 2:
                     StopAllCoroutines();
-                    logger.LogDebug("Running rare event 2 at index " + eventIndex);
+                    //logger.LogDebug("Running rare event 2 at index " + eventIndex);
                     rareEvents[eventIndex]?.Invoke();
                     break;
                 default:
@@ -509,6 +513,11 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     yield return new WaitForSeconds(0.2f);
                     pos = SCP513_1AI.Instance!.TryFindingHauntPosition();
+                }
+
+                if (UnityEngine.Random.Range(1, 4) == 1)
+                {
+                    LogStareArt();
                 }
 
                 SCP513_1AI.Instance!.SwitchToBehavior(SCP513_1AI.State.Manifesting);
@@ -827,7 +836,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("SpawnGhostGirl");
 
-            SCP513Behavior.Instance!.SpawnGhostGirlServerRpc(localPlayer.actualClientId);
+            NetworkHandlerHeavyItemSCPs.Instance?.SpawnGhostGirlServerRpc(localPlayer.actualClientId);
         }
 
         void TurnOffAllLights() // 2 4
@@ -970,7 +979,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     localPlayer.SwitchToItemSlot(itemSlotIndex, shotgun);
 
-                    SCP513Behavior.Instance!.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
+                    NetworkHandlerHeavyItemSCPs.Instance?.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
 
                     yield return new WaitForSeconds(10f);
                 }
@@ -1065,6 +1074,39 @@ namespace HeavyItemSCPs.Items.SCP513
 
         #region Miscellaneous
 
+        public static void LogStareArt()
+        {
+            logger.LogInfo(@" I SEE YOU
+;;;;;+++xXxxxxxxxxxxXXXXXXXXXxx+++++;;;;;::....:;::.................::
+;+++++++xXXXXXXXxXXX$$$$$$$$$Xxx+++;;;+;:::...::::................:::.
++++++++xXXXXXXX$$X$$$$$$$$$$$XXxx+;;;;::::;::.........................
+++++++xxX$$$$X$$$$$&$&&&&&$XXXXx+;;;;;;;;;;;::........................
++++++xxx$$$$$$$$XX$$&$$&&&&$$Xx++;;;;;;;++;;;::.....::..........:.....
+++++xxxX$$$$$&&&$XXX$$XX$&$$&X;:::::;;:::::::::......:................
++++x+xxX$$$XxXX$x++x$$$&&$&&&X+;:::::::...........::..................
++++xxxxXXx+;;+;;;;;xxX$&&$xxXxxxx+;:...:x+;...........................
+++xxxxXXX+;;::..::;;+xxX$$$X&&&$+;;::..;X$x:..........................
++++xxxXXXx+::.;X&&X;+x$&&$$&&&&&x;:::...::............................
++++++xxX$$X;:::+X$+++X$$&&&&&&$XX+;:...::::::;+;;;:...................
++x+xxxxX$&&$+;;:::;;+X&&&&&&$XXx;........:;+xx++;:....................
++xxxxxxxX$&&&$$XxxxxX$&&&&&&$XXx;:......::;+x+;+;:....:...............
+++xxxxxxxX$&&&&&&X+x$&&&&&&&&Xxx;.........:;;;::.......:..............
++++xxxxxxxX$$&&&$XxXXX$XxX&&&$X+:.:;;::::::;;::.......................
+++++xxxxx+xxXXXX$$$$xx$$+x$Xx++;;:.:::::;;:.:.........................
+++++xxxxxxxxXXxX&&&$$&&&XX$Xx;;;;;::....:;;;:..........:..............
+++xxxxxxxxxX$X++$&&&&&$$$$&&X+;::::::...::;;;;:.........:::...........
++xxXXXXXXx+xXXx+xX$&&&&&XX&&$x+;;:++;;;:;;;;:::;:.....................
++xxXXXXXXxxxxXXX$x;;;xX&&$$&&x+Xx;xx;;+;x+;:....::;;:::.....::::......
+++xXXXXXXxXXxX$X$x:;:::;$$XXX;:+x:;;:;;::::.......:;+x+;;;;;;;::..::::
+++xXXXXXXxXxxxxxx++;::..:;;::;::;:.................:;+;:::::::;;;;;;::
++xXXXXXXxxxxxxxxXXXX+;:....:........................::::..............
+xxxXXxxxxxxXXxxXXXX&$x+:............................::::..............
+xxxxXXXXxxxxXXXXXXX$&$Xx;:::........................:;:::::...........
+xxxxXXXXXxxXxxxxxxxxX$$XX$x+:.......................:::;::............
+XXXXXXXXxxxXXXxx++xXXXXX$&$Xx;;;;:::::...................::::.........
+XXXXXXXXXxxxxxx++x++XXXXXX$$xXXxxX$X+;:...............................");
+        }
+
         public void PlaySoundAtPosition(Vector3 pos, AudioClip clip, bool randomize = true, bool spatial3D = true)
         {
             GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos, Quaternion.identity);
@@ -1150,6 +1192,7 @@ namespace HeavyItemSCPs.Items.SCP513
             
             foreach (var node in nodes)
             {
+                if (node == null) { continue; }
                 float distance = Vector3.Distance(pos, node.transform.position);
                 if (distance < closestDistance)
                 {
