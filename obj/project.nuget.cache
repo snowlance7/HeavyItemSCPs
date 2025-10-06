@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "fILHxFqST4c=",
+  "dgSpecHash": "Q33BY6zh7EY=",
   "success": true,
   "projectFilePath": "C:\\Users\\snowl\\source\\repos\\HeavyItemSCPs\\HeavyItemSCPs.csproj",
   "expectedPackageFiles": [
@@ -9,9 +9,9 @@
     "C:\\Users\\snowl\\.nuget\\packages\\bepinex.baselib\\5.4.20\\bepinex.baselib.5.4.20.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\bepinex.core\\5.4.21\\bepinex.core.5.4.21.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\bepinex.plugininfoprops\\2.1.0\\bepinex.plugininfoprops.2.1.0.nupkg.sha512",
-    "C:\\Users\\snowl\\.nuget\\packages\\evaisa.lethallib\\1.1.0\\evaisa.lethallib.1.1.0.nupkg.sha512",
+    "C:\\Users\\snowl\\.nuget\\packages\\evaisa.lethallib\\1.1.1\\evaisa.lethallib.1.1.1.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\harmonyx\\2.7.0\\harmonyx.2.7.0.nupkg.sha512",
-    "C:\\Users\\snowl\\.nuget\\packages\\lethalcompany.gamelibs.steam\\70.0.0-ngd.0\\lethalcompany.gamelibs.steam.70.0.0-ngd.0.nupkg.sha512",
+    "C:\\Users\\snowl\\.nuget\\packages\\lethalcompany.gamelibs.steam\\73.0.0-ngd.0\\lethalcompany.gamelibs.steam.73.0.0-ngd.0.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\microsoft.netcore.targets\\1.1.0\\microsoft.netcore.targets.1.1.0.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\mono.cecil\\0.11.4\\mono.cecil.0.11.4.nupkg.sha512",
@@ -45,6 +45,7 @@
     "C:\\Users\\snowl\\.nuget\\packages\\system.text.encoding\\4.3.0\\system.text.encoding.4.3.0.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\system.threading\\4.3.0\\system.threading.4.3.0.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\system.threading.tasks\\4.3.0\\system.threading.tasks.4.3.0.nupkg.sha512",
+    "C:\\Users\\snowl\\.nuget\\packages\\teamxiaolan.dawnlib\\0.2.16\\teamxiaolan.dawnlib.0.2.16.nupkg.sha512",
     "C:\\Users\\snowl\\.nuget\\packages\\unityengine.modules\\2022.3.9\\unityengine.modules.2022.3.9.nupkg.sha512"
   ],
   "logs": []

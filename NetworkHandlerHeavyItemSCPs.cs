@@ -38,8 +38,6 @@ namespace HeavyItemSCPs
 
             hideFlags = HideFlags.HideAndDontSave;
             Instance = this;
-
-            SCP513_1Prefab = ModAssets!.LoadAsset<GameObject>("Assets/ModAssets/SCP513/SCP513_1.prefab");
             
             logger.LogDebug("NetworkHandlerHeavyItemSCPs spawned");
             base.OnNetworkSpawn();
@@ -224,20 +222,9 @@ namespace HeavyItemSCPs
     [HarmonyPatch]
     public class NetworkObjectManager
     {
-        static GameObject? networkPrefab;
         private static ManualLogSource logger = Plugin.LoggerInstance;
 
-        /*[HarmonyPostfix, HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.Start))]
-        public static void Init()
-        {
-            if (networkPrefab != null)
-                return;
-
-            if (ModAssets == null) { logger.LogError("Couldnt get ModAssets to create network handler"); return; }
-            networkPrefab = (GameObject)ModAssets.LoadAsset("Assets/ModAssets/NetworkHandlerHeavyItemSCPs.prefab"); // TODO: Set this up in unity editor
-
-            NetworkManager.Singleton.AddNetworkPrefab(networkPrefab);
-        }*/
+        public static GameObject? networkPrefab;
 
         [HarmonyPostfix, HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.Start))]
         public static void Init()
@@ -245,21 +232,8 @@ namespace HeavyItemSCPs
             if (networkPrefab != null)
                 return;
 
-            networkPrefab = new GameObject("NetworkHandlerHeavyItemSCPs");
-            
-            var netObj = networkPrefab.AddComponent<NetworkObject>();
-            netObj.AlwaysReplicateAsRoot = false;
-            netObj.SynchronizeTransform = false;
-            netObj.ActiveSceneSynchronization = false;
-            netObj.SceneMigrationSynchronization = true;
-            netObj.SpawnWithObservers = true;
-            netObj.DontDestroyWithOwner = false;
-            netObj.AutoObjectParentSync = false;
-
-            networkPrefab.AddComponent<NetworkHandlerHeavyItemSCPs>();
-
-            UnityEngine.Object.DontDestroyOnLoad(networkPrefab);
-            networkPrefab.hideFlags = HideFlags.HideAndDontSave;
+            if (ModAssets == null) { logger.LogError("Couldnt get ModAssets to create network handler"); return; }
+            networkPrefab = (GameObject)ModAssets.LoadAsset("Assets/ModAssets/NetworkHandlerHeavyItemSCPs.prefab"); // TODO: Set this up in unity editor
 
             NetworkManager.Singleton.AddNetworkPrefab(networkPrefab);
         }

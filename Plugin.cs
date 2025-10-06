@@ -1,26 +1,22 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using Dawn;
 using GameNetcodeStuff;
 using HarmonyLib;
 using HeavyItemSCPs.Items.SCP178;
-using HeavyItemSCPs.Items.SCP427;
-using HeavyItemSCPs.Items.SCP513;
-using LethalLib.Modules;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.ProBuilder;
 using static HeavyItemSCPs.Utils;
+using static HeavyItemSCPs.HeavyItemSCPsKeys;
 
 namespace HeavyItemSCPs
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-    [BepInDependency(LethalLib.Plugin.ModGUID)]
+    [BepInDependency(DawnLib.PLUGIN_GUID)]
     [BepInDependency("SCP500", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
@@ -36,8 +32,9 @@ namespace HeavyItemSCPs
 
         public static AssetBundle? ModAssets;
 
-        // SCP-427 Configs
+        #region Configs
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        // SCP-427 Configs
         public static ConfigEntry<bool> configEnableSCP427;
         public static ConfigEntry<int> config427MinValue;
         public static ConfigEntry<int> config427MaxValue;
@@ -92,7 +89,7 @@ namespace HeavyItemSCPs
         public static ConfigEntry<string> config513LevelRarities;
         public static ConfigEntry<string> config513CustomLevelRarities;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
+        #endregion
 
         private void Awake()
         {
@@ -121,7 +118,7 @@ namespace HeavyItemSCPs
             LoggerInstance.LogDebug($"Got AssetBundle at: {Path.Combine(sAssemblyLocation, "heavy_assets")}");
 
             // SCP-427
-            if (configEnableSCP427.Value)
+            /*if (configEnableSCP427.Value)
             {
                 RegisterItem("Assets/ModAssets/SCP427/SCP427Item.asset", config427LevelRarities.Value, config427CustomLevelRarities.Value, config427MinValue.Value, config427MaxValue.Value);
                 RegisterEnemy("Assets/ModAssets/SCP427/SCP4271Enemy.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset", config4271LevelRarities.Value, config4271CustomLevelRarities.Value);
@@ -143,13 +140,12 @@ namespace HeavyItemSCPs
             {
                 RegisterItem("Assets/ModAssets/SCP323/SCP323Item.asset", config323LevelRarities.Value, config323CustomLevelRarities.Value, config323MinValue.Value, config323MaxValue.Value);
                 RegisterEnemy("Assets/ModAssets/SCP323/SCP323_1Enemy.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset", config3231LevelRarities.Value, config3231CustomLevelRarities.Value);
-            }
+            }*/
 
             // SCP-513
             if (configEnableSCP513.Value)
             {
                 RegisterItem("Assets/ModAssets/SCP513/SCP513Item.asset", config513LevelRarities.Value, config513CustomLevelRarities.Value, config513MinValue.Value, config513MaxValue.Value);
-                //RegisterEnemy("Assets/ModAssets/SCP513/SCP513_1Enemy.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TN.asset", "Assets/ModAssets/SCP513/Bestiary/SCP5131TK.asset");
             }
 
             // Finished

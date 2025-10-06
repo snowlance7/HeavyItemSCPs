@@ -1,15 +1,15 @@
 ManifestFileVersion: 0
-CRC: 3448940294
+CRC: 3047215924
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: c43d0c2f5b1e3a5d365a0c62658b2802
+    Hash: 8d9f953277f1f7cc5c3182da8ee35f00
   TypeTreeHash:
     serializedVersion: 2
-    Hash: c72be7d59c8f30b6d0fc4b2a74070eac
+    Hash: 345fa749af884c647f51933a7b1d6fc8
   IncrementalBuildHash:
     serializedVersion: 2
-    Hash: c43d0c2f5b1e3a5d365a0c62658b2802
+    Hash: 8d9f953277f1f7cc5c3182da8ee35f00
 HashAppended: 0
 ClassTypes:
 - Class: 1
@@ -52,6 +52,8 @@ ClassTypes:
   Script: {fileID: -1770466690, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: 687621824, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
+- Class: 114
+  Script: {fileID: -1889654607, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
   Script: {fileID: -2111379243, guid: 30eb3ca72e3cfcc47b73c1fab2bf3d88, type: 3}
 - Class: 114
@@ -129,6 +131,7 @@ Assets:
 - Assets/ModAssets/SCP427/SCP4271Enemy.asset
 - Assets/ModAssets/SCP178/SCP1781Part_2.asset
 - Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset
+- Assets/ModAssets/NetworkHandlerHeavyItemSCPs.prefab
 - Assets/ModAssets/SCP178/Materials/OverlayMaterial.mat
 - Assets/ModAssets/SCP178/Bestiary/SCP1781TK.asset
 - Assets/ModAssets/SCP323/SCP323_1Enemy.asset

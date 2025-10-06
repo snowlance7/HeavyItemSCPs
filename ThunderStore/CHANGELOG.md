@@ -1,3 +1,7 @@
+## 1.4.3
+- Updated for v73
+- Fixed network handler issue
+
 ## 1.4.2
 - Fixed network related issue
 - Version updated
