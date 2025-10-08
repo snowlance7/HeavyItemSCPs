@@ -1,7 +1,6 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using Dawn;
 using GameNetcodeStuff;
 using HarmonyLib;
 using HeavyItemSCPs.Items.SCP178;
@@ -11,12 +10,11 @@ using System.Reflection;
 using Unity.Netcode;
 using UnityEngine;
 using static HeavyItemSCPs.Utils;
-using static HeavyItemSCPs.HeavyItemSCPsKeys;
 
 namespace HeavyItemSCPs
 {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-    [BepInDependency(DawnLib.PLUGIN_GUID)]
+    [BepInDependency(LethalLib.Plugin.ModGUID)]
     [BepInDependency("SCP500", BepInDependency.DependencyFlags.SoftDependency)]
     public class Plugin : BaseUnityPlugin
     {
@@ -118,7 +116,7 @@ namespace HeavyItemSCPs
             LoggerInstance.LogDebug($"Got AssetBundle at: {Path.Combine(sAssemblyLocation, "heavy_assets")}");
 
             // SCP-427
-            /*if (configEnableSCP427.Value)
+            if (configEnableSCP427.Value)
             {
                 RegisterItem("Assets/ModAssets/SCP427/SCP427Item.asset", config427LevelRarities.Value, config427CustomLevelRarities.Value, config427MinValue.Value, config427MaxValue.Value);
                 RegisterEnemy("Assets/ModAssets/SCP427/SCP4271Enemy.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TN.asset", "Assets/ModAssets/SCP427/Bestiary/SCP4271TK.asset", config4271LevelRarities.Value, config4271CustomLevelRarities.Value);
@@ -140,7 +138,7 @@ namespace HeavyItemSCPs
             {
                 RegisterItem("Assets/ModAssets/SCP323/SCP323Item.asset", config323LevelRarities.Value, config323CustomLevelRarities.Value, config323MinValue.Value, config323MaxValue.Value);
                 RegisterEnemy("Assets/ModAssets/SCP323/SCP323_1Enemy.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TN.asset", "Assets/ModAssets/SCP323/Bestiary/SCP323_1TK.asset", config3231LevelRarities.Value, config3231CustomLevelRarities.Value);
-            }*/
+            }
 
             // SCP-513
             if (configEnableSCP513.Value)

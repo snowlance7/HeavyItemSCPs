@@ -1,8 +1,6 @@
 ﻿using BepInEx.Logging;
-using Dawn;
 using GameNetcodeStuff;
 using HarmonyLib;
-//using LethalLib.Modules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +8,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Assertions;
 using static HeavyItemSCPs.Plugin;
+using LethalLib.Modules;
 
 namespace HeavyItemSCPs
 { 
@@ -118,7 +117,7 @@ namespace HeavyItemSCPs
             HUDManager.Instance.AddChatMessage(msg, "Server");
         }
 
-        /*public static void RegisterItem(string itemPath, string levelRarities = "", string customLevelRarities = "", int minValue = 0, int maxValue = 0)
+        public static void RegisterItem(string itemPath, string levelRarities = "", string customLevelRarities = "", int minValue = 0, int maxValue = 0)
         {
             Item item = ModAssets!.LoadAsset<Item>(itemPath);
             if (item == null) { LoggerInstance.LogError($"Error: Couldn't get prefab from {itemPath}"); return; }
@@ -130,27 +129,9 @@ namespace HeavyItemSCPs
             LethalLib.Modules.NetworkPrefabs.RegisterNetworkPrefab(item.spawnPrefab);
             Utilities.FixMixerGroups(item.spawnPrefab);
             LethalLib.Modules.Items.RegisterScrap(item, GetLevelRarities(levelRarities), GetCustomLevelRarities(customLevelRarities));
-        }*/
-
-        public static void RegisterItem(string itemPath, NamespacedKey<DawnItemInfo> key, string levelRarities = "", string customLevelRarities = "", int minValue = 0, int maxValue = 0)
-        {
-            Item item = ModAssets!.LoadAsset<Item>(itemPath);
-            if (item == null) { LoggerInstance.LogError($"Error: Couldn't get prefab from {itemPath}"); return; }
-            LoggerInstance.LogDebug($"Got {item.name} prefab");
-
-            item.minValue = minValue;
-            item.maxValue = maxValue;
-
-            DawnLib.DefineItem(key, item, builder => builder
-              .DefineScrap(scrapBuilder => scrapBuilder
-                .SetWeights(weightBuilder => weightBuilder
-                    .AddWeight(dawn) // TODO: Figure this out aaaaaaaaaaaaaaaaaaaaaaa
-                )
-              )
-            );
         }
 
-        /*public static void RegisterEnemy(string enemyPath, string tnPath, string tkPath, string levelRarities = "", string customLevelRarities = "")
+        public static void RegisterEnemy(string enemyPath, string tnPath, string tkPath, string levelRarities = "", string customLevelRarities = "")
         {
             EnemyType enemy = ModAssets!.LoadAsset<EnemyType>(enemyPath);
             if (enemy == null) { LoggerInstance.LogError($"Error: Couldn't get prefab from {enemyPath}"); return; }
@@ -161,9 +142,9 @@ namespace HeavyItemSCPs
 
             LethalLib.Modules.NetworkPrefabs.RegisterNetworkPrefab(enemy.enemyPrefab);
             Enemies.RegisterEnemy(enemy, GetLevelRarities(levelRarities), GetCustomLevelRarities(customLevelRarities), tn, tk);
-        }*/
+        }
 
-        /*public static Dictionary<Levels.LevelTypes, int>? GetLevelRarities(string? levelsString)
+        public static Dictionary<Levels.LevelTypes, int>? GetLevelRarities(string? levelsString)
         {
             try
             {
@@ -233,7 +214,7 @@ namespace HeavyItemSCPs
                 LoggerInstance.LogError($"Error: {e}");
                 return null;
             }
-        }*/
+        }
 
         public static Vector3 GetBestThrowDirection(Vector3 origin, Vector3 forward, int rayCount, float maxDistance, LayerMask layerMask)
         {

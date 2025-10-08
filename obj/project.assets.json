@@ -680,19 +680,7 @@
           }
         }
       },
-      "TeamXiaolan.DawnLib/0.2.16": {
-        "type": "package",
-        "dependencies": {
-          "Evaisa.LethalLib": "1.1.1"
-        },
-        "compile": {
-          "lib/netstandard2.1/com.github.teamxiaolan.dawnlib.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.1/com.github.teamxiaolan.dawnlib.dll": {}
-        }
-      },
-      "UnityEngine.Modules/2022.3.9": {
+      "UnityEngine.Modules/2022.3.62": {
         "type": "package",
         "compile": {
           "lib/netstandard2.0/UnityEngine.AIModule.dll": {},
@@ -2755,22 +2743,10 @@
         "system.threading.tasks.nuspec"
       ]
     },
-    "TeamXiaolan.DawnLib/0.2.16": {
-      "sha512": "A5+y8hly2T5m3GpmblZPV1I9pozqk8/ua1HisHVG/KsG7cQppHZ+HiUMsfDXTHKgAWWcLQk7h+KqR3/CU2KXJQ==",
+    "UnityEngine.Modules/2022.3.62": {
+      "sha512": "zpu5dELUCFt7Rvvzp50iTrfVusJg+2gmlcaytGEoHYuIP+AOv57X272czjp+sA8N1onPo/IiHFnOEFtT9rLJBA==",
       "type": "package",
-      "path": "teamxiaolan.dawnlib/0.2.16",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/netstandard2.1/com.github.teamxiaolan.dawnlib.dll",
-        "teamxiaolan.dawnlib.0.2.16.nupkg.sha512",
-        "teamxiaolan.dawnlib.nuspec"
-      ]
-    },
-    "UnityEngine.Modules/2022.3.9": {
-      "sha512": "sSxqZjd05U0NWlX+eappdlsEuXFvDRHkUaClDVTocGRzCmIwNvgGJIPh22lGklIpNZ3cJZneYJkIUnEIazR8VA==",
-      "type": "package",
-      "path": "unityengine.modules/2022.3.9",
+      "path": "unityengine.modules/2022.3.62",
       "files": [
         ".nupkg.metadata",
         "lib/net35/UnityEngine.AIModule.dll",
@@ -2971,7 +2947,7 @@
         "lib/netstandard2.0/UnityEngine.WindModule.dll",
         "lib/netstandard2.0/UnityEngine.XRModule.dll",
         "lib/netstandard2.0/UnityEngine.dll",
-        "unityengine.modules.2022.3.9.nupkg.sha512",
+        "unityengine.modules.2022.3.62.nupkg.sha512",
         "unityengine.modules.nuspec"
       ]
     }
@@ -2982,9 +2958,9 @@
       "BepInEx.AssemblyPublicizer.MSBuild >= 0.4.1",
       "BepInEx.Core >= 5.*",
       "BepInEx.PluginInfoProps >= 2.*",
+      "Evaisa.LethalLib >= 1.1.1",
       "LethalCompany.GameLibs.Steam >= 73.0.0-ngd.0",
-      "TeamXiaolan.DawnLib >= 0.2.16",
-      "UnityEngine.Modules >= 2022.3.9"
+      "UnityEngine.Modules >= 2022.3.62"
     ]
   },
   "packageFolders": {
@@ -3060,20 +3036,20 @@
             "target": "Package",
             "version": "[2.*, )"
           },
+          "Evaisa.LethalLib": {
+            "target": "Package",
+            "version": "[1.1.1, )"
+          },
           "LethalCompany.GameLibs.Steam": {
             "suppressParent": "All",
             "target": "Package",
             "version": "[73.0.0-ngd.0, )"
           },
-          "TeamXiaolan.DawnLib": {
-            "target": "Package",
-            "version": "[0.2.16, )"
-          },
           "UnityEngine.Modules": {
             "include": "Compile",
             "suppressParent": "All",
             "target": "Package",
-            "version": "[2022.3.9, )"
+            "version": "[2022.3.62, )"
           }
         },
         "imports": [

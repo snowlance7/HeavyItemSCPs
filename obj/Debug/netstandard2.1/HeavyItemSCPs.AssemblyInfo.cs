@@ -79,7 +79,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProjectSCP.HeavyItemSCPs")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.4.3.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.4.3+5bc51e925c6ddbd5c2a9fad1cbf1fe0059d1c5ed")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.4.3+454eee20f30b4c9ec08b205579957041f827891c")]
 [assembly: System.Reflection.AssemblyProductAttribute("HeavyItemSCPs")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProjectSCP.HeavyItemSCPs")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.4.3.0")]
