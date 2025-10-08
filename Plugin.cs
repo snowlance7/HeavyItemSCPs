@@ -86,6 +86,7 @@ namespace HeavyItemSCPs
         public static ConfigEntry<int> config513MaxValue;
         public static ConfigEntry<string> config513LevelRarities;
         public static ConfigEntry<string> config513CustomLevelRarities;
+        public static ConfigEntry<bool> configUnhauntedOnBellDespawn;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         #endregion
 
@@ -206,6 +207,7 @@ namespace HeavyItemSCPs
             config513MaxValue = Config.Bind("SCP-513", "Maximum value", 300, "The maximum value of SCP-513.");
             config513LevelRarities = Config.Bind("SCP-513 Rarities", "Level Rarities", "All: 10, Modded:10", "Rarities for each level. See default for formatting.");
             config513CustomLevelRarities = Config.Bind("SCP-513 Rarities", "Custom Level Rarities", "Secret LabsLevel:100", "Rarities for modded levels. Same formatting as level rarities.");
+            configUnhauntedOnBellDespawn = Config.Bind("SCP-513", "Unhaunted on bell despawn", false, "When true, if the bell is despawned or sold to the company, all haunted players will become unhaunted.");
         }
 
         private static void InitializeNetworkBehaviours()

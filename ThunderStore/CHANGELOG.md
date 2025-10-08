@@ -1,3 +1,6 @@
+## 1.4.4
+- Fixed config issue
+
 ## 1.4.3
 - Updated for v73
 - Fixed network handler issue

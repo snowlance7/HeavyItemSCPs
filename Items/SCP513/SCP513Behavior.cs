@@ -39,7 +39,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public static bool localPlayerHaunted;
 
         // Configs
-        float maxTurnSpeed = 1000f;
+        const float maxTurnSpeed = 1000f;
 
         public override void Update()
         {
@@ -96,6 +96,11 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 Instance = null;
                 Utils.FreezePlayer(localPlayer, false);
+                
+                if (configUnhauntedOnBellDespawn.Value)
+                {
+                    localPlayerHaunted = false;
+                }
             }
         }
 
