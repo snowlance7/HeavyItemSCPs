@@ -1,13 +1,5 @@
-using BepInEx.Logging;
-using DunGen;
 using HarmonyLib;
-using HeavyItemSCPs.Items.SCP323;
-using HeavyItemSCPs.Items.SCP427;
-using HeavyItemSCPs.Items.SCP513;
-using System.Collections.Generic;
-using System.Linq;
-using Unity.Netcode;
-using UnityEngine;
+using SnowyLib;
 using static HeavyItemSCPs.Plugin;
 
 /* bodyparts
@@ -26,80 +18,49 @@ using static HeavyItemSCPs.Plugin;
 namespace HeavyItemSCPs
 {
     [HarmonyPatch]
-    public class TESTING : MonoBehaviour
+    public static class TESTING
     {
-        private static ManualLogSource logger = LoggerInstance;
-
-        public static int setEventRarity = -1;
-        public static int setEventIndex = -1;
+        public static bool immunity { get; private set; }
 
         [HarmonyPostfix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.PingScan_performed))]
         public static void PingScan_performedPostFix()
         {
-            if (!Utils.isBeta) { return; }
             if (!Utils.testing) { return; }
+        }
 
-            HallucinationManager.LogStareArt();
-
-            //logger.LogDebug("InsideAINodes: " + Utils.insideAINodes.Length.ToString());
-            //logger.LogDebug("OutsideAINodes: " + Utils.outsideAINodes.Length.ToString());
-            //logger.LogDebug(SCP323Behavior.Instance?.madness);
-            /*SpikeRoofTrap spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(localPlayer.transform.position);
-            logger.LogDebug(spikeTrap.name);
-            logger.LogDebug(spikeTrap.gameObject.name);
-            logger.LogDebug(spikeTrap.transform.name);
-            logger.LogDebug(spikeTrap.gameObject.transform.name);
-            logger.LogDebug(spikeTrap.gameObject.transform.root.name);
-            logger.LogDebug(spikeTrap.transform.root.gameObject.name);*/
-
-            //logger.LogDebug("AINodes: " + GameObject.FindGameObjectsWithTag("AINode").Length);
-            //logger.LogDebug("OutsideAINodes: " + GameObject.FindGameObjectsWithTag("OutsideAINode").Length);
-
-
-            //if (HallucinationManager.Instance == null || setEventRarity == -1 || setEventIndex == -1) { return; }
-            //HallucinationManager.Instance.RunEvent(setEventRarity, setEventIndex);
+        [StaticUpdate]
+        public static void Update()
+        {
+            if (!Utils.testing) { return; }
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SubmitChat_performed))]
         public static void SubmitChat_performedPrefix(HUDManager __instance)
         {
-            if (!Utils.isBeta) { return; }
-
-            string msg = __instance.chatTextField.text;
-            string[] args = msg.Split(" ");
-            logger.LogDebug(msg);
-
-            switch (args[0])
+            try
             {
-                case "/search":
-                    if (SCP323_1AI.Instance == null) { break; }
-                    SCP323_1AI.Instance.StartSearch(localPlayer.transform.position);
-                    break;
-                case "/moving":
-                    Utils.DEBUG_disableMoving = !Utils.DEBUG_disableMoving;
-                    HUDManager.Instance.DisplayTip("DisableMoving: ", Utils.DEBUG_disableMoving.ToString());
-                    break;
-                case "/targetting":
-                    Utils.DEBUG_disableTargetting = !Utils.DEBUG_disableTargetting;
-                    HUDManager.Instance.DisplayTip("DisableTargetting: ", Utils.DEBUG_disableTargetting.ToString());
-                    break;
-                case "/playerThrowing":
-                    SCP4271AI.DEBUG_throwingPlayerDisabled = !SCP4271AI.DEBUG_throwingPlayerDisabled;
-                    HUDManager.Instance.DisplayTip("ThrowingPlayerDisabled", SCP4271AI.DEBUG_throwingPlayerDisabled.ToString());
-                    break;
-                case "/allEvents":
-                    HallucinationManager.Instance?.RunAllEvents(int.Parse(args[1]));
-                    break;
-                case "/setEvent":
-                    setEventRarity = int.Parse(args[1]);
-                    setEventIndex = int.Parse(args[2]);
-                    break;
-                case "/event":
-                    HallucinationManager.Instance?.RunEvent(int.Parse(args[1]), int.Parse(args[2]));
-                    break;
-                default:
-                    Utils.ChatCommand(args);
-                    break;
+                if (!Utils.testing || !IsServerOrHost) { return; }
+                string msg = __instance.chatTextField.text;
+                string[] args = msg.Split(" ");
+
+                switch (args[0])
+                {
+                    case "/immunity":
+                        immunity = !immunity;
+                        HUDManager.Instance.DisplayTip("ItemSCPs", "Immunity: " + immunity);
+                        break;
+                    case "/immune":
+                        immunity = !immunity;
+                        HUDManager.Instance.DisplayTip("ItemSCPs", "Immunity: " + immunity);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e);
+                return;
             }
         }
     }

@@ -1,3 +1,6 @@
+## 2.0.0
+- Updated for V80
+
 ## 1.4.4
 - Fixed config issue
 

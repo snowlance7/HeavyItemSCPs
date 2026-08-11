@@ -427,7 +427,7 @@ GameObject:
   - component: {fileID: 7536948042775474838}
   m_Layer: 22
   m_Name: ScanNode
-  m_TagString: DoNotSet
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
