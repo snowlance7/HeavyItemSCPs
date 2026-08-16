@@ -4,8 +4,8 @@ namespace HeavyItemSCPs.SCP.SCP178
 {
     internal class SCP1781PartBehavior : PhysicsProp
     {
-        public GameObject PartMesh = null!;
-        public GameObject ScanNode = null!;
+        public MeshRenderer renderer = null!;
+        public GameObject scanNode = null!;
 
         float timeSinceSpawn;
 
@@ -22,8 +22,8 @@ namespace HeavyItemSCPs.SCP.SCP178
 
         public void EnableMesh(bool enable)
         {
-            PartMesh.SetActive(enable);
-            ScanNode.SetActive(enable);
+            renderer.enabled = enable;
+            scanNode.SetActive(enable);
         }
     }
 }

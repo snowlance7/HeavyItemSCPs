@@ -1,7 +1,8 @@
-﻿using BepInEx.Logging;
-using Dawn.Utils;
+﻿using Dawn.Utils;
 using GameNetcodeStuff;
 using HarmonyLib;
+using PSCPLibrary;
+using PSCPLibrary.Interfaces;
 using SnowyLib;
 using System;
 using System.Collections;
@@ -12,17 +13,20 @@ using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
 using static HeavyItemSCPs.Plugin;
 
-namespace HeavyItemSCPs.Items.SCP427
+namespace HeavyItemSCPs.SCP.SCP427
 {
-    internal class SCP427Behavior : PhysicsProp
+    internal class SCP427Behavior : PhysicsProp, ISingletonItem, ISCP
     {
-        public AudioSource ItemSFX = null!;
-        public AudioClip PassiveTransformationSFX = null!;
-        public AudioClip FullTransformationSFX = null!;
-        public Animator itemAnimator = null!;
+        public SCPInfo info = null!;
+        public AudioSource audioSource = null!;
+        public AudioClip passiveTransformationSFX = null!;
+        public AudioClip fullTransformationSFX = null!;
+        public Animator animator = null!;
         public GameObject SCP4271Prefab = null!;
 
         public static SCP427Behavior? Instance { get; private set; }
+
+        SCPInfo ISCP.SCPInfo => info;
 
         int hashOpen;
 
@@ -34,7 +38,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public static Dictionary<EnemyAI, float> EnemyHoldTimes = new Dictionary<EnemyAI, float>();
 
         float timeSinceLastHeal;
-        float timeSpawned;
+        //float timeSpawned;
 
         bool playedPassiveTransformationSound;
 
@@ -61,45 +65,34 @@ namespace HeavyItemSCPs.Items.SCP427
         public override void Start()
         {
             base.Start();
-
             hashOpen = Animator.StringToHash("open");
+            PSCPLibrary.SCPEvents.OnSCP500TakenByLocalPlayer.AddListener(SCP500Taken);
+        }
+
+        public void SCP500Taken()
+        {
+            if (!scp500Compatibility) { return; }
+            localPlayerHoldTime = 0f;
+            localPlayerHoldTimeMultiplier = 0f;
         }
 
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-            if (Instance != null && Instance != this)
-            {
-                logger.LogWarning("There is already a SCP-427 in the scene. Removing this one.");
-                return;
-            }
+            if (Instance != null && Instance != this) { return; }
             Instance = this;
-            logger.LogDebug("Finished spawning SCP-427");
         }
 
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
             if (Instance == this)
-            {
                 Instance = null;
-            }
         }
 
         public override void Update()
         {
             base.Update();
-
-            timeSpawned += Time.deltaTime;
-
-            if (Instance != this)
-            {
-                if (IsServerOrHost && timeSpawned > 3f)
-                {
-                    NetworkObject.Despawn(true);
-                }
-                return;
-            }
 
             if ((StartOfRound.Instance.inShipPhase || !StartOfRound.Instance.shipHasLanded) && !Utils.inTestRoom) { return; }
 
@@ -107,13 +100,13 @@ namespace HeavyItemSCPs.Items.SCP427
 
             //logger.LogDebug($"Time held by local player: {localPlayerHoldTime}");
 
-            itemAnimator.SetBool(hashOpen, isOpen);
+            animator.SetBool(hashOpen, isOpen);
 
             if (playerHeldBy == null || playerHeldBy != localPlayer)
             {
                 if (localPlayerHoldTimeMultiplier > 0f)
                 {
-                    localPlayerHoldTimeMultiplier -= Time.deltaTime / timeToMinTransformSpeed;
+                    localPlayerHoldTimeMultiplier -= Time.deltaTime / timeToTransformSpeed.Min;
                     localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
                 }
 
@@ -132,7 +125,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 // Heal player
                 HealPlayer(healthPerSecondOpen);
 
-                if (SCP500Compatibility.IsLocalPlayerAffectedBySCP500 || playerHeldBy.health < 100)
+                if (playerHeldBy.health < 100)
                 {
                     localPlayerHoldTime = 0f;
                     localPlayerHoldTimeMultiplier = 0f;
@@ -141,7 +134,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 if (localPlayerHoldTimeMultiplier < 1f)
                 {
-                    localPlayerHoldTimeMultiplier += Time.deltaTime / timeToMaxTransformSpeed;
+                    localPlayerHoldTimeMultiplier += Time.deltaTime / timeToTransformSpeed.Max;
                     localPlayerHoldTimeMultiplier = Mathf.Clamp01(localPlayerHoldTimeMultiplier);
                 }
 
@@ -154,7 +147,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 if (localPlayerHoldTime >= timeToTransform / 2 && localPlayerHoldTime <= timeToTransform / 2 + 1f && !playedPassiveTransformationSound)
                 {
                     logger.LogDebug("Playing 1/2 transform sound");
-                    ItemSFX.PlayOneShot(PassiveTransformationSFX, 1f);
+                    audioSource.PlayOneShot(passiveTransformationSFX, 1f);
                     playedPassiveTransformationSound = true;
                 }
 
@@ -226,8 +219,8 @@ namespace HeavyItemSCPs.Items.SCP427
 
             isOpen = ((!StartOfRound.Instance.inShipPhase && StartOfRound.Instance.shipHasLanded) || Utils.inTestRoom) && buttonDown;
 
-            if (isOpen) ItemSFX.Play();
-            else ItemSFX.Stop();
+            if (isOpen) audioSource.Play();
+            else audioSource.Stop();
         }
 
         public override void OnHitGround()
@@ -267,7 +260,7 @@ namespace HeavyItemSCPs.Items.SCP427
         private IEnumerator TransformPlayerCoroutine(PlayerControllerB player)
         {
             player.KillPlayer(Vector3.zero, true, CauseOfDeath.Unknown, 3);
-            ItemSFX.PlayOneShot(FullTransformationSFX, 1f);
+            audioSource.PlayOneShot(fullTransformationSFX, 1f);
 
             if (player.deadBody != null)
             {
@@ -300,7 +293,7 @@ namespace HeavyItemSCPs.Items.SCP427
             Vector3 spawnPos = enemy.transform.position;
 
             enemy.KillEnemy();
-            ItemSFX.PlayOneShot(FullTransformationSFX, 1f);
+            audioSource.PlayOneShot(fullTransformationSFX, 1f);
 
             yield return new WaitForSecondsRealtime(4f);
 
@@ -379,8 +372,6 @@ namespace HeavyItemSCPs.Items.SCP427
     [HarmonyPatch]
     internal class SCP427Patches
     {
-        private static ManualLogSource logger = LoggerInstance;
-
         [HarmonyPostfix]
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.DespawnPropsAtEndOfRound))]
         public static void DespawnPropsAtEndOfRoundPostfix()

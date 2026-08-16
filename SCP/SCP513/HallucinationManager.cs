@@ -1,25 +1,19 @@
-﻿using BepInEx.Logging;
+﻿using Dawn;
 using GameNetcodeStuff;
 using HarmonyLib;
+using SnowyLib;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
-using UnityEngine.ProBuilder.Csg;
-using UnityEngine.UIElements;
 using static HeavyItemSCPs.Plugin;
-using static UnityEngine.VFX.VisualEffectControlTrackController;
 
-namespace HeavyItemSCPs.Items.SCP513
+namespace HeavyItemSCPs.SCP.SCP513
 {
     public class HallucinationManager : MonoBehaviour // Parented to SCP-513-1 in unity
     {
-        private static ManualLogSource logger = LoggerInstance;
-
         public static HallucinationManager? Instance { get; private set; }
 
         public static HashSet<GrabbableObject> overrideShotguns = [];
@@ -268,7 +262,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("PlayAmbientSFXNearby");
             Vector3 pos = GetClosestNode(localPlayer.transform.position, !localPlayer.isInsideFactory).position;
-            PlaySoundAtPosition(pos, SCP513_1AI.Instance!.AmbientSFX);
+            PlaySoundAtPosition(pos, SCP513_1AI.Instance!.ambientSFX);
         }
 
         void PlayFakeSoundEffectMinor() // 0 2
@@ -276,7 +270,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("PlaySoundEffectMinor");
 
             // Filter clips that match inside/outside
-            var clips = SCP513_1AI.Instance!.MinorSoundEffectSFX
+            var clips = SCP513_1AI.Instance!.minorSoundEffectSFX
                 .Where(clip => clip.name.Length >= 2 &&
                                (clip.name[0] == 'I') == localPlayer.isInsideFactory)
                 .ToArray();
@@ -300,7 +294,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (pos == null) { logger.LogError("Couldnt find closest node to position"); return; }
 
             // Play the sound
-            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos.position, Quaternion.identity);
+            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.soundObjectPrefab, pos.position, Quaternion.identity);
             AudioSource source = soundObj.GetComponent<AudioSource>();
             source.spatialBlend = is2D ? 0f : 1f;
             source.clip = clip;
@@ -313,7 +307,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("PlayBellSFX");
             Vector3 pos = GetClosestNode(localPlayer.transform.position, !localPlayer.isInsideFactory).position;
-            PlaySoundAtPosition(pos, SCP513_1AI.Instance!.BellSFX);
+            PlaySoundAtPosition(pos, SCP513_1AI.Instance!.bellSFX);
         }
 
         void HideHazard() // 0 4
@@ -322,9 +316,9 @@ namespace HeavyItemSCPs.Items.SCP513
 
             float hideTime = 30f;
 
-            Landmine? landmine = Utils.GetClosestGameObjectOfType<Landmine>(localPlayer.transform.position);
-            Turret? turret = Utils.GetClosestGameObjectOfType<Turret>(localPlayer.transform.position);
-            SpikeRoofTrap? spikeTrap = Utils.GetClosestGameObjectOfType<SpikeRoofTrap>(localPlayer.transform.position);
+            Landmine? landmine = localPlayer.transform.position.GetClosestGameObjectOfType<Landmine>();
+            Turret? turret = localPlayer.transform.position.GetClosestGameObjectOfType<Turret>();
+            SpikeRoofTrap? spikeTrap = localPlayer.transform.position.GetClosestGameObjectOfType<SpikeRoofTrap>();
 
             var hazards = new List<(GameObject obj, float distance, string type)>();
 
@@ -473,7 +467,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCP513_1AI.Instance!.Teleport(outsideLOS);
                 SCP513_1AI.Instance!.facePlayer = true;
                 SCP513_1AI.Instance!.creatureAnimator.SetBool("armsCrossed", true);
-                RoundManager.PlayRandomClip(SCP513_1AI.Instance!.creatureSFX, SCP513_1AI.Instance!.AmbientSFX);
+                RoundManager.PlayRandomClip(SCP513_1AI.Instance!.creatureSFX, SCP513_1AI.Instance!.ambientSFX);
 
                 float elapsedTime = 0f;
 
@@ -524,7 +518,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 SCP513_1AI.Instance!.Teleport(pos.position);
                 SCP513_1AI.Instance!.facePlayer = true;
                 SCP513_1AI.Instance!.creatureAnimator.SetBool("armsCrossed", true);
-                RoundManager.PlayRandomClip(SCP513_1AI.Instance!.creatureSFX, SCP513_1AI.Instance!.AmbientSFX);
+                RoundManager.PlayRandomClip(SCP513_1AI.Instance!.creatureSFX, SCP513_1AI.Instance!.ambientSFX);
 
                 float elapsedTime = 0f;
 
@@ -660,7 +654,7 @@ namespace HeavyItemSCPs.Items.SCP513
             logger.LogDebug("PlayFakeSoundEffectMajor");
 
             // Filter clips that match inside/outside
-            var clips = SCP513_1AI.Instance!.MajorSoundEffectSFX
+            var clips = SCP513_1AI.Instance!.majorSoundEffectSFX
                 .Where(clip => clip.name.Length >= 2 &&
                                (clip.name[0] == 'I') == localPlayer.isInsideFactory)
                 .ToArray();
@@ -683,7 +677,7 @@ namespace HeavyItemSCPs.Items.SCP513
             Vector3 pos = SCP513_1AI.Instance!.ChooseClosestNodeToPosition(localPlayer.transform.position, false, offset).position;
 
             // Play the sound
-            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos, Quaternion.identity);
+            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.soundObjectPrefab, pos, Quaternion.identity);
             AudioSource source = soundObj.GetComponent<AudioSource>();
             source.spatialBlend = is2D ? 0f : 1f;
             source.clip = clip;
@@ -772,14 +766,14 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("MimicPlayer");
 
-            if (!localPlayer.NearOtherPlayers(localPlayer))
+            if (!localPlayer.NearOtherPlayers())
             {
                 RunRandomEvent(2);
                 return;
             }
 
             List<PlayerControllerB> ignoredPlayers = new List<PlayerControllerB> { localPlayer };
-            PlayerControllerB[] nearByPlayers = Utils.GetNearbyPlayers(localPlayer.transform.position, 10f, ignoredPlayers);
+            PlayerControllerB[] nearByPlayers = localPlayer.transform.position.GetNearbyPlayers(10f, ignoredPlayers);
             if (nearByPlayers.Length == 0)
             {
                 RunRandomEvent(2);
@@ -793,7 +787,7 @@ namespace HeavyItemSCPs.Items.SCP513
             {
                 yield return null;
 
-                Utils.MakePlayerInvisible(mimicPlayer, true);
+                mimicPlayer.MakePlayerInvisible(true);
 
                 yield return null;
 
@@ -836,7 +830,7 @@ namespace HeavyItemSCPs.Items.SCP513
         {
             logger.LogDebug("SpawnGhostGirl");
 
-            NetworkHandlerHeavy.Instance?.SpawnGhostGirlServerRpc(localPlayer.actualClientId);
+            NetworkHandler.Instance?.SpawnGhostGirlServerRpc(localPlayer.actualClientId);
         }
 
         void TurnOffAllLights() // 2 4
@@ -858,8 +852,6 @@ namespace HeavyItemSCPs.Items.SCP513
             // Configs
             float spawnTime = 10f;
 
-            Dictionary<string, GameObject> hazards = Utils.GetAllHazards();
-
             IEnumerator SpawnLandminesAroundPlayerCoroutine()
             {
                 int minToSpawn = 5;
@@ -872,7 +864,8 @@ namespace HeavyItemSCPs.Items.SCP513
                 {
                     yield return null;
 
-                    GameObject landmineObj = GameObject.Instantiate(hazards["Landmine"], position, Quaternion.identity, RoundManager.Instance.mapPropsContainer.transform);
+                    GameObject? landmineObj = Utils.SpawnMapObject(MapObjectKeys.Landmine, position, parentTo: RoundManager.Instance.mapPropsContainer.transform);
+                    if (landmineObj == null) { logger.LogError("Couldnt spawn landmine object"); continue; }
                     Landmine landmine = landmineObj.GetComponentInChildren<Landmine>();
                     landmine.mineActivated = true;
                     landmine.mineAudio.PlayOneShot(landmine.mineDeactivate);
@@ -961,7 +954,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 if (hasShotgun) // Shotgun
                 {
-                    Utils.FreezePlayer(localPlayer, true);
+                    localPlayer.FreezePlayer(true);
                     localPlayer.activatingItem = true;
                     ShotgunItem? shotgun = null;
 
@@ -979,13 +972,13 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     localPlayer.SwitchToItemSlot(itemSlotIndex, shotgun);
 
-                    NetworkHandlerHeavy.Instance?.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
+                    NetworkHandler.Instance?.ShotgunSuicideServerRpc(shotgun.NetworkObject, 5f);
 
                     yield return new WaitForSeconds(10f);
                 }
                 else if (hasMask) // Mask
                 {
-                    Utils.FreezePlayer(localPlayer, true);
+                    localPlayer.FreezePlayer(true);
                     localPlayer.activatingItem = true;
                     HauntedMaskItem? mask = null;
                     
@@ -1014,7 +1007,7 @@ namespace HeavyItemSCPs.Items.SCP513
                 }
                 else // Knife
                 {
-                    Utils.FreezePlayer(localPlayer, true);
+                    localPlayer.FreezePlayer(true);
                     localPlayer.activatingItem = true;
                     KnifeItem? knife = null;
 
@@ -1056,10 +1049,10 @@ namespace HeavyItemSCPs.Items.SCP513
                     }
                 }
 
-                Utils.FreezePlayer(localPlayer, false);
+                localPlayer.FreezePlayer(false);
             }
 
-            Action cleanup = () => Utils.FreezePlayer(localPlayer, false);
+            Action cleanup = () => localPlayer.FreezePlayer(false);
             TryStartCoroutine(ForceSuicideCoroutine(playerHasShotgun, playerHasMask), 2, cleanup);
         }
 
@@ -1076,7 +1069,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
         public static void LogStareArt()
         {
-            logger.LogInfo(@" I SEE YOU
+            logger.LogError(@" I SEE YOU
 ;;;;;+++xXxxxxxxxxxxXXXXXXXXXxx+++++;;;;;::....:;::.................::
 ;+++++++xXXXXXXXxXXX$$$$$$$$$Xxx+++;;;+;:::...::::................:::.
 +++++++xXXXXXXX$$X$$$$$$$$$$$XXxx+;;;;::::;::.........................
@@ -1109,7 +1102,7 @@ XXXXXXXXXxxxxxx++x++XXXXXX$$xXXxxX$X+;:...............................");
 
         public void PlaySoundAtPosition(Vector3 pos, AudioClip clip, bool randomize = true, bool spatial3D = true)
         {
-            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos, Quaternion.identity);
+            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.soundObjectPrefab, pos, Quaternion.identity);
             AudioSource source = soundObj.GetComponent<AudioSource>();
 
             if (randomize)
@@ -1129,7 +1122,7 @@ XXXXXXXXXxxxxxx++x++XXXXXX$$xXXxxX$X+;:...............................");
 
         public void PlaySoundAtPosition(Vector3 pos, AudioClip[] clips, bool randomize = true, bool spatial3D = true)
         {
-            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.SoundObjectPrefab, pos, Quaternion.identity);
+            GameObject soundObj = Instantiate(SCP513_1AI.Instance!.soundObjectPrefab, pos, Quaternion.identity);
             AudioSource source = soundObj.GetComponent<AudioSource>();
 
             if (randomize)

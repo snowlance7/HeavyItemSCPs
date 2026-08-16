@@ -1,61 +1,49 @@
-﻿using BepInEx.Logging;
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using HarmonyLib;
-using HeavyItemSCPs.Items.SCP178;
-using HeavyItemSCPs.Items.SCP513;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+using PSCPLibrary;
+using PSCPLibrary.Interfaces;
+using SnowyLib;
 using Unity.Netcode;
-using Unity.Services.Authentication;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
 
-namespace HeavyItemSCPs.Items.SCP513
+namespace HeavyItemSCPs.SCP.SCP513
 {
     // TODO: Make sure 513-1 follows the player even if they go to another moon
-    public class SCP513Behavior : PhysicsProp
+    public class SCP513Behavior : PhysicsProp, ISingletonItem, ISCP
     {
-        private static ManualLogSource logger = LoggerInstance;
-
         public static SCP513Behavior? Instance { get; private set; }
 
-#pragma warning disable CS8618
-        public AudioSource ItemAudio;
-        public AudioClip[] BellSFX;
-        public GameObject SCP513_1Prefab;
-#pragma warning restore CS8618
+        SCPInfo ISCP.SCPInfo => info;
+
+        public SCPInfo info = null!;
+        public AudioSource audioSource = null!;
+        public AudioClip[] bellSFX = null!;
+        public GameObject SCP513_1Prefab = null!;
 
         //public NetworkList<ulong> HauntedPlayers = new NetworkList<ulong>();
 
         const float maxFallDistance = 1f;
         const float ringCooldown = 3f;
 
-        float timeSpawned;
         float timeSinceLastRing;
         float timeHeldByPlayer;
         Vector2 lastCameraAngles;
 
         public static bool localPlayerHaunted;
 
-        // Configs
         const float maxTurnSpeed = 1000f;
+        public static bool unhauntedOnBellDespawn { get; private set; } = false;
+
+        [InitConfig]
+        public static void InitConfigs()
+        {
+            unhauntedOnBellDespawn = PluginInstance.Config.Bind("SCP-513 Options", "SCP-513 | Unhaunted on bell despawn", false, "When true, if the bell is despawned or sold to the company, all haunted players will become unhaunted.").Value;
+        }
 
         public override void Update()
         {
             base.Update();
-
-            timeSpawned += Time.deltaTime;
-
-            if (Instance != this)
-            {
-                grabbable = false;
-                if (IsServerOrHost && timeSpawned > 3f)
-                {
-                    NetworkObject.Despawn(true);
-                }
-                return;
-            }
 
             if (playerHeldBy == null || localPlayer != playerHeldBy)
             {
@@ -80,13 +68,8 @@ namespace HeavyItemSCPs.Items.SCP513
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-            if (Instance != null && Instance != this)
-            {
-                logger.LogWarning("There is already a SCP-513 in the scene. Removing this one.");
-                return;
-            }
+            if (Instance != null && Instance != this) { return; }
             Instance = this;
-            logger.LogDebug("Finished spawning SCP-513");
         }
 
         public override void OnNetworkDespawn()
@@ -95,9 +78,9 @@ namespace HeavyItemSCPs.Items.SCP513
             if (Instance == this)
             {
                 Instance = null;
-                Utils.FreezePlayer(localPlayer, false);
+                localPlayer.FreezePlayer(false);
                 
-                if (configUnhauntedOnBellDespawn.Value)
+                if (unhauntedOnBellDespawn)
                 {
                     localPlayerHaunted = false;
                 }
@@ -151,11 +134,11 @@ namespace HeavyItemSCPs.Items.SCP513
         public void RingBellClientRpc()
         {
             timeSinceLastRing = 0f;
-            RoundManager.PlayRandomClip(ItemAudio, BellSFX);
+            RoundManager.PlayRandomClip(audioSource, bellSFX);
 
             if (localPlayerHaunted) { return; }
 
-            if (Vector3.Distance(transform.position, localPlayer.bodyParts[0].transform.position) <= ItemAudio.maxDistance)
+            if (Vector3.Distance(transform.position, localPlayer.bodyParts[0].transform.position) <= audioSource.maxDistance)
             {
                 logger.LogDebug("This player is haunted");
                 localPlayerHaunted = true;
@@ -166,8 +149,6 @@ namespace HeavyItemSCPs.Items.SCP513
     [HarmonyPatch]
     internal class SCP513Patches
     {
-        private static ManualLogSource logger = LoggerInstance;
-
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.ConnectClientToPlayerObject))]
         public static void ConnectClientToPlayerObjectPostfix()

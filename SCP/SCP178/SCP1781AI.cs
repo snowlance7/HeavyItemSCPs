@@ -1,7 +1,7 @@
 ﻿using Dawn.Utils;
 using GameNetcodeStuff;
 using SnowyLib;
-using Steamworks.Data;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -12,15 +12,21 @@ using static HeavyItemSCPs.SCP.SCP178.SCP178Behavior;
 
 namespace HeavyItemSCPs.SCP.SCP178
 {
+    /*[Serializable]
+    public class SCP1781Data
+    {
+        public Vector3 position;
+        public int id;
+        public int currentBehaviorStateIndex;
+    }*/
+
     public class SCP1781AI : NetworkBehaviour // UPDATE: Turn this into a monobehavior instead and always have them spawned, similar to what we planned with the rats
     {
+        public SmartAgentNavigator nav = null!;
         public Transform turnCompass = null!;
-        public GameObject Mesh = null!;
-        public ScanNodeProperties ScanNode = null!;
-        public NavMeshAgent agent = null!;
-        public Animator creatureAnimator = null!;
-        public AudioSource creatureSFX = null!;
-        public AudioSource creatureVoice = null!;
+        public ScanNodeProperties scanNode = null!;
+        public Animator animator = null!;
+        public AudioSource audioSource = null!;
         public SkinnedMeshRenderer renderer = null!;
 
         public static List<SCP1781AI> Instances = [];
@@ -31,8 +37,6 @@ namespace HeavyItemSCPs.SCP.SCP178
 
         //public bool inSpecialAnimation;
         public State currentBehaviorState;
-        private bool moveTowardsDestination;
-        private Vector3 destination;
 
         private State previousBehaviorStateIndex;
 
@@ -96,6 +100,8 @@ namespace HeavyItemSCPs.SCP.SCP178
 
             enabled = false;
 
+            nav.SetAllValues(transform.position.IsOutside());
+
             logger.LogDebug("SCP-178-1 Spawned");
         }
 
@@ -115,7 +121,7 @@ namespace HeavyItemSCPs.SCP.SCP178
         {
             logger.LogDebug("SCP1781AI enabled");
             timeSinceVisible = 0f;
-            creatureAnimator.enabled = true;
+            animator.enabled = true;
 
             if (TargetPlayerIfClose())
             {
@@ -134,7 +140,7 @@ namespace HeavyItemSCPs.SCP.SCP178
             logger.LogDebug("SCP1781AI disabled");
             StopAllCoroutines();
             wanderingRoutine = null;
-            creatureAnimator.enabled = false;
+            animator.enabled = false;
         }
 
         public void Update()
@@ -173,6 +179,8 @@ namespace HeavyItemSCPs.SCP.SCP178
                 DoAIInterval();
                 updateDestinationInterval = AIIntervalTime;
             }
+
+            renderer.SetBlendShapeWeight(); // TODO: Set this for the eyes!
         }
 
         public void LateUpdate()
@@ -180,8 +188,8 @@ namespace HeavyItemSCPs.SCP.SCP178
             Vector3 delta = transform.position - lastPosition;
             float speed = delta.magnitude / Time.deltaTime;
 
-            creatureAnimator.SetFloat(hashSpeed, speed);
-            creatureAnimator.SetBool(hashAngryIdle, isBeingObserved);
+            animator.SetFloat(hashSpeed, speed);
+            animator.SetBool(hashAngryIdle, isBeingObserved);
 
             lastPosition = transform.position;
         }
@@ -195,11 +203,6 @@ namespace HeavyItemSCPs.SCP.SCP178
 
             if (!IsServerOrHost) { return; }
 
-            if (moveTowardsDestination)
-            {
-                agent.SetDestination(destination);
-            }
-
             if (currentBehaviorState != State.Chasing && TargetPlayerIfClose())
             {
                 StopAllCoroutines();
@@ -211,8 +214,8 @@ namespace HeavyItemSCPs.SCP.SCP178
             switch (currentBehaviorState)
             {
                 case State.Roaming:
-                    agent.speed = 2f;
-                    agent.stoppingDistance = 0f;
+                    nav.agent.speed = 2f;
+                    nav.agent.stoppingDistance = 0f;
 
                     if (isBeingObserved)
                     {
@@ -228,8 +231,8 @@ namespace HeavyItemSCPs.SCP.SCP178
                     break;
 
                 case State.Observing:
-                    agent.speed = 0f;
-                    agent.stoppingDistance = 0f;
+                    nav.agent.speed = 0f;
+                    nav.agent.stoppingDistance = 0f;
 
                     if (!isBeingObserved && timeSinceLastStaredAt > postObservationTime)
                     {
@@ -244,8 +247,8 @@ namespace HeavyItemSCPs.SCP.SCP178
                     break;
 
                 case State.Chasing:
-                    agent.speed = 10f;
-                    agent.stoppingDistance = 2.5f;
+                    nav.agent.speed = 10f;
+                    nav.agent.stoppingDistance = 2.5f;
 
                     if (!TargetPlayerIfClose() || !SetDestinationToPosition(targetPlayer!.transform.position, true))
                     {
@@ -264,27 +267,16 @@ namespace HeavyItemSCPs.SCP.SCP178
         public void Teleport(Vector3 position)
         {
             position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit);
-            agent.Warp(position);
+            nav.agent.Warp(position);
         }
 
         public bool SetDestinationToPosition(Vector3 position, bool checkForPath = false)
         {
-            if (checkForPath)
-            {
-                position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
-                path1 = new NavMeshPath();
-                if (!agent.CalculatePath(position, path1))
-                {
-                    return false;
-                }
-                if (Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 2.7f)) > 1.55f)
-                {
-                    return false;
-                }
-            }
-            moveTowardsDestination = true;
-            destination = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, -1f);
-            return true;
+            nav.CanTryToFlyToDestination = false;
+            if (checkForPath && !Utils.SmartCanPathToPoint(transform.position, position, nav.IsAgentOutside())) { return false; }
+            nav.TryDoPathingToDestination(position, out SmartAgentNavigator.GoToDestinationResult result);
+
+            return result == SmartAgentNavigator.GoToDestinationResult.Success || result == SmartAgentNavigator.GoToDestinationResult.InProgress; ;
         }
 
         public bool IsNearbyPlayer(PlayerControllerB player, float distance)
@@ -351,18 +343,16 @@ namespace HeavyItemSCPs.SCP.SCP178
             return Vector3.Distance(localPlayer.transform.position, transform.position) < renderDistance;
         }
 
-
-
         IEnumerator WanderingCoroutine()
         {
             yield return null;
-            while (wanderingRoutine != null && enabled && agent.enabled)
+            while (wanderingRoutine != null && enabled && nav.agent.enabled)
             {
                 float timeStopped = 0f;
                 Vector3 pos = spawnPosition;
                 pos = RoundManager.Instance.GetRandomNavMeshPositionInRadius(pos, wanderingRadius, RoundManager.Instance.navHit);
                 SetDestinationToPosition(pos);
-                while (wanderingRoutine != null && enabled && agent.enabled)
+                while (wanderingRoutine != null && enabled && nav.agent.enabled)
                 {
                     yield return new WaitForSeconds(SCP178Behavior.updateInterval);
                     if (timeStopped > wanderWaitTime / 2f)
@@ -386,7 +376,7 @@ namespace HeavyItemSCPs.SCP.SCP178
                         break;
                     }
 
-                    if (agent.velocity == Vector3.zero)
+                    if (nav.agent.velocity == Vector3.zero)
                     {
                         timeStopped += SCP178Behavior.updateInterval;
                     }
@@ -415,8 +405,8 @@ namespace HeavyItemSCPs.SCP.SCP178
         public void EnableMesh(bool enable)
         {
             if (meshEnabledOnClient == enable) { return; }
-            Mesh.SetActive(enable);
-            ScanNode.gameObject.SetActive(enable);
+            renderer.enabled = enable;
+            scanNode.gameObject.SetActive(enable);
             meshEnabledOnClient = enable;
         }
 
@@ -506,7 +496,7 @@ namespace HeavyItemSCPs.SCP.SCP178
         [ClientRpc]
         public void DoAnimationClientRpc(string animationName)
         {
-            creatureAnimator.SetTrigger(animationName);
+            animator.SetTrigger(animationName);
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -522,9 +512,9 @@ namespace HeavyItemSCPs.SCP.SCP178
             PlayerControllerB? player = PlayerFromId(clientId);
             if (player == null) { return; }
             enabled = true;
-            creatureAnimator.enabled = true;
-            creatureAnimator.SetTrigger(attackIndex == 1 ? "verticalAttack" : "horizontalAttack");
-            creatureSFX.PlayOneShot(creatureSFX.clip, 1f);
+            animator.enabled = true;
+            animator.SetTrigger(attackIndex == 1 ? "verticalAttack" : "horizontalAttack");
+            audioSource.PlayOneShot(audioSource.clip, 1f);
             player.DamagePlayer(playerDamage);
         }
     }

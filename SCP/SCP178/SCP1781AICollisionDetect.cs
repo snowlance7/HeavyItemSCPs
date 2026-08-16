@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using Unity.Netcode;
 using UnityEngine;
 
 namespace HeavyItemSCPs.SCP.SCP178

@@ -7,16 +7,18 @@
   "targets": {
     ".NETStandard,Version=v2.1": {},
     ".NETStandard,Version=v2.1/": {
-      "ProjectSCP.HeavyItemSCPs/1.4.4": {
+      "ProjectSCP.HeavyItemSCPs/2.0.0": {
         "dependencies": {
           "BepInEx.Analyzers": "1.0.8",
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.1",
           "BepInEx.Core": "5.4.21",
           "BepInEx.PluginInfoProps": "2.1.0",
-          "Evaisa.LethalLib": "1.1.1",
-          "LethalCompany.GameLibs.Steam": "73.0.0-ngd.0",
+          "LethalCompany.GameLibs.Steam": "81.0.5-ngd.0",
+          "TeamXiaolan.DawnLib": "0.9.25",
+          "TeamXiaolan.DawnLib.DuskMod": "0.9.25",
           "UnityEngine.Modules": "2022.3.62",
-          "ProjectSCP.SCP500": "1.0.0.0"
+          "ProjectSCP.PSCPLibrary": "0.1.1.0",
+          "Snowlance.SnowyLib": "1.13.2.0"
         },
         "runtime": {
           "ProjectSCP.HeavyItemSCPs.dll": {}
@@ -66,17 +68,6 @@
         }
       },
       "BepInEx.PluginInfoProps/2.1.0": {},
-      "Evaisa.LethalLib/1.1.1": {
-        "dependencies": {
-          "BepInEx.Core": "5.4.21"
-        },
-        "runtime": {
-          "lib/netstandard2.1/LethalLib.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.1.1.0"
-          }
-        }
-      },
       "HarmonyX/2.7.0": {
         "dependencies": {
           "MonoMod.RuntimeDetour": "21.12.13.1",
@@ -89,7 +80,7 @@
           }
         }
       },
-      "LethalCompany.GameLibs.Steam/73.0.0-ngd.0": {
+      "LethalCompany.GameLibs.Steam/81.0.5-ngd.0": {
         "dependencies": {
           "Newtonsoft.Json": "13.0.3",
           "UnityEngine.Modules": "2022.3.62"
@@ -408,19 +399,46 @@
           "System.Runtime": "4.3.0"
         }
       },
-      "UnityEngine.Modules/2022.3.62": {},
-      "ProjectSCP.SCP500/1.0.0.0": {
+      "TeamXiaolan.DawnLib/0.9.25": {
         "runtime": {
-          "ProjectSCP.SCP500.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+          "lib/netstandard2.1/com.github.teamxiaolan.dawnlib.dll": {
+            "assemblyVersion": "0.9.25.0",
+            "fileVersion": "0.9.25.0"
+          }
+        }
+      },
+      "TeamXiaolan.DawnLib.DuskMod/0.9.25": {
+        "dependencies": {
+          "TeamXiaolan.DawnLib": "0.9.25"
+        },
+        "runtime": {
+          "lib/netstandard2.1/com.github.teamxiaolan.dawnlib.dusk.dll": {
+            "assemblyVersion": "0.9.25.0",
+            "fileVersion": "0.9.25.0"
+          }
+        }
+      },
+      "UnityEngine.Modules/2022.3.62": {},
+      "ProjectSCP.PSCPLibrary/0.1.1.0": {
+        "runtime": {
+          "ProjectSCP.PSCPLibrary.dll": {
+            "assemblyVersion": "0.1.1.0",
+            "fileVersion": "0.1.1.0"
+          }
+        }
+      },
+      "Snowlance.SnowyLib/1.13.2.0": {
+        "runtime": {
+          "Snowlance.SnowyLib.dll": {
+            "assemblyVersion": "1.13.2.0",
+            "fileVersion": "1.13.2.0"
           }
         }
       }
     }
   },
   "libraries": {
-    "ProjectSCP.HeavyItemSCPs/1.4.4": {
+    "ProjectSCP.HeavyItemSCPs/2.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
@@ -460,13 +478,6 @@
       "path": "bepinex.plugininfoprops/2.1.0",
       "hashPath": "bepinex.plugininfoprops.2.1.0.nupkg.sha512"
     },
-    "Evaisa.LethalLib/1.1.1": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-ZHy0gSo79ImSE0SXOTG6Qy0YrSzzBHk93VajkQmH4cgM5um0LL0CAnVa4pAV4bK9bXTCgjJrsAg4hCLWfiYe4Q==",
-      "path": "evaisa.lethallib/1.1.1",
-      "hashPath": "evaisa.lethallib.1.1.1.nupkg.sha512"
-    },
     "HarmonyX/2.7.0": {
       "type": "package",
       "serviceable": true,
@@ -474,12 +485,12 @@
       "path": "harmonyx/2.7.0",
       "hashPath": "harmonyx.2.7.0.nupkg.sha512"
     },
-    "LethalCompany.GameLibs.Steam/73.0.0-ngd.0": {
+    "LethalCompany.GameLibs.Steam/81.0.5-ngd.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-iaHCHoJTFiTnAyAYIrEbjCJOOuhcJ42+KJnEbmCmf4UdkhjSwwio2bcdPCbchodB9kEp+3v3ATgkBwYn56/Gdw==",
-      "path": "lethalcompany.gamelibs.steam/73.0.0-ngd.0",
-      "hashPath": "lethalcompany.gamelibs.steam.73.0.0-ngd.0.nupkg.sha512"
+      "sha512": "sha512-q1+j5z4lP0TKO16uZ2NclNr9/mb3BUgl6mUO7zbPwbyEHIPJ4m6805rxP0w8mxe4NWNcQRoBkWrIpiNrwak8Hg==",
+      "path": "lethalcompany.gamelibs.steam/81.0.5-ngd.0",
+      "hashPath": "lethalcompany.gamelibs.steam.81.0.5-ngd.0.nupkg.sha512"
     },
     "Microsoft.NETCore.Platforms/1.1.0": {
       "type": "package",
@@ -712,6 +723,20 @@
       "path": "system.threading.tasks/4.3.0",
       "hashPath": "system.threading.tasks.4.3.0.nupkg.sha512"
     },
+    "TeamXiaolan.DawnLib/0.9.25": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-7Bcy9kDPy6/yydSeKfWl8hOWvo23DOh8h9nKjyndK034cMWBhuL7tM2dTFxWvufuZTrkrK+oB3FGcEWk/durPQ==",
+      "path": "teamxiaolan.dawnlib/0.9.25",
+      "hashPath": "teamxiaolan.dawnlib.0.9.25.nupkg.sha512"
+    },
+    "TeamXiaolan.DawnLib.DuskMod/0.9.25": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-LM48qADBNrc84QSnAuEzeGLR3gw5rXH7tR1143y+JpqULMKrH1ltPelIc09joTvUspnLXSKqm8OmgB/bbxF/Pg==",
+      "path": "teamxiaolan.dawnlib.duskmod/0.9.25",
+      "hashPath": "teamxiaolan.dawnlib.duskmod.0.9.25.nupkg.sha512"
+    },
     "UnityEngine.Modules/2022.3.62": {
       "type": "package",
       "serviceable": true,
@@ -719,7 +744,12 @@
       "path": "unityengine.modules/2022.3.62",
       "hashPath": "unityengine.modules.2022.3.62.nupkg.sha512"
     },
-    "ProjectSCP.SCP500/1.0.0.0": {
+    "ProjectSCP.PSCPLibrary/0.1.1.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Snowlance.SnowyLib/1.13.2.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

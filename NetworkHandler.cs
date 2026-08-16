@@ -1,12 +1,14 @@
 ﻿using GameNetcodeStuff;
 using HarmonyLib;
-using HeavyItemSCPs.Items.SCP513;
+using HeavyItemSCPs.SCP.SCP513;
 using SnowyLib;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using static HeavyItemSCPs.Plugin;
+using Dawn;
+using System.Collections;
 
 namespace HeavyItemSCPs
 {
@@ -27,7 +29,7 @@ namespace HeavyItemSCPs
 
         public void Update()
         {
-            if (configEnableSCP513.Value)
+            if (HeavyItemSCPsContentHandler.Instance.SCP513 != null)
             {
                 DoBellmanStuff();
             }
@@ -49,7 +51,7 @@ namespace HeavyItemSCPs
                 if (StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) { return; }
                 if (!localPlayer.isPlayerControlled) { return; }
                 if (Utils.isOnCompanyMoon || Utils.allAINodes.Length <= 0) { return; }
-                NetworkHandlerHeavy.Instance?.SpawnBellManOnLocalClient();
+                SpawnBellManOnLocalClient();
             }
         }
 
@@ -58,44 +60,51 @@ namespace HeavyItemSCPs
             if (SCP513_1AI.Instance != null) { return; }
             logger.LogDebug("Spawning bellman");
             spawningBellMan = true;
-            Instantiate(SCP513_1Prefab, Vector3.zero, Quaternion.identity);
+            Instantiate(HeavyItemSCPsContentHandler.Instance.SCP513!.SCP513_1Prefab, Vector3.zero, Quaternion.identity);
         }
 
         [ServerRpc(RequireOwnership = false)]
         public void SpawnGhostGirlServerRpc(ulong clientId)
         {
-            if (!IsServerOrHost) { return; }
+            if (!IsServer) { return; }
 
             if (FindObjectsOfType<DressGirlAI>().FirstOrDefault() != null) { return; }
 
-            List<SpawnableEnemyWithRarity> enemies = Utils.GetEnemies();
-            SpawnableEnemyWithRarity? ghostGirl = enemies.Where(x => x.enemyType.name == "DressGirl").FirstOrDefault();
-            if (ghostGirl == null) { logger.LogError("Ghost girl could not be found"); return; }
-
-            RoundManager.Instance.SpawnEnemyGameObject(Vector3.zero, 0, -1, ghostGirl.enemyType);
+            Utils.SpawnEnemy(EnemyKeys.Girl, Vector3.zero);
         }
 
         [ServerRpc]
         public void MimicEnemyServerRpc(ulong clientId, string enemyName)
         {
-            if (!IsServerOrHost) { return; }
+            if (!IsServer) { return; }
+
+            PlayerControllerB? player = PlayerFromId(clientId);
+            if (player == null) { logger.LogError($"MimicEnemyServerRpc: Couldnt find player with id: {clientId}"); return; }
 
             logger.LogDebug("Attempting spawn enemy: " + enemyName);
 
-            EnemyType type = Utils.GetEnemies().Where(x => x.enemyType.name == enemyName).FirstOrDefault().enemyType;
-            if (type == null) { logger.LogError("Couldnt find enemy to spawn in MimicEnemyServerRpc"); return; }
-
-            EnemyVent? vent = Utils.GetClosestVentToPosition(localPlayer.transform.position);
-            if (vent == null)
+            try
             {
-                logger.LogError("Couldnt find vent for mimic enemy event.");
+                var enemyToSpawn = LethalContent.Enemies.Where(x => x.Value.EnemyType.name == enemyName).FirstOrDefault();
+
+                EnemyVent? vent = RoundManager.Instance.allEnemyVents.GetClosestToPosition(player.transform.position, (x) => x.transform.position);
+                
+                if (vent == null)
+                {
+                    logger.LogError("Couldnt find vent for mimic enemy event.");
+                    return;
+                }
+
+                EnemyAI? enemy = Utils.SpawnEnemy(enemyToSpawn.Key, vent.floorNode.position);
+                if (enemy == null) { logger.LogError($"MimicEnemyServerRpc: Failed to spawn enemy {enemyToSpawn}"); return; }
+                enemy.ChangeOwnershipOfEnemy(clientId);
+                MimicEnemyClientRpc(clientId, enemy.NetworkObject);
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError("MimicEnemyServerRpc: " + e);
                 return;
             }
-
-            NetworkObject netObj = RoundManager.Instance.SpawnEnemyGameObject(vent.floorNode.position, 0f, -1, type);
-            if (!netObj.TryGetComponent(out EnemyAI enemy)) { logger.LogError("Couldnt get netObj in MimicEnemyClientRpc"); return; }
-            enemy.ChangeOwnershipOfEnemy(clientId);
-            MimicEnemyClientRpc(clientId, enemy.NetworkObject);
         }
 
         [ClientRpc]
@@ -124,7 +133,7 @@ namespace HeavyItemSCPs
         [ServerRpc(RequireOwnership = false)]
         public void ShotgunSuicideServerRpc(NetworkObjectReference netRef, float duration)
         {
-            if (!IsServerOrHost) { return; }
+            if (!IsServer) { return; }
             ShotgunSuicideClientRpc(netRef, duration);
         }
 
@@ -166,7 +175,7 @@ namespace HeavyItemSCPs
                     if (player == localPlayer)
                     {
                         localPlayer.activatingItem = false;
-                        Utils.FreezePlayer(localPlayer, false);
+                        localPlayer.FreezePlayer(false);
                         shotgun.ShootGunAndSync(false);
                         yield return null;
                         localPlayer.DamagePlayer(100, hasDamageSFX: true, callRPC: true, CauseOfDeath.Gunshots, 0, fallDamage: false, shotgun.shotgunRayPoint.forward * 30f);
@@ -180,7 +189,7 @@ namespace HeavyItemSCPs
                     if (player == localPlayer)
                     {
                         localPlayer.activatingItem = false;
-                        Utils.FreezePlayer(localPlayer, false);
+                        localPlayer.FreezePlayer(false);
                     }
                 }
             }
@@ -196,10 +205,10 @@ namespace HeavyItemSCPs
     public class NetworkHandlerPatches
     {
         [HarmonyPostfix, HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
-        static void AwakePostFix()
+        static void StartOfRound_Awake_PostFix(StartOfRound __instance)
         {
-            if (!IsServerOrHost) { return; }
-            var networkHandlerHost = UnityEngine.Object.Instantiate(HeavyItemSCPsContentHandler.Instance.ItemSCPsAssets?.NetworkHandlerPrefab, Vector3.zero, Quaternion.identity);
+            if (!__instance.IsServer) { return; }
+            var networkHandlerHost = UnityEngine.Object.Instantiate(HeavyItemSCPsContentHandler.Instance.HeavyItemSCPsAssets?.NetworkHandlerPrefab, Vector3.zero, Quaternion.identity);
             networkHandlerHost?.GetComponent<NetworkObject>().Spawn();
         }
     }

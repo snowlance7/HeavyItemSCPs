@@ -1,6 +1,7 @@
-﻿using BepInEx.Logging;
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using HarmonyLib;
+using PSCPLibrary;
+using PSCPLibrary.Interfaces;
 using SnowyLib;
 using System;
 using System.Collections;
@@ -11,18 +12,18 @@ using static HeavyItemSCPs.Plugin;
 
 namespace HeavyItemSCPs.SCP.SCP323
 {
-    // TODO: When trying to add rotation and moving again, look at SoccerBall item code first
-    internal class SCP323Behavior : PhysicsProp, IVisibleThreat
+    // UPDATE: When trying to add rotation and moving again, look at SoccerBall item code first
+    internal class SCP323Behavior : PhysicsProp, ISingletonItem, IVisibleThreat, ISCP
     {
         // scale 0.31
         // scaleonwendigo 0.12
+        SCPInfo ISCP.SCPInfo => info;
         public static SCP323Behavior? Instance { get; private set; }
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GameObject MeshObj;
-        public GameObject SCP3231Prefab;
-        public Transform turnCompass;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public SCPInfo info = null!;
+        public MeshRenderer renderer = null!;
+        public GameObject SCP3231Prefab = null!;
+        public Transform turnCompass = null!;
 
         public static AttachState testState = AttachState.None;
 
@@ -72,22 +73,16 @@ namespace HeavyItemSCPs.SCP.SCP323
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-            if (Instance != null && Instance != this)
-            {
-                logger.LogWarning("There is already a SCP-323 in the scene. Removing this one.");
-                return;
-            }
+            if (Instance != null && Instance != this) { return; }
             Instance = this;
-            logger.LogDebug("Finished spawning SCP-323");
         }
 
         public override void OnNetworkDespawn()
         {
             base.OnNetworkDespawn();
+
             if (Instance == this)
-            {
                 Instance = null;
-            }
         }
 
         void BaseUpdate()
@@ -171,16 +166,6 @@ namespace HeavyItemSCPs.SCP.SCP323
             BaseUpdate();
 
             timeSinceSpawn += Time.deltaTime;
-
-            if (Instance != this)
-            {
-                grabbable = false;
-                if (IsServerOrHost && timeSinceSpawn > 3f)
-                {
-                    NetworkObject.Despawn(true);
-                }
-                return;
-            }
 
             madness = Mathf.Max(madness, localPlayer.insanityLevel);
 
@@ -376,7 +361,7 @@ namespace HeavyItemSCPs.SCP.SCP323
                 logger.LogDebug("Doing transformation animation coroutine.");
                 yield return new WaitForSecondsRealtime(5f);
 
-                player.DropAllHeldItemsAndSync();
+                player.DropAllHeldItems();
 
                 Vector3 spawnPos = player.transform.position;
                 player.KillPlayer(Vector3.zero, false, CauseOfDeath.Bludgeoning);
@@ -560,8 +545,6 @@ namespace HeavyItemSCPs.SCP.SCP323
     [HarmonyPatch]
     internal class SCP323Patches
     {
-        private static ManualLogSource logger = LoggerInstance;
-
         [HarmonyPrefix]
         [HarmonyPatch(typeof(BaboonBirdAI), nameof(BaboonBirdAI.SetAggressiveMode))]
         public static void SetAggressiveModePrefix(BaboonBirdAI __instance, ref int mode)

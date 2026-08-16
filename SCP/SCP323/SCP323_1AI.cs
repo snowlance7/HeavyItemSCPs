@@ -45,6 +45,9 @@ namespace HeavyItemSCPs.SCP.SCP323
         int currentFootstepSurfaceIndex;
         int previousFootstepClip;
 
+        float currentSearchRadius;
+        bool searching;
+
         // Constants
         const string maskedName = "MaskedPlayerEnemy";
         const float huntingRange = 50f;
@@ -124,7 +127,7 @@ namespace HeavyItemSCPs.SCP.SCP323
                 localPlayer.IncreaseFearLevelOverTime(0.1f, 0.5f);
             }
 
-            if (IsServerOrHost && targetPlayerCorpse != null && targetPlayerCorpse.grabBodyObject.playerHeldBy != null)
+            if (IsServer && targetPlayerCorpse != null && targetPlayerCorpse.grabBodyObject.playerHeldBy != null)
             {
                 targetPlayer = targetPlayerCorpse.grabBodyObject.playerHeldBy;
                 targetPlayerCorpse = null;
@@ -157,25 +160,21 @@ namespace HeavyItemSCPs.SCP.SCP323
                 case (int)State.Roaming:
                     if (TargetClosestPlayerOrMasked())
                     {
-                        StopSearch(currentSearch);
+                        StopSearch();
                         SwitchToBehaviourClientRpc((int)State.Hunting);
                         if (targetPlayer != null) { targetPlayerLastSeenPos = targetPlayer.transform.position; }
                         Roar();
                         return;
                     }
 
-                    if (currentSearch == null || !currentSearch.inProgress)
-                    {
-                        logger.LogDebug("Starting search");
-                        StartSearch(transform.position);
-                    }
+                    StartSearch(2000f);
 
                     break;
 
                 case (int)State.BloodSearch:
                     if (TargetClosestPlayerOrMasked())
                     {
-                        StopSearch(currentSearch);
+                        StopSearch();
                         SwitchToBehaviourClientRpc((int)State.Hunting);
                         if (targetPlayer != null) { targetPlayerLastSeenPos = targetPlayer.transform.position; }
                         Roar();
@@ -211,7 +210,7 @@ namespace HeavyItemSCPs.SCP.SCP323
                     {
                         if (CheckLineOfSightForPosition(targetPlayer.transform.position, 70f, 60, 10))
                         {
-                            StopSearch(currentSearch);
+                            StopSearch();
 
                             if (timeSinceSeenPlayer > 1.5f)
                             {
@@ -228,7 +227,18 @@ namespace HeavyItemSCPs.SCP.SCP323
                         }
                         else
                         {
-                            if (currentSearch == null) { StartSearch(targetPlayerLastSeenPos); }
+                            if (!searching)
+                            {
+                                if (SetDestinationToPosition(targetPlayerLastSeenPos, checkForPath: true))
+                                {
+                                    if (Vector3.Distance(transform.position, targetPlayerLastSeenPos) > 1f)
+                                        return;
+                                }
+
+                                nav.StopAgent();
+                                StartSearch(30f);
+                            }
+
                             if (timeSinceSeenPlayer < searchAfterLosePlayerTime)
                             {
                                 return;
@@ -307,6 +317,33 @@ namespace HeavyItemSCPs.SCP.SCP323
                 agent.speed = Mathf.Clamp(newSpeed, roamMaxSpeed, chaseMaxSpeed);
                 creatureAnimator.SetBool("run", true);
             }
+        }
+
+        public new bool SetDestinationToPosition(Vector3 position, bool checkForPath = false)
+        {
+            nav.CanTryToFlyToDestination = false;
+            if (checkForPath && !Utils.SmartCanPathToPoint(transform.position, position, nav.IsAgentOutside())) { return false; }
+            nav.TryDoPathingToDestination(position, out SmartAgentNavigator.GoToDestinationResult result);
+
+            return result == SmartAgentNavigator.GoToDestinationResult.Success || result == SmartAgentNavigator.GoToDestinationResult.InProgress; ;
+        }
+
+        public void StartSearch(float radius)
+        {
+            if (searching && radius == currentSearchRadius) { return; }
+            logger.LogDebug("Start search");
+            nav.StopSearchRoutine();
+            nav.StartSearchRoutine(radius);
+            currentSearchRadius = radius;
+            searching = true;
+        }
+
+        public void StopSearch()
+        {
+            if (!searching) { return; }
+            logger.LogDebug("Stop search");
+            nav.StopSearchRoutine();
+            searching = false;
         }
 
         IEnumerator DelayedStart(float timeToStart)
@@ -482,7 +519,7 @@ namespace HeavyItemSCPs.SCP.SCP323
 
         public void SpawnSkullOnHead()
         {
-            if (IsServerOrHost)
+            if (IsServer)
             {
                 GameObject skullObj = UnityEngine.Object.Instantiate(SCP323Prefab, SkullTransform.position, SkullTransform.rotation, RoundManager.Instance.spawnedScrapContainer);
                 skullObj.GetComponent<NetworkObject>().Spawn();
@@ -577,7 +614,7 @@ namespace HeavyItemSCPs.SCP.SCP323
         public override void OnCollideWithEnemy(Collider other, EnemyAI collidedEnemy = null!)
         {
             base.OnCollideWithEnemy(other, collidedEnemy);
-            if (!IsServerOrHost || timeSinceDamage <= 1f) { return; }
+            if (!IsServer || timeSinceDamage <= 1f) { return; }
 
             if (collidedEnemy.enemyType.name == maskedName || (targetEnemy != null && collidedEnemy == targetEnemy))
             {
@@ -601,7 +638,7 @@ namespace HeavyItemSCPs.SCP.SCP323
 
         public void MaskedDamaged(MaskedPlayerEnemy masked)
         {
-            if (!IsServerOrHost) { return; }
+            if (!IsServer) { return; }
             if (inSpecialAnimation) { return; }
             if (currentBehaviourStateIndex == (int)State.BloodSearch)
             {
@@ -854,7 +891,7 @@ namespace HeavyItemSCPs.SCP.SCP323
                 }
                 if (SCP323_1AI.Instance != null)
                 {
-                    if (IsServerOrHost)
+                    if (SCP323_1AI.Instance.IsServer)
                     {
                         SCP323_1AI.Instance.PlayerDamaged(__instance);
                     }

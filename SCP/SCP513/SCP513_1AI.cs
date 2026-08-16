@@ -1,68 +1,60 @@
-﻿using BepInEx.Logging;
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using SnowyLib;
 using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.TextCore.Text;
 using static HeavyItemSCPs.Plugin;
-using static HeavyItemSCPs.Utils;
-using static UnityEngine.VFX.VisualEffectControlTrackController;
 
-namespace HeavyItemSCPs.Items.SCP513
+namespace HeavyItemSCPs.SCP.SCP513
 {
     public class SCP513_1AI : MonoBehaviour
     {
-        private static ManualLogSource logger = LoggerInstance;
         public static SCP513_1AI? Instance { get; private set; }
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public NavMeshAgent agent;
-        public Animator creatureAnimator;
-        public float AIIntervalTime = 0.2f;
-        public AudioSource creatureSFX;
-        public AudioSource creatureVoice;
+        public NavMeshAgent agent = null!;
+        public Animator creatureAnimator = null!;
+        public AudioSource creatureSFX = null!;
+        public AudioSource creatureVoice = null!;
 
-        public Transform turnCompass;
-        public GameObject enemyMesh;
-        public GameObject ScanNode;
-        public AudioClip[] BellSFX;
-        public AudioClip[] AmbientSFX;
-        public AudioClip[] ScareSFX;
-        public AudioClip[] StepChaseSFX;
+        public Transform turnCompass = null!;
+        public GameObject enemyMesh = null!;
+        public GameObject scanNode = null!;
+        public AudioClip[] bellSFX = null!;
+        public AudioClip[] ambientSFX = null!;
+        public AudioClip[] scareSFX = null!;
+        public AudioClip[] stepChaseSFX = null!;
 
-        public AudioClip[] MinorSoundEffectSFX;
-        public AudioClip[] MajorSoundEffectSFX;
+        public AudioClip[] minorSoundEffectSFX = null!;
+        public AudioClip[] majorSoundEffectSFX = null!;
 
-        public GameObject SoundObjectPrefab;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public bool isOutside => !localPlayer.isInsideFactory;
-        public GameObject[] allAINodes => isOutside ? outsideAINodes : insideAINodes;
+        public GameObject soundObjectPrefab = null!;
 
-        public bool gotFarthestNodeAsync;
-        public float updateDestinationInterval;
-        public NavMeshPath? path1;
-        public bool moveTowardsDestination;
-        public Vector3 destination;
+        [HideInInspector] public bool isOutside => !localPlayer.isInsideFactory;
+        [HideInInspector] public GameObject[] allAINodes => isOutside ? Utils.outsideAINodes : Utils.insideAINodes;
 
-        public float mostOptimalDistance;
-        public Transform? targetNode;
-        public GameObject[] nodesTempArray = [];
-        public float pathDistance;
-        public int getFarthestNodeAsyncBookmark;
+        [HideInInspector] public float AIIntervalTime = 0.2f;
+
+        [HideInInspector] public bool gotFarthestNodeAsync;
+        [HideInInspector] public float updateDestinationInterval;
+        [HideInInspector] public NavMeshPath? path1;
+        [HideInInspector] public bool moveTowardsDestination;
+        [HideInInspector] public Vector3 destination;
+
+        [HideInInspector] public float mostOptimalDistance;
+        [HideInInspector] public Transform? targetNode;
+        [HideInInspector] public GameObject[] nodesTempArray = [];
+        [HideInInspector] public float pathDistance;
+        [HideInInspector] public int getFarthestNodeAsyncBookmark;
 
         public State currentBehaviourState;
 
-        public EnemyAI? mimicEnemy;
+        [HideInInspector] public EnemyAI? mimicEnemy;
         Coroutine? mimicEnemyRoutine;
-        public PlayerControllerB? mimicPlayer;
+        [HideInInspector] public PlayerControllerB? mimicPlayer;
 
         bool enemyMeshEnabled;
-        public bool facePlayer;
+        [HideInInspector] public bool facePlayer;
 
         float cooldownMultiplier;
         float timeSinceCommonEvent;
@@ -102,16 +94,6 @@ namespace HeavyItemSCPs.Items.SCP513
         float uncommonEventMaxCooldown = 30f;
         float rareEventMinCooldown = 100f;
         float rareEventMaxCooldown = 200f;
-
-        // Configs
-
-        public static bool unhauntedOnBellDespawn { get; private set; } = false;
-
-        [InitConfig]
-        public static void InitConfigs()
-        {
-            unhauntedOnBellDespawn = PluginInstance.Config.Bind("SCP-513 Options", "SCP-513 | Unhaunted on bell despawn", false, "When true, if the bell is despawned or sold to the company, all haunted players will become unhaunted.").Value;
-        }
 
         public enum State
         {
@@ -153,7 +135,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 if (mimicPlayer != null)
                 {
-                    Utils.MakePlayerInvisible(mimicPlayer, false);
+                    mimicPlayer.MakePlayerInvisible(false);
                     mimicPlayer = null;
                 }
             }
@@ -162,7 +144,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public void Update()
         {
             if (!SCP513Behavior.localPlayerHaunted || 
-                ((StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) && !inTestRoom))
+                ((StartOfRound.Instance.shipIsLeaving || StartOfRound.Instance.inShipPhase) && !Utils.inTestRoom))
             {
                 Destroy(gameObject);
                 return;
@@ -291,7 +273,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
             if (mimicPlayer != null)
             {
-                Utils.MakePlayerInvisible(mimicPlayer, false); // TODO: Make sure mimic player event actually happens
+                mimicPlayer.MakePlayerInvisible(false); // TODO: Make sure mimic player event actually happens
                 mimicPlayer = null;
             }
         }
@@ -360,7 +342,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                     if (!mimicPlayer.isPlayerControlled)
                     {
-                        Utils.MakePlayerInvisible(mimicPlayer, false);
+                        mimicPlayer.MakePlayerInvisible(false);
                         mimicPlayer = null;
                         SwitchToBehavior(State.InActive);
                         return;
@@ -645,7 +627,7 @@ namespace HeavyItemSCPs.Items.SCP513
 
                 Teleport(farthestNodeFromTargetPlayer!.position);
                 HallucinationManager.Instance?.FlickerLights();
-                RoundManager.PlayRandomClip(creatureVoice, BellSFX);
+                RoundManager.PlayRandomClip(creatureVoice, bellSFX);
             }
 
             agent.speed = 0f;
@@ -656,7 +638,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (enemyMeshEnabled == enable) { return; }
             logger.LogDebug($"EnableEnemyMesh({enable})");
             enemyMesh.SetActive(enable);
-            ScanNode.SetActive(enable);
+            scanNode.SetActive(enable);
             enemyMeshEnabled = enable;
         }
 
@@ -671,7 +653,7 @@ namespace HeavyItemSCPs.Items.SCP513
         public void HitEnemy(int force = 1, PlayerControllerB? playerWhoHit = null, bool playHitSFX = false, int hitID = -1)
         {
             if (currentBehaviourState == State.MimicPlayer) { return; }
-            RoundManager.PlayRandomClip(creatureSFX, BellSFX);
+            RoundManager.PlayRandomClip(creatureSFX, bellSFX);
             SwitchToBehavior(State.InActive);
             localPlayer.insanityLevel = 0f;
         }
@@ -683,7 +665,7 @@ namespace HeavyItemSCPs.Items.SCP513
             if (!other.gameObject.TryGetComponent(out PlayerControllerB player)) { return; }
             if (player == null || player != localPlayer) { return; }
 
-            RoundManager.PlayRandomClip(creatureVoice, ScareSFX);
+            RoundManager.PlayRandomClip(creatureVoice, scareSFX);
             player.insanityLevel = 50f;
             player.JumpToFearLevel(1f);
             if (localPlayer.drunkness < 0.2f) { localPlayer.drunkness = 0.2f; }
@@ -758,8 +740,8 @@ namespace HeavyItemSCPs.Items.SCP513
             if (currentBehaviourState == State.Chasing)
             {
                 creatureSFX.pitch = Random.Range(0.93f, 1.07f);
-                index = UnityEngine.Random.Range(0, StepChaseSFX.Length);
-                creatureSFX.PlayOneShot(StepChaseSFX[index]);
+                index = UnityEngine.Random.Range(0, stepChaseSFX.Length);
+                creatureSFX.PlayOneShot(stepChaseSFX[index]);
                 return;
             }
 
@@ -795,8 +777,8 @@ namespace HeavyItemSCPs.Items.SCP513
                 DespawnMimicEnemy();
             }
 
-            if (NetworkHandlerHeavy.Instance == null) { logger.LogError("Cant find NetworkHandlerHeavyItemSCPs"); return; }
-            NetworkHandlerHeavy.Instance.MimicEnemyServerRpc(localPlayer.actualClientId, enemyName);
+            if (NetworkHandler.Instance == null) { logger.LogError("Cant find NetworkHandlerHeavyItemSCPs"); return; }
+            NetworkHandler.Instance.MimicEnemyServerRpc(localPlayer.actualClientId, enemyName);
 
             IEnumerator MimicEnemyCoroutine(float maxSpawnTime, float despawnDistance)
             {

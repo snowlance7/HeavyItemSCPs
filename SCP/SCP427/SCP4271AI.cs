@@ -1,24 +1,15 @@
-﻿using BepInEx.Logging;
-using Dissonance.Audio.Codecs;
+﻿using Dawn.Utils;
 using GameNetcodeStuff;
 using HarmonyLib;
+using SnowyLib;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Unity.Netcode;
-using Unity.Netcode.Components;
 using UnityEngine;
-using UnityEngine.Android;
-using UnityEngine.Animations.Rigging;
-using UnityEngine.Rendering.HighDefinition;
-using UnityEngine.UIElements.Experimental;
 using static HeavyItemSCPs.Plugin;
-using static HeavyItemSCPs.Utils;
-using static UnityEngine.Rendering.DebugUI;
 
-namespace HeavyItemSCPs.Items.SCP427
+namespace HeavyItemSCPs.SCP.SCP427
 {
-    public class SCP4271AI : EnemyAI, IVisibleThreat
+    public class SCP4271AI : EnemyAI, ISingletonEnemy, IVisibleThreat
     {
         // Run speed for animation: 1.1 or higher
         // Thumper variables for reference:
@@ -48,19 +39,16 @@ namespace HeavyItemSCPs.Items.SCP427
          *
          */
 
-        private static ManualLogSource logger = LoggerInstance;
         public static SCP4271AI? Instance { get; private set; }
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Transform turnCompass;
-        public Transform RightHandTransform;
-        public AudioClip[] stompSFXList;
-        public AudioClip roarSFX;
-        public AudioClip warningRoarSFX;
-        public AudioClip hitWallSFX;
-        //public NetworkAnimator networkAnimator;
-        public Material[] materials;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public SmartAgentNavigator nav = null!;
+        public Transform turnCompass = null!;
+        public Transform rightHandTransform = null!;
+        public AudioClip[] stompSFXList = null!;
+        public AudioClip roarSFX = null!;
+        public AudioClip warningRoarSFX = null!;
+        public AudioClip hitWallSFX = null!;
+        public Material[] materials = null!;
 
         readonly float throwForce = 70f;
 
@@ -69,7 +57,7 @@ namespace HeavyItemSCPs.Items.SCP427
         public static float BaseAcceleration = 30f; // default 42f
         public static float SpeedIncreaseRate = 4f; // default 5f
 
-        public static bool DEBUG_throwingPlayerDisabled; // TESTING REMOVE LATER
+        public static bool DEBUG_throwingPlayerDisabled; // TODO: TESTING REMOVE LATER
 
         public float heldObjectVerticalOffset = 6f;
 
@@ -97,14 +85,19 @@ namespace HeavyItemSCPs.Items.SCP427
         float idlingTimer;
         float timeSpawned;
 
+        bool searching;
+        float currentSearchRadius;
+        bool reachedNodeInSearch;
+
         // For throwing player
         Vector3 forwardDirection;
         Vector3 upDirection;
         Vector3 throwDirection;
         Vector3 lastKnownTargetPlayerPosition;
 
-        float currentSpeed => agent.velocity.magnitude / 2;
-
+        float idleTime;
+        float currentSpeed;
+        private Vector3 lastPosition;
         int hashSpeed;
 
         // Config values
@@ -143,7 +136,8 @@ namespace HeavyItemSCPs.Items.SCP427
                 Instance = this;
             }
 
-            SetOutsideOrInside();
+            isOutside = this.IsOutside();
+            nav.SetAllValues(isOutside);
 
             RoundManager.Instance.RefreshEnemiesList();
             HoarderBugAI.RefreshGrabbableObjectsInMapList();
@@ -180,40 +174,46 @@ namespace HeavyItemSCPs.Items.SCP427
 
             if (heldPlayer != null)
             {
-                heldPlayer.transform.position = RightHandTransform.position;
+                heldPlayer.transform.position = rightHandTransform.position;
             }
 
             if (heldObject != null)
             {
-                heldObject.transform.position = RightHandTransform.position + new Vector3(0f, heldObjectVerticalOffset, 0f);
+                heldObject.transform.position = rightHandTransform.position + new Vector3(0f, heldObjectVerticalOffset, 0f);
             }
 
             if (!IsServerOrHost) { return; }
 
             if (currentBehaviourStateIndex == (int)State.Roaming) { timeSinceSeenPlayer += Time.deltaTime; }
 
-            if (idlingTimer > 0f)
-            {
-                agent.speed = 0f;
-                idlingTimer -= Time.deltaTime;
-
-                if (idlingTimer <= 0f)
-                {
-                    idlingTimer = 0f;
-                }
-            }
-
             CalculateAgentSpeed();
         }
 
         public void LateUpdate()
         {
+            if (IsServer && facePlayer && targetPlayer != null)
+            {
+                turnCompass.LookAt(targetPlayer.gameplayCamera.transform.position);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 30f * Time.deltaTime);
+            }
+
+            currentSpeed = (transform.position - lastPosition).magnitude / Time.deltaTime / 2;
+            lastPosition = transform.position;
             creatureAnimator.SetFloat(hashSpeed, currentSpeed);
 
-            if (facePlayer)
+            idleTime = currentSpeed > 0.1f ? 0f : idleTime + Time.deltaTime;
+
+            if (idleTime > 0.1f)
             {
-                turnCompass.LookAt(Plugin.localPlayer.gameplayCamera.transform.position);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(0f, turnCompass.eulerAngles.y, 0f)), 30f * Time.deltaTime);
+                if (!reachedNodeInSearch && searching)
+                {
+                    reachedNodeInSearch = true;
+                    ReachedNodeInSearch();
+                }
+            }
+            else
+            {
+                reachedNodeInSearch = false;
             }
         }
 
@@ -234,9 +234,9 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 case (int)State.Roaming:
 
-                    if (!DEBUG_disableTargetting && FoundClosestPlayerInRange(25f, 5f) && targetPlayer != null)
+                    if (FoundClosestPlayerInRange(25f, 5f) && targetPlayer != null)
                     {
-                        StopSearch(currentSearch);
+                        StopSearch();
 
                         if (heldObject != null)
                         {
@@ -250,10 +250,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                     if (!MoveTowardsScrapInLineOfSight())
                     {
-                        if (currentSearch == null || !currentSearch.inProgress)
-                        {
-                            StartSearch(transform.position);
-                        }
+                        StartSearch(2000f);
                     }
 
                     break;
@@ -282,6 +279,33 @@ namespace HeavyItemSCPs.Items.SCP427
                     logger.LogWarning("Invalid state: " + currentBehaviourStateIndex);
                     break;
             }
+        }
+
+        public new bool SetDestinationToPosition(Vector3 position, bool checkForPath = false)
+        {
+            nav.CanTryToFlyToDestination = false;
+            if (checkForPath && !Utils.SmartCanPathToPoint(transform.position, position, nav.IsAgentOutside())) { return false; }
+            nav.TryDoPathingToDestination(position, out SmartAgentNavigator.GoToDestinationResult result);
+
+            return result == SmartAgentNavigator.GoToDestinationResult.Success || result == SmartAgentNavigator.GoToDestinationResult.InProgress; ;
+        }
+
+        public void StartSearch(float radius)
+        {
+            if (searching && radius == currentSearchRadius) { return; }
+            logger.LogDebug("Start search");
+            nav.StopSearchRoutine();
+            nav.StartSearchRoutine(radius);
+            currentSearchRadius = radius;
+            searching = true;
+        }
+
+        public void StopSearch()
+        {
+            if (!searching) { return; }
+            logger.LogDebug("Stop search");
+            nav.StopSearchRoutine();
+            searching = false;
         }
 
         #region Animation Events
@@ -315,7 +339,7 @@ namespace HeavyItemSCPs.Items.SCP427
             {
                 GrabbableObject grabbingObject = targetObject.GetComponent<GrabbableObject>();
                 targetObject = null;
-                grabbingObject.parentObject = RightHandTransform;
+                grabbingObject.parentObject = rightHandTransform;
                 grabbingObject.hasHitGround = false;
                 grabbingObject.isHeldByEnemy = true;
                 grabbingObject.GrabItemFromEnemy(this);
@@ -341,7 +365,7 @@ namespace HeavyItemSCPs.Items.SCP427
                 IEnumerator FailsafeCoroutine(PlayerControllerB player)
                 {
                     yield return new WaitForSeconds(5f);
-                    Utils.FreezePlayer(player, false);
+                    player.FreezePlayer(false);
                     //CancelSpecialAnimation(); // TODO: Set this up again to reset and drop player and other things???
                 }
                 StartCoroutine(FailsafeCoroutine(player));
@@ -370,7 +394,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
                 // Throw player
                 logger.LogDebug("Applying force: " + throwDirection * throwForce);
-                player.DropAllHeldItemsAndSync();
+                player.DropAllHeldItems();
                 player.playerRigidbody.velocity = Vector3.zero;
                 player.externalForceAutoFade += throwDirection * throwForce;
 
@@ -467,7 +491,7 @@ namespace HeavyItemSCPs.Items.SCP427
 
         private void CalculateAgentSpeed()
         {
-            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0) || Utils.DEBUG_disableMoving)
+            if (stunNormalizedTimer >= 0f || currentBehaviourStateIndex == 2 || inSpecialAnimation || (idlingTimer > 0f && currentBehaviourStateIndex == 0))
             {
                 //logger.LogDebug("Stopping agent speed");
                 agent.speed = 0f;
@@ -538,16 +562,6 @@ namespace HeavyItemSCPs.Items.SCP427
             }
         }
 
-        public void SetOutsideOrInside()
-        {
-            GameObject closestOutsideNode = Utils.outsideAINodes.ToList().GetClosestGameObjectToPosition(transform.position)!;
-            GameObject closestInsideNode = Utils.insideAINodes.ToList().GetClosestGameObjectToPosition(transform.position)!;
-
-            bool outside = Vector3.Distance(transform.position, closestOutsideNode.transform.position) < Vector3.Distance(transform.position, closestInsideNode.transform.position);
-            logger.LogDebug("Setting enemy outside: " + outside.ToString());
-            SetEnemyOutsideClientRpc(outside);
-        }
-
         bool MoveTowardsScrapInLineOfSight()
         {
             if (heldObject != null) { return false; }
@@ -573,7 +587,7 @@ namespace HeavyItemSCPs.Items.SCP427
             targetObject = CheckLineOfSight(HoarderBugAI.grabbableObjectsInMap);
             if (targetObject == null) { return false; }
             if (!SetDestinationToPosition(targetObject.transform.position, true)) { targetObject = null; return false; }
-            StopSearch(currentSearch);
+            StopSearch();
             return true;
         }
 
@@ -613,7 +627,7 @@ namespace HeavyItemSCPs.Items.SCP427
             StartCoroutine(FreezePlayerCoroutine(player, freezeTime));
         }
 
-        public override void ReachedNodeInSearch()
+        public override void ReachedNodeInSearch() // UPDATE: DawnLib reached node in search?
         {
             base.ReachedNodeInSearch();
 
@@ -624,8 +638,6 @@ namespace HeavyItemSCPs.Items.SCP427
                 {
                     creatureVoice.PlayOneShot(warningRoarSFX, 1f);
                 }
-
-                idlingTimer = 2f;
             }
         }
 
@@ -849,12 +861,6 @@ namespace HeavyItemSCPs.Items.SCP427
         }
 
         [ClientRpc]
-        void SetEnemyOutsideClientRpc(bool value)
-        {
-            SetEnemyOutside(value);
-        }
-
-        [ClientRpc]
         public void SetMaterialVariantClientRpc(MaterialVariants variant)
         {
             skinnedMeshRenderers[0].material = materials[(int)variant];
@@ -864,8 +870,6 @@ namespace HeavyItemSCPs.Items.SCP427
     [HarmonyPatch]
     internal class SCP4271Patches
     {
-        private static ManualLogSource logger = LoggerInstance;
-
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Landmine), nameof(Landmine.OnTriggerEnter))]
         public static void OnTriggerEnterPostfix(ref Landmine __instance, Collider other, ref float ___pressMineDebounceTimer)

@@ -41,7 +41,7 @@ namespace HeavyItemSCPs
 
             harmony.PatchAll();
 
-            AssetBundle? mainBundle = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Info.Location), "itemscps_mainassets"));
+            AssetBundle? mainBundle = AssetBundle.LoadFromFile(Path.Combine(Path.GetDirectoryName(Info.Location), "heavyitemscps_mainassets"));
             Mod = DuskMod.RegisterMod(this, mainBundle);
             Mod.RegisterContentHandlers();
 

@@ -29,7 +29,11 @@ namespace HeavyItemSCPs
         public class SCP427Assets(DuskMod mod, string filePath) : AssetBundleLoader<SCP427Assets>(mod, filePath) { }
         public SCP427Assets? SCP427;
 
-        public class SCP513Assets(DuskMod mod, string filePath) : AssetBundleLoader<SCP513Assets>(mod, filePath) { }
+        public class SCP513Assets(DuskMod mod, string filePath) : AssetBundleLoader<SCP513Assets>(mod, filePath)
+        {
+            [LoadFromBundle("SCP513_1.prefab")]
+            public GameObject SCP513_1Prefab { get; private set; } = null!;
+        }
         public SCP513Assets? SCP513;
 
         public HeavyItemSCPsContentHandler(DuskMod mod) : base(mod)

@@ -1,3 +1,3 @@
 @echo off
 
-copy /Y "bin\Debug\netstandard2.1\ProjectSCP.ItemSCPs.dll" "ItemSCPsUnityProject\Assets\Plugins\"
+copy /Y "bin\Debug\netstandard2.1\ProjectSCP.HeavyItemSCPs.dll" "HeavyItemSCPsUnityProject\Assets\Plugins\"
